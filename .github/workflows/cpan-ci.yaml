@@ -1,0 +1,25 @@
+name: CPAN CI
+
+on: workflow_dispatch
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+        perl:
+          - 5.38
+    name: Perl ${{ matrix.perl }} on ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up perl
+        uses: shogo82148/actions-setup-perl@v1
+        with:
+          perl-version: ${{ matrix.perl }}
+      - run: perl -V
+      - run: cpanm --test-only -v At
