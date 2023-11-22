@@ -11,11 +11,8 @@ use Time::Piece;
 my $at = At->new( host => 'https://fun.example' );
 $at->server->createSession( identifier => 'sanko', password => '1111-aaaa-zzzz-0000' );
 $at->repo->createRecord(
-    'app.bsky.feed.post',
-    {   '$type'   => 'app.bsky.feed.post',
-        text      => "Hello world! I posted this via the API.",
-        createdAt => gmtime->datetime . 'Z'
-    }
+    collection => 'app.bsky.feed.post',
+    record     => { '$type' => 'app.bsky.feed.post', text => "Hello world! I posted this via the API.", createdAt => gmtime->datetime . 'Z' }
 );
 ```
 
