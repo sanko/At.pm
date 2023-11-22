@@ -241,7 +241,7 @@ At - The AT Protocol for Social Networking
     use Time::Piece;
     my $at = At->new( host => 'https://fun.example' );
     $at->server->createSession( identifier => 'sanko', password => '1111-aaaa-zzzz-0000' );
-    $at->repo->createRecord(    # Or use At::Bluesky->text_post( ... )
+    $at->repo->createRecord(
         'app.bsky.feed.post',
         {   '$type'   => 'app.bsky.feed.post',
             text      => "Hello world! I posted this via the API.",
@@ -259,7 +259,7 @@ At.pm uses perl's new class system which requires perl 5.38.x or better.
 =head2 At::Bluesky
 
     my $bsky = At::Bluesky->new( identifier => 'sanko', password => ... );
-    $bsky->text_post('Easy!');
+    $bsky->post( text => 'Easy!' );
 
 Creates an At object with the host set to C<https://bluesky.social>, loads all the lexicon extensions related to the
 social networking site, and exposes a lot of sugar (such as simple post creation).
@@ -320,6 +320,8 @@ The NSID of the record collection.
 
 =item C<record> - required
 
+Depending on the type of record, this could be anything. It's undefined in the protocol itself.
+
 =back
 
 =head1 Server Methods
@@ -345,6 +347,12 @@ You know this!
 =back
 
 =head2 C<describeServer( )>
+
+Get a document describing the service's accounts configuration.
+
+    $at->server->describeServer();
+
+This method does not require an authenticated session.
 
 =begin todo
 
