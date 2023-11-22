@@ -62,10 +62,11 @@
             "Mojo::UserAgent" : "0"
          },
          "requires" : {
-            "DateTime::Tiny" : "0",
             "IO::Socket::SSL" : "1.42",
             "JSON::Tiny" : "0",
             "Net::SSLeay" : "1.49",
+            "Path::Tiny" : "0",
+            "Time::Moment" : "0",
             "URI" : "0",
             "perl" : "v5.38.0"
          }

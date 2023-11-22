@@ -65,6 +65,40 @@ Returns an AT repository. Without arguments, this returns the repository returne
 
 Returns an AT service.
 
+## `admin( )`
+
+# Admin methods
+
+Administration methods require an authenticated session.
+
+## `disableAccountInvites( ... )`
+
+Disable an account from receiving new invite codes, but does not invalidate existing codes.
+
+Expected parameters include:
+
+- `account` - required
+
+    DID of account to modify.
+
+- `note`
+
+    Optional reason for disabled invites.
+
+## `disableInviteCodes( )`
+
+Disable some set of codes and/or all codes associated with a set of users.
+
+Expected parameters include:
+
+- `codes`
+
+    List of codes.
+
+- `accounts`
+
+    List of account DIDs.
+
 # Repo Methods
 
 Repo methods generally require an authorized session. The AT Protocol treats 'posts' and other data as records stored
@@ -109,7 +143,7 @@ Expected parameters include:
 
 - `password` - required
 
-    You know this!
+    You know this.
 
 ## `describeServer( )`
 

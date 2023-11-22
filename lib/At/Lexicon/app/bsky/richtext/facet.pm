@@ -1,4 +1,4 @@
-package At::Lexicons::app::bsky::richtext::facet 0.02 {
+package At::Lexicon::app::bsky::richtext::facet 0.02 {
 
     #~ https://github.com/bluesky-social/atproto/blob/main/lexicons/app/bsky/richtext/facet.json
     use v5.38;

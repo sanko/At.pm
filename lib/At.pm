@@ -1,15 +1,12 @@
 package At 0.02 {
     use v5.38;
-    no warnings 'experimental::class', 'experimental::builtin';    # Be quiet.
+    no warnings 'experimental::class', 'experimental::builtin', 'experimental::for_list';    # Be quiet.
     use feature 'class';
-    use DateTime::Tiny;
     #
     class At 1.00 {
         field $http //= Mojo::UserAgent->can('start') ? At::UserAgent::Mojo->new() : At::UserAgent::Tiny->new();
         method http {$http}
-        #
         field $host : param = ();
-        #
         field $repo : param = ();
 
         method repo {
@@ -17,7 +14,17 @@ package At 0.02 {
         }
         method _repo { $repo = shift; }
         field $server : param = ();
-        method server {$server}
+
+        method server {
+            $server //= At::Lexicon::AtProto::Server->new( client => $self, host => $host );
+            $server;
+        }
+        field $admin : param = ();
+
+        method admin {
+            $admin //= At::Lexicon::AtProto::Admin->new( client => $self, host => $host );
+            $admin;
+        }
         #
         method host {
             return $host if defined $host;
@@ -25,22 +32,16 @@ package At 0.02 {
             confess 'You must provide a host or perhaps you wanted At::Bluesky';
         }
         ## Internals
-        sub _timestamp {
-            my @t = gmtime time;    # standardize around Zulu
-            DateTime::Tiny->new( year => $t[5] + 1900, month => $t[4] + 1, day => $t[3], hour => $t[2], minute => $t[1], second => $t[0] );
-        }
-
         sub _now {
-            _timestamp()->as_string . 'Z';
+            At::Protocol::Timestamp->new( timestamp => time );
         }
         ADJUST {
-            require At::Lexicons::app::bsky::feed::post;
-            require At::Lexicons::app::bsky::richtext::facet;
+            require At::Lexicon::app::bsky::feed::post;
+            require At::Lexicon::app::bsky::richtext::facet;
             #
             my $host = $self->host;
-            $host   = 'https://' . $host unless $host =~ /^https?:/;
-            $host   = URI->new($host)    unless builtin::blessed $host;
-            $server = At::Lexicon::AtProto::Server->new( client => $self, host => $host );
+            $host = 'https://' . $host unless $host =~ /^https?:/;
+            $host = URI->new($host)    unless builtin::blessed $host;
         }
     }
 
@@ -52,7 +53,7 @@ package At 0.02 {
         method createSession (%args) {
             my $session = $client->http->post( sprintf( '%s/xrpc/%s', $client->host, 'com.atproto.server.createSession' ), { content => \%args } );
             $client->http->session($session);
-            $client->_repo( At::Lexicon::AtProto::Repo->new( client => $client, did => $client->http->session->did->raw ) );
+            $client->_repo( At::Lexicon::AtProto::Repo->new( client => $client, did => $client->http->session->did->_raw ) );
             $session;
         }
 
@@ -73,8 +74,32 @@ package At 0.02 {
             use Carp qw[confess];
             $client->http->session // confess 'creating a post requires an authenticated client';
             my $res = $client->http->post( sprintf( '%s/xrpc/%s', $client->host(), 'com.atproto.repo.createRecord' ),
-                { content => { repo => $did->raw, %args } } );
+                { content => { repo => $did->_raw, %args } } );
             $res->{uri} = URI->new( $res->{uri} ) if defined $res->{uri};
+            $res;
+        }
+    }
+
+    class At::Lexicon::AtProto::Admin {
+        field $client : param;
+        field $did : param;
+        method did {$did}
+        ADJUST {
+            $did = At::Protocol::DID->new( uri => $did ) unless builtin::blessed $did
+        }
+
+        method disableAccountInvites (%args) {
+            use Carp qw[confess];
+            $client->http->session // confess 'creating a post requires an authenticated client';
+            my $res
+                = $client->http->post( sprintf( '%s/xrpc/%s', $client->host(), 'com.atproto.admin.disableAccountInvites' ), { content => \%args } );
+            $res;
+        }
+
+        method disableInviteCodes (%args) {
+            use Carp qw[confess];
+            $client->http->session // confess 'creating a post requires an authenticated client';
+            my $res = $client->http->post( sprintf( '%s/xrpc/%s', $client->host(), 'com.atproto.admin.disableInviteCodes' ), { content => \%args } );
             $res;
         }
     }
@@ -90,9 +115,39 @@ package At 0.02 {
             carp 'unsupported method: ' . $scheme if $scheme ne 'plc' && $scheme ne 'web';
         };
 
-        method raw {
+        method _raw {
             'did:' . $uri->as_string;
         }
+    }
+
+    class At::Protocol::Timestamp {    # Internal; standardize around Zulu
+        field $timestamp : param;
+        ADJUST {
+            $timestamp // Carp::croak 'missing timestamp';
+            use Time::Moment;
+            return if builtin::blessed $timestamp;
+            $timestamp = $timestamp =~ /\D/ ? Time::Moment->from_string($timestamp) : Time::Moment->from_epoch($timestamp);
+        };
+
+        method _raw {
+            $timestamp->to_string;
+        }
+    }
+
+    class At::Protocol::Handle {    # https://atproto.com/specs/handle
+        field $id : param;
+        ADJUST {
+            use Carp qw[croak carp];
+            croak 'malformed handle: ' . $id
+                unless $id =~ /^([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$/;
+            croak 'disallowed TLD in handle: ' . $id if $id =~ /\.(arpa|example|internal|invalid|local|localhost|onion)$/;
+            CORE::state $warned //= 0;
+            if ( $id =~ /\.(test)$/ && !$warned ) {
+                carp 'development or testing TLD used in handle: ' . $id;
+                $warned = 1;
+            }
+        };
+        method _raw { $id; }
     }
 
     class At::Protocol::Session {
@@ -143,15 +198,32 @@ package At 0.02 {
             $agent->{default_headers}{Authorization} = 'Bearer ' . $s->{accessJwt};
         }
 
+        sub _url_encode {
+            my $rv = shift;
+            $rv =~ s/([^a-z\d\Q.-_~ \E])/sprintf("%%%2.2X", ord($1))/geix;
+            $rv =~ tr/ /+/;
+            return $rv;
+        }
+
+        sub _build_query_string {
+            my $params = shift;
+            my @query;
+            for my ( $key, $value )(%$params) {
+                next if !defined $value;
+                push @query, $key . '=' . _url_encode($_) for ( builtin::reftype($value) // '' eq 'ARRAY' ? @$value : $value );
+            }
+            return join '&', @query;
+        }
+
         method get ( $url, $req = () ) {
-            my $res = $agent->get( $url, defined $req->{content} ? { content => encode_json $req->{content} } : () );
-            $res->{content} = decode_json $res->{content} if defined $res->{content};
+            my $res = $agent->get( $url . ( defined $req->{content} ? '?' . _build_query_string( $req->{content} ) : '' ) );
+            $res->{content} = decode_json $res->{content} if $res->{content};
             return $res->{content};
         }
 
         method post ( $url, $req = () ) {
             my $res = $agent->post( $url, defined $req->{content} ? { content => encode_json $req->{content} } : () );
-            $res->{content} = decode_json $res->{content} if defined $res->{content};
+            $res->{content} = decode_json $res->{content} if $res->{content};
             return $res->{content};
         }
     }
@@ -178,11 +250,11 @@ package At 0.02 {
             my $res = $agent->get(
                 $url,
                 defined $session        ? { Authorization => 'Bearer ' . $session->accessJwt } : (),
-                defined $req->{content} ? ( json => $req->{content} )                          : ()
+                defined $req->{content} ? ( form => $req->{content} )                          : ()
             )->result;
 
             # todo: error handling
-            if    ( $res->is_success )  { return $res->json }
+            if    ( $res->is_success )  { return $res->content ? $res->json : () }
             elsif ( $res->is_error )    { say $res->message }
             elsif ( $res->code == 301 ) { say $res->headers->location }
             else                        { say 'Whatever...' }
@@ -196,7 +268,7 @@ package At 0.02 {
             )->result;
 
             # todo: error handling
-            if    ( $res->is_success )  { return $res->json }
+            if    ( $res->is_success )  { return $res->content ? $res->json : () }
             elsif ( $res->is_error )    { say $res->message }
             elsif ( $res->code == 301 ) { say $res->headers->location }
             else                        { say 'Whatever...' }
@@ -270,6 +342,70 @@ Returns an AT repository. Without arguments, this returns the repository returne
 
 Returns an AT service.
 
+=head2 C<admin( )>
+
+=head1 Admin methods
+
+Administration methods require an authenticated session.
+
+=head2 C<disableAccountInvites( ... )>
+
+Disable an account from receiving new invite codes, but does not invalidate existing codes.
+
+Expected parameters include:
+
+=over
+
+=item C<account> - required
+
+DID of account to modify.
+
+=item C<note>
+
+Optional reason for disabled invites.
+
+=back
+
+=head2 C<disableInviteCodes( )>
+
+Disable some set of codes and/or all codes associated with a set of users.
+
+Expected parameters include:
+
+=over
+
+=item C<codes>
+
+List of codes.
+
+=item C<accounts>
+
+List of account DIDs.
+
+=back
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 =head1 Repo Methods
 
 Repo methods generally require an authorized session. The AT Protocol treats 'posts' and other data as records stored
@@ -316,7 +452,7 @@ Handle or other identifier supported by the server for the authenticating user.
 
 =item C<password> - required
 
-You know this!
+You know this.
 
 =back
 

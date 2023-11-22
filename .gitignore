@@ -37,4 +37,6 @@ eg/trash.pl
 eg/clutter.pl
 *.session
 
-bluesky.conf
+eg/*.conf
+
+eg/atproto/

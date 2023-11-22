@@ -1,6 +1,7 @@
 requires 'perl', '5.038000';    # class syntax
-requires 'DateTime::Tiny';
+requires 'Time::Moment';
 requires 'JSON::Tiny';
+requires 'Path::Tiny';
 requires 'Net::SSLeay',     1.49;
 requires 'IO::Socket::SSL', 1.42;
 requires 'URI';

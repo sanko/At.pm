@@ -1,4 +1,4 @@
-package At::Lexicons::app::bsky::feed::post 0.02 {
+package At::Lexicon::app::bsky::feed::post 0.02 {
 
     #~ https://github.com/bluesky-social/atproto/blob/main/lexicons/app/bsky/feed/post.json
     use v5.38;
@@ -64,11 +64,7 @@ package At::Lexicons::app::bsky::feed::post 0.02 {
         }
 
         method raw {
-            {   text      => $text,
-                createdAt => $createdAt,
-                ( defined $facets ? ( facets => $facets ) : () ), ( defined $langs ? ( langs => $langs ) : () ),
-                ( defined $tags   ? ( tags   => $tags )   : () )
-            }
+            { text => $text, createdAt => $createdAt, facets => $facets // undef, langs => $langs // undef, tags => $tags // undef }
         }
     }
 };
@@ -86,11 +82,6 @@ __END__
         "required": ["text", "createdAt"],
         "properties": {
           "text": { "type": "string", "maxLength": 3000, "maxGraphemes": 300 },
-          "entities": {
-            "type": "array",
-            "description": "Deprecated: replaced by app.bsky.richtext.facet.",
-            "items": { "type": "ref", "ref": "#entity" }
-          },
           "facets": {
             "type": "array",
             "items": { "type": "ref", "ref": "app.bsky.richtext.facet" }

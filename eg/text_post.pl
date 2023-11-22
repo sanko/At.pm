@@ -12,11 +12,7 @@ my $at     = At->new( host => 'https://bsky.social' );
 $at->server->createSession( %{ $config->{_} } );
 $at->repo->createRecord(
     collection => 'app.bsky.feed.post',
-    record     => {
-        '$type'   => 'app.bsky.feed.post',
-        text      => 'Hello world! I posted this via the API.',
-        createdAt => gmtime->datetime . 'Z'
-    }
+    record     => { '$type' => 'app.bsky.feed.post', text => 'Hello world! I posted this via the API.', createdAt => gmtime->datetime . 'Z' }
 );
 __END__
 Create a config file named bluesky.conf with contents that look like this:
