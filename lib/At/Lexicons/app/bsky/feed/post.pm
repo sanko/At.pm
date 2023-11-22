@@ -1,4 +1,4 @@
-package At::Lexicons::app::bsky::feed::post 1 {
+package At::Lexicons::app::bsky::feed::post 0.01 {
 
     #~ https://github.com/bluesky-social/atproto/blob/main/lexicons/app/bsky/feed/post.json
     use v5.38;

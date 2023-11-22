@@ -4,6 +4,7 @@ requires 'JSON::Tiny';
 requires 'Net::SSLeay',     1.49;
 requires 'IO::Socket::SSL', 1.42;
 requires 'URI';
+recommends 'Mojo::UserAgent';
 on 'test' => sub {
     requires 'Test2::V0';    # core as of 5.39.x
 };
@@ -21,4 +22,6 @@ on 'develop' => sub {
     recommends 'Test::Spellunker';
     requires 'Minilla';
     recommends 'Data::Dump';
+    requires 'Version::Next';
+    requires 'CPAN::Uploader';
 };
