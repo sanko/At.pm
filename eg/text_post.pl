@@ -4,6 +4,7 @@ use warnings;
 use lib '../lib', 'lib', '../blib/arch', '../blib/lib', 'blib/arch', 'blib/lib', '../../', '.';
 
 #~ use Mojo::UserAgent;
+use At::Bluesky;
 use At;
 use Config::Tiny;
 $|++;

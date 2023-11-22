@@ -3,6 +3,7 @@ Revision history for Perl extension At.pm
 {{$NEXT}}
 
     - Fix synopsis
+    - Split At::Bluesky from At.pm because PAUSE ignores subclasses in perl's new class syntax
 
 0.01 2023-11-22T03:44:15Z
 

@@ -44,29 +44,6 @@ package At 0.02 {
         }
     }
 
-    class At::Bluesky : isa(At) {
-        field $identifier : param;
-        field $password : param;
-
-        # Required in subclasses of At
-        method host { URI->new('https://bsky.social') }
-        ADJUST {
-            require At::Lexicons::app::bsky::feed::post;
-            require At::Lexicons::app::bsky::richtext::facet;
-            #
-            $self->server->createSession( identifier => $identifier, password => $password );    # auto-login
-            $self->_repo( At::Lexicon::AtProto::Repo->new( client => $self, did => $self->http->session->did->raw ) );
-        }
-
-        # Sugar
-        method post (%args) {
-            use Carp qw[confess];
-            confess 'text must be fewer than 300 charactersf' if length $args{text} > 300;
-            $args{createdAt} //= At::_now();
-            $self->repo->createRecord( collection => 'app.bsky.feed.post', record => { '$type' => 'app.bsky.feed.post', %args } );
-        }
-    }
-
     class At::Lexicon::AtProto::Server {
         field $client : param;
         field $host : param;
