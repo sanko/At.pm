@@ -9,6 +9,7 @@ package At::Bluesky {
     use At::Lexicon::com::atproto::label;
     use At::Lexicon::app::bsky::actor;
     use At::Lexicon::app::bsky::graph;
+    use At::Lexicon::app::bsky::richtext;
     #
     class At::Bluesky : isa(At) {
         field $identifier : param = ();
