@@ -37,7 +37,7 @@ package At 0.02 {
         }
         ADJUST {
             require At::Lexicon::app::bsky::feed::post;
-            require At::Lexicon::app::bsky::richtext::facet;
+            require At::Lexicon::app::bsky::richtext;
             #
             my $host = $self->host;
             $host = 'https://' . $host unless $host =~ /^https?:/;
