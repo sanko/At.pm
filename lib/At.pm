@@ -287,12 +287,11 @@ At - The AT Protocol for Social Networking
 =head1 SYNOPSIS
 
     use At;
-    use Time::Piece;
     my $at = At->new( host => 'https://fun.example' );
     $at->server->createSession( identifier => 'sanko', password => '1111-aaaa-zzzz-0000' );
     $at->repo->createRecord(
         collection => 'app.bsky.feed.post',
-        record     => { '$type' => 'app.bsky.feed.post', text => "Hello world! I posted this via the API.", createdAt => gmtime->datetime . 'Z' }
+        record     => { '$type' => 'app.bsky.feed.post', text => 'Hello world! I posted this via the API.', createdAt => time }
     );
 
 =head1 DESCRIPTION

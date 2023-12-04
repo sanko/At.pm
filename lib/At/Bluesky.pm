@@ -30,7 +30,7 @@ package At::Bluesky {
         method host { URI->new('https://bsky.social') }
         ADJUST {
             require At::Lexicon::app::bsky::feed::post;
-            require At::Lexicon::app::bsky::richtext::facet;
+            require At::Lexicon::app::bsky::richtext;
             #
             $self->server->createSession( identifier => $identifier, password => $password ) if defined $identifier && defined $password; # auto-login
             $self->_repo( At::Lexicon::AtProto::Repo->new( client => $self, did => $self->http->session->did->_raw ) ) if defined $self->repo;
@@ -283,6 +283,14 @@ package At::Bluesky {
             $seenAt = At::Protocol::Timestamp->new( timestamp => $seenAt ) unless builtin::blessed $seenAt;
             my $res = $client->http->post( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.notification.updateSeen' ),
                 { content => { seenAt => $seenAt->_raw } } );
+            $res;
+        }
+
+        method registerPush ( $appId, $platform, $serviceDid, $token ) {
+            use Carp qw[confess];
+            $client->http->session // confess 'requires an authenticated client';
+            my $res = $client->http->post( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.notification.registerPush' ),
+                { content => { appId => $appId, platform => $platform, serviceDid => $serviceDid, token => $token } } );
             $res;
         }
     }
@@ -741,7 +749,7 @@ A timestamp.
 
 On success, returns a count of unread notifications.
 
-=head2 C<updateSeen( [...] )>
+=head2 C<updateSeen( ... )>
 
     $bsky->notification->updateSeen( time );
 
@@ -757,13 +765,29 @@ A timestamp.
 
 =back
 
+=head2 C<registerPush( [...] )>
 
+    $bsky->notification->registerPush(
 
+    );
 
+Register for push notifications with a service.
 
+Expected parameters include:
 
+=over
 
+=item C<appId> - required
 
+=item C<platform> - required
+
+Known values include 'ios', 'android', and 'web'.
+
+=item C<serviceDid> - required
+
+=item C<token> - required
+
+=back
 
 
 
@@ -835,7 +859,7 @@ Sanko Robinson E<lt>sanko@cpan.orgE<gt>
 
 =begin stopwords
 
-Bluesky
+Bluesky ios
 
 =end stopwords
 
