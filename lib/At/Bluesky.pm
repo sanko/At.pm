@@ -10,6 +10,7 @@ package At::Bluesky {
     use At::Lexicon::app::bsky::actor;
     use At::Lexicon::app::bsky::graph;
     use At::Lexicon::app::bsky::richtext;
+    use At::Lexicon::app::bsky::notification;
     #
     class At::Bluesky : isa(At) {
         field $identifier : param = ();
@@ -21,6 +22,9 @@ package At::Bluesky {
         field $graph;
         method _graph ($g) { $graph = $g }
         method graph       {$graph}
+        field $notification;
+        method _notification ($n) { $notification = $n }
+        method notification       {$notification}
 
         # Required in subclasses of At
         method host { URI->new('https://bsky.social') }
@@ -32,6 +36,7 @@ package At::Bluesky {
             $self->_repo( At::Lexicon::AtProto::Repo->new( client => $self, did => $self->http->session->did->_raw ) ) if defined $self->repo;
             $self->_actor( At::Lexicon::Bluesky::Actor->new( client => $self ) );
             $self->_graph( At::Lexicon::Bluesky::Graph->new( client => $self ) );
+            $self->_notification( At::Lexicon::Bluesky::Notification->new( client => $self ) );
         }
 
         # Sugar
@@ -241,6 +246,43 @@ package At::Bluesky {
             $client->http->session // confess 'requires an authenticated client';
             my $res
                 = $client->http->post( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.graph.unmuteActorList' ), { content => { list => $list } } );
+            $res;
+        }
+    }
+
+    class At::Lexicon::Bluesky::Notification {
+        field $client : param;
+
+        method listNotifications ( $seenAt //= (), $limit //= 50, $cursor //= () ) {
+            use Carp qw[confess];
+            $client->http->session // confess 'requires an authenticated client';
+            $seenAt = At::Protocol::Timestamp->new( timestamp => $seenAt ) if defined $seenAt && builtin::blessed $seenAt;
+            my $res = $client->http->get(
+                sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.notification.listNotifications' ),
+                { content => { limit => $limit, cursor => $cursor, seenAt => defined $seenAt ? $seenAt->_raw : undef } }
+            );
+            $res->{notifications} = [ map { At::Lexicon::app::bsky::notification->new(%$_) } @{ $res->{notifications} } ]
+                if defined $res->{notifications};
+            $res;
+        }
+
+        method getUnreadCount ( $seenAt //= () ) {
+            use Carp qw[confess];
+            $client->http->session // confess 'requires an authenticated client';
+            $seenAt = At::Protocol::Timestamp->new( timestamp => $seenAt ) if defined $seenAt && builtin::blessed $seenAt;
+            my $res = $client->http->get(
+                sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.notification.getUnreadCount' ),
+                { content => { seenAt => defined $seenAt ? $seenAt->_raw : undef } }
+            );
+            $res;
+        }
+
+        method updateSeen ($seenAt) {
+            use Carp qw[confess];
+            $client->http->session // confess 'requires an authenticated client';
+            $seenAt = At::Protocol::Timestamp->new( timestamp => $seenAt ) unless builtin::blessed $seenAt;
+            my $res = $client->http->post( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.notification.updateSeen' ),
+                { content => { seenAt => $seenAt->_raw } } );
             $res;
         }
     }
@@ -653,6 +695,92 @@ Expected parameters include:
 =item C<list>
 
 =back
+
+=head1 Notification Methods
+
+Notifications keep you up to date.
+
+=head2 C<listNotifications( [...] )>
+
+    $bsky->notification->listNotifications( );
+
+Get a list of notifications.
+
+Expected parameters include:
+
+=over
+
+=item C<limit>
+
+=item C<seenAt>
+
+A timestamp.
+
+=item C<cursor>
+
+=back
+
+On success, returns a list of notifications as C<At::Lexicon::app::bsky::notification> objects and, optionally, a
+cursor.
+
+=head2 C<getUnreadCount( [...] )>
+
+    $bsky->notification->getUnreadCount( );
+
+Get the count of unread notifications.
+
+Expected parameters include:
+
+=over
+
+=item C<seenAt>
+
+A timestamp.
+
+=back
+
+On success, returns a count of unread notifications.
+
+=head2 C<updateSeen( [...] )>
+
+    $bsky->notification->updateSeen( time );
+
+Notify server that the user has seen notifications.
+
+Expected parameters include:
+
+=over
+
+=item C<seenAt> - required
+
+A timestamp.
+
+=back
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
