@@ -7,12 +7,11 @@ At - The AT Protocol for Social Networking
 
 ```perl
 use At;
-use Time::Piece;
 my $at = At->new( host => 'https://fun.example' );
 $at->server->createSession( identifier => 'sanko', password => '1111-aaaa-zzzz-0000' );
 $at->repo->createRecord(
     collection => 'app.bsky.feed.post',
-    record     => { '$type' => 'app.bsky.feed.post', text => "Hello world! I posted this via the API.", createdAt => gmtime->datetime . 'Z' }
+    record     => { '$type' => 'app.bsky.feed.post', text => 'Hello world! I posted this via the API.', createdAt => time }
 );
 ```
 
@@ -25,13 +24,28 @@ At.pm uses perl's new class system which requires perl 5.38.x or better.
 
 ## At::Bluesky
 
-```perl
-my $bsky = At::Bluesky->new( identifier => 'sanko', password => ... );
-$bsky->post( text => 'Easy!' );
-```
+At::Bluesky is a subclass with the host set to `https://bluesky.social` and all the lexicon extensions related to the
+social networking site included.
 
-Creates an At object with the host set to `https://bluesky.social`, loads all the lexicon extensions related to the
-social networking site, and exposes a lot of sugar (such as simple post creation).
+## App Passwords
+
+Taken from the AT Protocol's official documentation:
+
+<div>
+    <blockquote>
+</div>
+
+For the security of your account, when using any third-party clients, please generate an [app
+password](https://atproto.com/specs/xrpc#app-passwords) at Settings > Advanced > App passwords.
+
+App passwords have most of the same abilities as the user's account password, but they're restricted from destructive
+actions such as account deletion or account migration. They are also restricted from creating additional app passwords.
+
+<div>
+    </blockquote>
+</div>
+
+Read our disclaimer here: [https://atproto.com/community/projects#disclaimer](https://atproto.com/community/projects#disclaimer).
 
 # Methods
 

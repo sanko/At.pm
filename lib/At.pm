@@ -303,11 +303,24 @@ At.pm uses perl's new class system which requires perl 5.38.x or better.
 
 =head2 At::Bluesky
 
-    my $bsky = At::Bluesky->new( identifier => 'sanko', password => ... );
-    $bsky->post( text => 'Easy!' );
+At::Bluesky is a subclass with the host set to C<https://bluesky.social> and all the lexicon extensions related to the
+social networking site included.
 
-Creates an At object with the host set to C<https://bluesky.social>, loads all the lexicon extensions related to the
-social networking site, and exposes a lot of sugar (such as simple post creation).
+=head2 App Passwords
+
+Taken from the AT Protocol's official documentation:
+
+=for html <blockquote>
+
+For the security of your account, when using any third-party clients, please generate an L<app
+password|https://atproto.com/specs/xrpc#app-passwords> at Settings > Advanced > App passwords.
+
+App passwords have most of the same abilities as the user's account password, but they're restricted from destructive
+actions such as account deletion or account migration. They are also restricted from creating additional app passwords.
+
+=for html </blockquote>
+
+Read our disclaimer here: L<https://atproto.com/community/projects#disclaimer>.
 
 =head1 Methods
 
