@@ -4,6 +4,7 @@ package At::Lexicon::app::bsky::feed 0.02 {
     use feature 'class';
     use bytes;
     our @CARP_NOT;
+    use At::Lexicon::app::bsky::richtext;
     #
     # app.bsky.feed.post at trash.pl line 204.
     # trash.pl:205: {

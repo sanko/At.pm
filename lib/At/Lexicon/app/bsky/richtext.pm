@@ -60,7 +60,7 @@ package At::Lexicon::app::bsky::richtext 0.02 {
         method did {$did}
 
         method _raw() {
-            { did => $did->as_string, }
+            { did => $did->as_string, '$type' => 'app.bsky.richtext.facet#mention' }
         }
     }
 
@@ -75,7 +75,7 @@ package At::Lexicon::app::bsky::richtext 0.02 {
         method uri {$uri}
 
         method _raw() {
-            { uri => $uri->as_string }
+            { uri => $uri->as_string, '$type' => 'app.bsky.richtext.facet#link' }
         }
     }
 
@@ -91,7 +91,7 @@ package At::Lexicon::app::bsky::richtext 0.02 {
         method tag {$tag}
 
         method _raw() {
-            { tag => $tag, }
+            { tag => $tag, '$type' => 'app.bsky.richtext.facet#tag' }
         }
     }
 
