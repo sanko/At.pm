@@ -1,4 +1,4 @@
-package At::Lexicon::com::atproto::repo::strongRef 0.02 {
+package At::Lexicon::com::atproto::repo 0.02 {
     use v5.38;
     no warnings 'experimental::class', 'experimental::builtin';    # Be quiet.
     use feature 'class';
@@ -10,6 +10,10 @@ package At::Lexicon::com::atproto::repo::strongRef 0.02 {
         ADJUST {
             $uri = URI->new($uri) unless builtin::blessed $uri;
         }
+
+        method _raw {
+            { uri => $uri->as_string, cid => $cid }
+        }
     };
 }
 1;
@@ -19,7 +23,7 @@ __END__
 
 =head1 NAME
 
-At::Lexicon::com::atproto::admin::strongRef - A URI with a content-hash fingerprint
+At::Lexicon::com::atproto::repo - Repository Related Classes
 
 =head1 See Also
 

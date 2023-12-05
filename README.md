@@ -17,15 +17,15 @@ $at->repo->createRecord(
 
 # DESCRIPTION
 
-The AT Protocol is a 'social networking technology created to power the next generation of social applications.' At.pm
-currently supports session creation and simple text posts. It's like day two, so...
+The AT Protocol is a "social networking technology created to power the next generation of social applications."
 
-At.pm uses perl's new class system which requires perl 5.38.x or better.
+At.pm uses perl's new class system which requires perl 5.38.x or better and, like the protocol itself, is still under
+development.
 
 ## At::Bluesky
 
-At::Bluesky is a subclass with the host set to `https://bluesky.social` and all the lexicon extensions related to the
-social networking site included.
+At::Bluesky is a subclass with the host set to `https://bluesky.social` and all the lexicon related to the social
+networking site included.
 
 ## App Passwords
 
@@ -45,7 +45,7 @@ actions such as account deletion or account migration. They are also restricted 
     </blockquote>
 </div>
 
-Read our disclaimer here: [https://atproto.com/community/projects#disclaimer](https://atproto.com/community/projects#disclaimer).
+Read their disclaimer here: [https://atproto.com/community/projects#disclaimer](https://atproto.com/community/projects#disclaimer).
 
 # Methods
 

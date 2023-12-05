@@ -17,9 +17,9 @@ package At::Lexicon::app::bsky::actor 0.02 {
             $labels = [ map { $_ = At::Lexicon::com::atproto::label->new(%$_) unless builtin::blessed $_ } @$labels ] if defined $labels;
             $did    = At::Protocol::DID->new( uri => $did )      unless builtin::blessed $did;
             $handle = At::Protocol::Handle->new( id => $handle ) unless builtin::blessed $handle;
-            Carp::cluck q[displayName is too long; expected 64 characters or fewer] if defined $displayName && bytes::length $displayName > 64;
-            Carp::cluck q[displayName is too long; expected 640 bytes or fewer]     if defined $displayName && length $displayName > 640;
-            $viewer = At::Lexicon::app::bsky::actor::viewerState->new(%$viewer)     if defined $viewer && !builtin::blessed $viewer;
+            Carp::cluck q[displayName is too long; expected 64 bytes or fewer]       if defined $displayName && bytes::length $displayName > 64;
+            Carp::cluck q[displayName is too long; expected 640 characters or fewer] if defined $displayName && length $displayName > 640;
+            $viewer = At::Lexicon::app::bsky::actor::viewerState->new(%$viewer)      if defined $viewer && !builtin::blessed $viewer;
         }
 
         # perlclass does not have :reader yet

@@ -2,6 +2,7 @@ package At 0.02 {
     use v5.38;
     no warnings 'experimental::class', 'experimental::builtin', 'experimental::for_list';    # Be quiet.
     use feature 'class';
+    use experimental 'try';
     #
     class At 1.00 {
         field $http //= Mojo::UserAgent->can('start') ? At::UserAgent::Mojo->new() : At::UserAgent::Tiny->new();
@@ -36,9 +37,6 @@ package At 0.02 {
             At::Protocol::Timestamp->new( timestamp => time );
         }
         ADJUST {
-            require At::Lexicon::app::bsky::feed::post;
-            require At::Lexicon::app::bsky::richtext;
-            #
             my $host = $self->host;
             $host = 'https://' . $host unless $host =~ /^https?:/;
             $host = URI->new($host)    unless builtin::blessed $host;
@@ -63,6 +61,7 @@ package At 0.02 {
     }
 
     class At::Lexicon::AtProto::Repo {
+        use At::Lexicon::com::atproto::repo;
         field $client : param;
         field $did : param;
         method did {$did}
@@ -70,8 +69,23 @@ package At 0.02 {
             $did = At::Protocol::DID->new( uri => $did ) unless builtin::blessed $did
         }
 
+        sub _mangle ($type) {
+            use Module::Load;
+            my @package = ( 'At', 'Lexicon', split /\./, $type );
+            my $class   = join '::', @package;
+            pop @package;
+            my $package = join '::', @package;
+            load $package unless $package->can('new');
+            return $class;
+        }
+
         method createRecord (%args) {    # https://atproto.com/blog/create-post
             use Carp qw[confess];
+            if ( !builtin::blessed $args{record} ) {
+                my $package = _mangle( $args{record}{'$type'} );
+                delete $args{record}{'$type'};
+                $args{record} = $package->new( %{ $args{record} } )->_raw;
+            }
             $client->http->session // confess 'creating a post requires an authenticated client';
             my $res = $client->http->post( sprintf( '%s/xrpc/%s', $client->host(), 'com.atproto.repo.createRecord' ),
                 { content => { repo => $did->_raw, %args } } );
@@ -296,15 +310,15 @@ At - The AT Protocol for Social Networking
 
 =head1 DESCRIPTION
 
-The AT Protocol is a 'social networking technology created to power the next generation of social applications.' At.pm
-currently supports session creation and simple text posts. It's like day two, so...
+The AT Protocol is a "social networking technology created to power the next generation of social applications."
 
-At.pm uses perl's new class system which requires perl 5.38.x or better.
+At.pm uses perl's new class system which requires perl 5.38.x or better and, like the protocol itself, is still under
+development.
 
 =head2 At::Bluesky
 
-At::Bluesky is a subclass with the host set to C<https://bluesky.social> and all the lexicon extensions related to the
-social networking site included.
+At::Bluesky is a subclass with the host set to C<https://bluesky.social> and all the lexicon related to the social
+networking site included.
 
 =head2 App Passwords
 
@@ -320,7 +334,7 @@ actions such as account deletion or account migration. They are also restricted 
 
 =for html </blockquote>
 
-Read our disclaimer here: L<https://atproto.com/community/projects#disclaimer>.
+Read their disclaimer here: L<https://atproto.com/community/projects#disclaimer>.
 
 =head1 Methods
 

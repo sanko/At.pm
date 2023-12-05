@@ -60,7 +60,7 @@ __END__
 
 =head1 NAME
 
-At::Lexicon::app::bsky::notification - Notifications
+At::Lexicon::app::bsky::notification - Notification
 
 =head1 See Also
 
