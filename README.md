@@ -171,9 +171,9 @@ This method does not require an authenticated session.
 
 # See Also
 
-https://atproto.com/
+[https://atproto.com/](https://atproto.com/)
 
-https://en.wikipedia.org/wiki/Bluesky\_(social\_network)
+[Bluesky on Wikipedia.org](https://en.wikipedia.org/wiki/Bluesky_\(social_network\))
 
 # LICENSE
 

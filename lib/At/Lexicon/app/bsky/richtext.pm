@@ -20,6 +20,7 @@ package At::Lexicon::app::bsky::richtext 0.02 {
                         return $_ = At::Lexicon::app::bsky::richtext::facet::link->new(%$_)    if $type eq 'app.bsky.richtext.facet#link';
                         return $_ = At::Lexicon::app::bsky::richtext::facet::tag->new(%$_)     if $type eq 'app.bsky.richtext.facet#tag';
                     }
+                    # fallback
                     try {
                         $_ = At::Lexicon::app::bsky::richtext::facet::mention->new(%$_);
                     }
@@ -60,7 +61,7 @@ package At::Lexicon::app::bsky::richtext 0.02 {
         method did {$did}
 
         method _raw() {
-            { did => $did->as_string, '$type' => 'app.bsky.richtext.facet#mention' }
+            { did => $did->_raw, '$type' => 'app.bsky.richtext.facet#mention' }
         }
     }
 

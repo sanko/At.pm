@@ -552,9 +552,9 @@ atproto/simplify-pds branch.
 
 =head1 See Also
 
-https://atproto.com/
+L<https://atproto.com/>
 
-https://en.wikipedia.org/wiki/Bluesky_(social_network)
+L<Bluesky on Wikipedia.org|https://en.wikipedia.org/wiki/Bluesky_(social_network)>
 
 =head1 LICENSE
 

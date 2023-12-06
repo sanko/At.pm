@@ -26,7 +26,9 @@ package At::Bluesky {
         field $notification;
         method _notification ($n) { $notification = $n }
         method notification       {$notification}
-
+        field $feed;
+        method _feed ($f) { $feed = $f }
+        method feed       {$feed}
         # Required in subclasses of At
         method host { URI->new('https://bsky.social') }
         ADJUST {
@@ -35,6 +37,7 @@ package At::Bluesky {
             $self->_actor( At::Lexicon::Bluesky::Actor->new( client => $self ) );
             $self->_graph( At::Lexicon::Bluesky::Graph->new( client => $self ) );
             $self->_notification( At::Lexicon::Bluesky::Notification->new( client => $self ) );
+            $self->_feed( At::Lexicon::Bluesky::Feed->new( client => $self ) );
         }
 
         # Sugar
@@ -117,6 +120,12 @@ package At::Bluesky {
             return 1;
         }
     }
+
+    class At::Lexicon::Bluesky::Feed {
+        field $client : param;
+
+
+       }
 
     class At::Lexicon::Bluesky::Graph {
         field $client : param;
