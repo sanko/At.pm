@@ -2,239 +2,177 @@ package At::Lexicon::app::bsky::actor 0.02 {
     use v5.38;
     no warnings 'experimental::class', 'experimental::builtin';    # Be quiet.
     use feature 'class';
-    our @CARP_NOT;
+    use Carp;
+    use URI;
+    use Path::Tiny;
     #
     class At::Lexicon::app::bsky::actor::profileViewBasic {
-        use Carp;
-        use bytes;
-        field $labels : param = ();         # array of com.atproto.label.defs#label
-        field $did : param;                 # string
-        field $handle : param;              # string
+        field $did : param;                 # string, did, required
+        field $handle : param;              # string, handle, required
         field $displayName : param = ();    # string
         field $avatar : param      = ();    # string
         field $viewer : param      = ();    # ::viewerState
-        ADJUST {                            # TODO: handle types such as string maxlen, etc.
-            $labels = [ map { $_ = At::Lexicon::com::atproto::label->new(%$_) unless builtin::blessed $_ } @$labels ] if defined $labels;
+        field $labels : param      = ();    # array of com.atproto.label.defs#label
+        ADJUST {
             $did    = At::Protocol::DID->new( uri => $did )      unless builtin::blessed $did;
             $handle = At::Protocol::Handle->new( id => $handle ) unless builtin::blessed $handle;
-            Carp::cluck q[displayName is too long; expected 64 bytes or fewer]       if defined $displayName && bytes::length $displayName > 64;
-            Carp::cluck q[displayName is too long; expected 640 characters or fewer] if defined $displayName && length $displayName > 640;
-            $viewer = At::Lexicon::app::bsky::actor::viewerState->new(%$viewer)      if defined $viewer && !builtin::blessed $viewer;
+            Carp::cluck q[displayName is too long] if defined $displayName && ( length $displayName > 640 || At::_glength($displayName) > 64 );
+            $viewer = At::Lexicon::app::bsky::actor::viewerState->new(%$viewer) if defined $viewer && !builtin::blessed $viewer;
+            $labels = [ map { $_ = At::Lexicon::com::atproto::label->new(%$_) unless builtin::blessed $_ } @$labels ] if defined $labels;
         }
 
         # perlclass does not have :reader yet
-        method labels      {$labels}
         method did         {$did}
         method handle      {$handle}
         method displayName {$displayName}
         method avatar      {$avatar}
         method viewer      {$viewer}
+        method labels      {$labels}
 
         method _raw() {
-            {   labels      => defined $labels ? [ map { $_->_raw } @$labels ] : undef,
-                did         => $did->_raw,
-                handle      => $handle->_raw,
-                displayName => $displayName,
-                avatar      => $avatar,
-                viewer      => defined $viewer ? $viewer->_raw : undef
+            {   did    => $did->_raw,
+                handle => $handle->_raw,
+                defined $displayName ? ( displayName => $displayName )  : (), defined $avatar ? ( avatar => $avatar )                       : (),
+                defined $viewer      ? ( viewer      => $viewer->_raw ) : (), defined $labels ? ( labels => [ map { $_->_raw } @$labels ] ) : ()
             };
         }
     }
 
     class At::Lexicon::app::bsky::actor::profileView {
+        field $did : param;                 # string, did, required
         field $handle : param;              # string, handle, required
-        field $labels : param      = ();    # array of labels
+        field $displayName : param = ();    # string, 64 grapheme, 640 len
         field $description : param = ();    # string, 256 grapheme, 2560 len
         field $avatar : param      = ();    # string
-        field $displayName : param = ();    # string, 64 grapheme, 640 len
         field $indexedAt : param   = ();    # datetime
-        field $did : param;                 # did, required
-        field $viewer : param = ();         # viewState
+        field $viewer : param      = ();    # viewState
+        field $labels : param      = ();    # array of labels
         ADJUST {
+            $did    = At::Protocol::DID->new( uri => $did ) if defined $did && !builtin::blessed $did;
             $handle = At::Protocol::Handle->new( id => $handle ) unless builtin::blessed $handle;
-            $labels = [ map { $_ = At::Lexicon::com::atproto::label->new(%$_) unless builtin::blessed $_ } @$labels ] if defined $labels;
-            Carp::cluck q[description is too long; expected 2560 bytes or fewer]     if defined $description && bytes::length $description > 2560;
-            Carp::cluck q[description is too long; expected 256 characters or fewer] if defined $description && length $description > 256;
-            Carp::cluck q[displayName is too long; expected 640 bytes or fewer]      if defined $displayName && bytes::length $displayName > 640;
-            Carp::cluck q[displayName is too long; expected 64 characters or fewer]  if defined $displayName && length $displayName > 64;
-            $indexedAt = At::Protocol::Timestamp->new( timestamp => $indexedAt )   if defined $indexedAt && !builtin::blessed $indexedAt;
-            $did       = At::Protocol::DID->new( uri => $did )                     if defined $did       && !builtin::blessed $did;
-            $viewer    = At::Lexicon::app::bsky::actor::viewerState->new(%$viewer) if defined $viewer    && !builtin::blessed $viewer;
+            Carp::cluck q[displayName is too long] if defined $displayName && length $displayName > 64;
+            Carp::cluck q[description is too long] if defined $description && ( length $description > 256 || At::_glength($description) > 2560 );
+            $indexedAt = At::Protocol::Timestamp->new( timestamp => $indexedAt ) if defined $indexedAt && !builtin::blessed $indexedAt;
+            $labels    = [ map { $_ = At::Lexicon::com::atproto::label->new(%$_) unless builtin::blessed $_ } @$labels ] if defined $labels;
+            $viewer    = At::Lexicon::app::bsky::actor::viewerState->new(%$viewer) if defined $viewer && !builtin::blessed $viewer;
         }
 
         # perlclass does not have :reader yet
+        method did         {$did}
         method handle      {$handle}
-        method labels      {$labels}
+        method displayName {$displayName}
         method description {$description}
         method avatar      {$avatar}
-        method displayName {$displayName}
         method indexedAt   {$indexedAt}
-        method did         {$did}
         method viewer      {$viewer}
 
         method _raw() {
-            {   handle      => $handle->_raw,
-                labels      => defined $labels ? [ map { $_->_raw } @$labels ] : undef,
+            method labels {$labels}
+            {   did         => $did->_raw,
+                handle      => $handle->_raw,
+                displayName => $displayName,
                 description => $description,
                 avatar      => $avatar,
-                displayName => $displayName,
-                indexedAt   => defined $indexedAt ? $indexedAt->_raw : undef,
-                did         => $did->_raw,
-                viewer      => defined $viewer ? $viewer->_raw : undef
-            }
+                defined $indexedAt ? ( indexedAt => $indexedAt->_raw ) : (), defined $viewer ? ( viewer => $viewer->_raw ) : (),
+                defined $labels ? ( labels => [ map { $_->_raw } @$labels ] ) : (),
+            };
         }
     }
 
     class At::Lexicon::app::bsky::actor::profileViewDetailed {
+        field $did : param;                    # string, did, required
+        field $handle : param;                 # handle, required
+        field $displayName : param    = ();    # string, len 640 max, grapheme 64 max
+        field $description : param    = ();    # string, len 2560 max, grapheme 256 max
+        field $avatar : param         = ();    # string
         field $banner : param         = ();    # string
         field $followersCount : param = ();    # int
-        field $description : param    = ();    # string, len 2560 max, grapheme 256 max
+        field $followsCount : param   = ();    # int
+        field $postsCount : param     = ();    # int
         field $indexedAt : param      = ();    # datetime
-        field $did : param;                    # string, did, required
-        field $viewer : param = ();            # viewerState
-        field $labels : param = ();            # array of lables
-        field $handle : param;                 # handle, required
-        field $avatar : param       = ();      # string
-        field $displayName : param  = ();      # string, len 640 max, grapheme 64 max
-        field $followsCount : param = ();      # int
-        field $postsCount : param   = ();      # int
+        field $viewer : param         = ();    # viewerState
+        field $labels : param         = ();    # array of lables
         ADJUST {
-            use Carp;
-            Carp::cluck q[description is too long; expected 2560 bytes or fewer]     if defined $description && bytes::length $description > 2560;
-            Carp::cluck q[description is too long; expected 256 characters or fewer] if defined $description && length $description > 256;
-            $indexedAt = At::Protocol::Timestamp->new( timestamp => $indexedAt ) if defined $indexedAt && !builtin::blessed $indexedAt;
-            $did       = At::Protocol::DID->new( uri => $did ) unless builtin::blessed $did;
-            $viewer    = At::Lexicon::app::bsky::actor::viewerState->new(%$viewer) if defined $viewer && !builtin::blessed $viewer;
+            $did    = At::Protocol::DID->new( uri => $did )      unless builtin::blessed $did;
+            $handle = At::Protocol::Handle->new( id => $handle ) unless builtin::blessed $handle;
+            Carp::cluck q[displayName is too long] if defined $displayName && ( length $displayName > 64  || At::_glength($displayName) > 640 );
+            Carp::cluck q[description is too long] if defined $description && ( length $description > 256 || At::_glength($description) > 2560 );
+            $indexedAt = At::Protocol::Timestamp->new( timestamp => $indexedAt )   if defined $indexedAt && !builtin::blessed $indexedAt;
+            $viewer    = At::Lexicon::app::bsky::actor::viewerState->new(%$viewer) if defined $viewer    && !builtin::blessed $viewer;
             $labels    = [ map { $_ = At::Lexicon::com::atproto::label->new(%$_) unless builtin::blessed $_ } @$labels ] if defined $labels;
-            $handle    = At::Protocol::Handle->new( id => $handle ) unless builtin::blessed $handle;
-            Carp::cluck q[displayName is too long; expected 640 bytes or fewer]     if defined $displayName && bytes::length $displayName > 640;
-            Carp::cluck q[displayName is too long; expected 64 characters or fewer] if defined $displayName && length $displayName > 64;
         }
 
         # perlclass does not have :reader yet
+        method did            {$did}
+        method handle         {$handle}
+        method displayName    {$displayName}
+        method description    {$description}
+        method avatar         {$avatar}
         method banner         {$banner}
         method followersCount {$followersCount}
-        method description    {$description}
-        method indexedAt      {$indexedAt}
-        method did            {$did}
-        method viewer         {$viewer}
-        method labels         {$labels}
-        method handle         {$handle}
-        method avatar         {$avatar}
-        method displayName    {$displayName}
         method followsCount   {$followsCount}
         method postsCount     {$postsCount}
+        method indexedAt      {$indexedAt}
+        method viewer         {$viewer}
+        method labels         {$labels}
 
         method _raw() {
-            {   banner         => $banner,
-                followersCount => $followersCount,
-                description    => $description,
-                indexedAt      => defined $indexedAt ? $indexedAt->_raw : undef,
-                did            => $did->_raw,
-                viewer         => defined $viewer ? $viewer->_raw : undef,
-                labels         => [ map { $_->_raw } @$labels ],
-                handle         => $handle->_raw,
-                avatar         => $avatar,
-                displayName    => $displayName,
-                followsCount   => $followsCount,
-                postsCount     => $postsCount
+            {   did    => $did->_raw,
+                handle => $handle->_raw,
+                defined $displayName    ? ( displayName    => $displayName )    : (), defined $description  ? ( description  => $description )  : (),
+                defined $avatar         ? ( avatar         => $avatar )         : (), defined $banner       ? ( banner       => $banner )       : (),
+                defined $followersCount ? ( followersCount => $followersCount ) : (), defined $followsCount ? ( followsCount => $followsCount ) : (),
+                defined $postsCount     ? ( postsCount     => $postsCount )     : (), defined $indexedAt    ? ( indexedAt => $indexedAt->_raw ) : (),
+                defined $viewer         ? ( viewer => { $viewer->_raw } ) : (), defined $labels ? ( labels => [ map { $_->_raw } @$labels ] )   : ()
             }
         }
     }
 
     class At::Lexicon::app::bsky::actor::viewerState {
-        field $mutedByList : param    = ();    # app.bsky.graph.defs#listViewBasic
         field $muted : param          = ();    # bool
-        field $followedBy : param     = ();    # at-uri
+        field $mutedByList : param    = ();    # app.bsky.graph.defs#listViewBasic
         field $blockedBy : param      = ();    # bool
-        field $blockingByList : param = ();    # app.bsky.graph.defs#listViewBasic
         field $blocking : param       = ();    # at-uri
+        field $blockingByList : param = ();    # app.bsky.graph.defs#listViewBasic
         field $following : param      = ();    # at-uri
-        ADJUST {                               # TODO: handle types such as string maxlen, etc.
+        field $followedBy : param     = ();    # at-uri
+        ADJUST {
+            $muted       = !!$muted if defined $muted && builtin::blessed $muted;
             $mutedByList = At::Lexicon::app::bsky::graph::listViewBasic->new( list => $mutedByList )
                 if defined $mutedByList && !builtin::blessed $mutedByList;
-            $followedBy     = URI->new($followedBy) if defined $followedBy && !builtin::blessed $followedBy;
+            $blockedBy      = !!$blockedBy        if defined $blockedBy && builtin::blessed $blockedBy;
+            $blocking       = URI->new($blocking) if defined $blocking  && !builtin::blessed $blocking;
             $blockingByList = At::Lexicon::app::bsky::graph::listViewBasic->new( list => $blockingByList )
                 if defined $blockingByList && !builtin::blessed $blockingByList;
-            $blocking  = URI->new($blocking)  if defined $blocking  && !builtin::blessed $blocking;
-            $following = URI->new($following) if defined $following && !builtin::blessed $following;
+            $following  = URI->new($following)  if defined $following  && !builtin::blessed $following;
+            $followedBy = URI->new($followedBy) if defined $followedBy && !builtin::blessed $followedBy;
         }
 
         # perlclass does not have :reader yet
-        method mutedByList    {$mutedByList}
         method muted          {$muted}
-        method followedBy     {$followedBy}
+        method mutedByList    {$mutedByList}
         method blockedBy      {$blockedBy}
-        method blockingByList {$blockingByList}
         method blocking       {$blocking}
+        method blockingByList {$blockingByList}
         method following      {$following}
+        method followedBy     {$followedBy}
 
         method _raw() {
-            {   mutedByList    => defined $mutedByList ? $mutedByList->_raw : undef,
-                muted          => !!$muted,
-                followedBy     => defined $followedBy ? $followedBy->as_string : undef,
-                blockedBy      => !!$blockedBy,
-                blockingByList => defined $blockingByList ? $blockingByList->_raw : undef,
-                blocking       => defined $blocking       ? $blocking->as_string  : undef,
-                following      => defined $following      ? $following->as_string : undef,
+            {
+                defined $muted              ? ( muted     => \$muted )     : (), defined $mutedByList ? ( mutedByList => $mutedByList->_raw )   : (),
+                    defined $blockedBy      ? ( blockedBy => \$blockedBy ) : (), defined $blocking    ? ( blocking    => $blocking->as_string ) : (),
+                    defined $blockingByList ? ( blockingByList => $blockingByList->_raw ) : (),
+                    defined $following      ? ( following      => $following->as_string ) : (),
+                    defined $followedBy     ? ( followedBy     => $followedBy->as_string ) :
+                    ()
             }
         }
     }
 
     class At::Lexicon::app::bsky::actor::preferences {
         field $items : param = ();    # array of unions
-        use Carp;
-        our @CARP_NOT;
-        use experimental 'try';
         ADJUST {
-            our @CARP_NOT;
-            $items = [
-                map {
-                    return $_ if builtin::blessed $_;
-                    if ( defined $_->{'$type'} ) {
-                        my $type = delete $_->{'$type'};
-                        return $_ = At::Lexicon::app::bsky::actor::adultContentPref->new(%$_) if $type eq 'app.bsky.actor.defs#adultContentPref';
-                        return $_ = At::Lexicon::app::bsky::actor::contentLabelPref->new(%$_) if $type eq 'app.bsky.actor.defs#contentLabelPref';
-                        return $_ = At::Lexicon::app::bsky::actor::savedFeedsPref->new(%$_)   if $type eq 'app.bsky.actor.defs#savedFeedsPref';
-                        return $_ = At::Lexicon::app::bsky::actor::personalDetailsPref->new(%$_)
-                            if $type eq 'app.bsky.actor.defs#personalDetailsPref';
-                        return $_ = At::Lexicon::app::bsky::actor::feedViewPref->new(%$_)   if $type eq 'app.bsky.actor.defs#feedViewPref';
-                        return $_ = At::Lexicon::app::bsky::actor::threadViewPref->new(%$_) if $type eq 'app.bsky.actor.defs#threadViewPref';
-                    }
-                    try {
-                        $_ = At::Lexicon::app::bsky::actor::adultContentPref->new(%$_);
-                    }
-                    catch ($e) {
-                        try {
-                            $_ = At::Lexicon::app::bsky::actor::contentLabelPref->new(%$_);
-                        }
-                        catch ($e) {
-                            try {
-                                $_ = At::Lexicon::app::bsky::actor::savedFeedsPref->new(%$_);
-                            }
-                            catch ($e) {
-                                try {
-                                    $_ = At::Lexicon::app::bsky::actor::personalDetailsPref->new(%$_);
-                                }
-                                catch ($e) {
-                                    try {
-                                        $_ = At::Lexicon::app::bsky::actor::feedViewPref->new(%$_);
-                                    }
-                                    catch ($e) {
-                                        try {
-                                            $_ = At::Lexicon::app::bsky::actor::threadViewPref->new(%$_);
-                                        }
-                                        catch ($e) {
-                                            Carp::croak 'malformed preference: ' . $e;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                } @$items
-                ]
-                if defined $items;
+            $items = [ map { At::_topkg( $_->{'$type'} )->new(%$_) if !builtin::blessed $_ && defined $_->{'$type'}; } @$items ] if defined $items;
         }
 
         # perlclass does not have :reader yet
@@ -246,25 +184,26 @@ package At::Lexicon::app::bsky::actor 0.02 {
     }
 
     class At::Lexicon::app::bsky::actor::adultContentPref {
-        field $enabled : param;    # bool, required
+        field $type : param($type);    # record field
+        field $enabled : param;        # bool, required, false by default
+        ADJUST {
+            $enabled = !!$enabled if builtin::blessed $enabled;
+        }
 
         # perlclass does not have :reader yet
         method enabled {$enabled}
 
         method _raw() {
-            { '$type' => 'app.bsky.actor.defs#adultContentPref', enabled => \$enabled }    # bool ref in JSON::Tiny
+            { '$type' => $type, enabled => \$enabled }
         }
     }
 
     class At::Lexicon::app::bsky::actor::contentLabelPref {
-        field $label : param;         # string, required
-        field $visibility : param;    # string, union
-
-        #
+        field $type : param($type);    # record field
+        field $label : param;          # string, required
+        field $visibility : param;     # string, union
         ADJUST {
-            use Carp;
-            our @CARP_NOT;
-            Carp::carp q[visibility is an unknown value] unless grep { $visibility eq $_ } qw[show warn hide];
+            Carp::carp q[unknown value for visibility] unless grep { $visibility eq $_ } qw[show warn hide];
         }
 
         # perlclass does not have :reader yet
@@ -272,34 +211,30 @@ package At::Lexicon::app::bsky::actor 0.02 {
         method visibility {$visibility}
 
         method _raw() {
-            { '$type' => 'app.bsky.actor.defs#contentLabelPref', label => $label, visibility => $visibility }
+            { '$type' => $type, label => $label, visibility => $visibility }
         }
     }
 
     class At::Lexicon::app::bsky::actor::savedFeedsPref {
-        field $saved : param;     # array, at-uri, required
-        field $pinned : param;    # array, at-uri, required
+        field $type : param($type);    # record field
+        field $pinned : param;         # array, at-uri, required
+        field $saved : param;          # array, at-uri, required
         ADJUST {
-            use URI;
-            $saved  = [ map { $_ = URI->new($_) unless builtin::blessed $_ } @$saved ];
             $pinned = [ map { $_ = URI->new($_) unless builtin::blessed $_ } @$pinned ];
+            $saved  = [ map { $_ = URI->new($_) unless builtin::blessed $_ } @$saved ];
         }
 
         # perlclass does not have :reader yet
-        method saved  {$saved}
         method pinned {$pinned}
+        method saved  {$saved}
 
         method _raw() {
-            {   '$type' => 'app.bsky.actor.defs#savedFeedsPref',
-                saved   => [ map { $_->as_string } @$saved ],
-                pinned  => [ map { $_->as_string } @$pinned ]
-            }
+            { '$type' => $type, pinned => [ map { $_->as_string } @$pinned ], saved => [ map { $_->as_string } @$saved ] }
         }
     }
 
     class At::Lexicon::app::bsky::actor::personalDetailsPref {
-
-        #~ The birth date of account owner.
+        field $type : param($type);       # record field
         field $birthDate : param = ();    # datetime
         ADJUST {
             $birthDate = At::Protocol::Timestamp->new( timestamp => $birthDate ) unless builtin::blessed $birthDate;
@@ -309,60 +244,51 @@ package At::Lexicon::app::bsky::actor 0.02 {
         method birthDate {$birthDate}
 
         method _raw() {
-            { '$type' => 'app.bsky.actor.defs#personalDetailsPref', birthDate => $birthDate->as_string }
+            { '$type' => $type, birthDate => $birthDate->_raw }
         }
     }
 
     class At::Lexicon::app::bsky::actor::feedViewPref {
-
-        #~ Hide replies in the feed.
-        field $hideReplies : param = ();    # bool
-
-        #~ Hide quote posts in the feed.
-        field $hideQuotePosts : param = ();    # bool
-
-        #~ Hide replies in the feed if they are not by followed users.
-        field $hideRepliesByUnfollowed : param = ();    # bool
-
-        #~ The URI of the feed, or an identifier which describes the feed.
+        field $type : param($type);                     # record field
         field $feed : param;                            # string, required
-
-        #~ Hide replies in the feed if they do not have this number of likes.
-        field $hideRepliesByLikeCount : param = ();     # int
-
-        #~ Hide reposts in the feed.
-        field $hideReposts : param = ();                # bool
+        field $hideReplies : param             = ();    # bool
+        field $hideRepliesByUnfollowed : param = ();    # bool
+        field $hideRepliesByLikeCount : param  = ();    # int
+        field $hideReposts : param             = ();    # bool
+        field $hideQuotePosts : param          = ();    # bool
+        ADJUST {
+            $hideReplies             = !!$hideReplies             if defined $hideReplies             && builtin::blessed $hideReplies;
+            $hideRepliesByUnfollowed = !!$hideRepliesByUnfollowed if defined $hideRepliesByUnfollowed && builtin::blessed $hideRepliesByUnfollowed;
+            $hideReposts             = !!$hideReposts             if defined $hideReposts             && builtin::blessed $hideReposts;
+            $hideQuotePosts          = !!$hideQuotePosts          if defined $hideQuotePosts          && builtin::blessed $hideQuotePosts;
+        }
 
         # perlclass does not have :reader yet
-        method hideReplies             {$hideReplies}
-        method hideQuotePosts          {$hideQuotePosts}
-        method hideRepliesByUnfollowed {$hideRepliesByUnfollowed}
         method feed                    {$feed}
+        method hideReplies             {$hideReplies}
+        method hideRepliesByUnfollowed {$hideRepliesByUnfollowed}
         method hideRepliesByLikeCount  {$hideRepliesByLikeCount}
         method hideReposts             {$hideReposts}
+        method hideQuotePosts          {$hideQuotePosts}
 
         method _raw() {
-            {   '$type'                 => 'app.bsky.actor.defs#feedViewPref',
-                hideReplies             => !!$hideReplies,
-                hideQuotePosts          => !!$hideQuotePosts,
-                hideRepliesByUnfollowed => !!$hideRepliesByUnfollowed,
-                feed                    => $feed,
-                hideRepliesByLikeCount  => $hideRepliesByLikeCount,
-                hideReposts             => !!$hideReposts
+            {   '$type' => $type,
+                feed    => $feed,
+                defined $hideReplies             ? ( hideReplies             => \$hideReplies )             : (),
+                defined $hideRepliesByUnfollowed ? ( hideRepliesByUnfollowed => \$hideRepliesByUnfollowed ) : (),
+                defined $hideRepliesByLikeCount  ? ( hideRepliesByLikeCount  => $hideRepliesByLikeCount )   : (),
+                defined $hideReposts ? ( hideReposts => \$hideReposts ) : (), defined $hideQuotePosts ? ( hideQuotePosts => \$hideQuotePosts ) : ()
             }
         }
     }
 
     class At::Lexicon::app::bsky::actor::threadViewPref {
-
-        # Sorting mode for threads.
-        field $sort : param = ();    # string, enum
-
-        # Show followed users at the top of all replies.
+        field $type : param($type);                     # record field
+        field $sort : param                    = ();    # string, enum
         field $prioritizeFollowedUsers : param = ();    # bool
         ADJUST {
-            use Carp;
-            Carp::cluck q[sort is an unknown value] unless grep { $sort eq $_ } qw[oldest newest most-likes random];
+            Carp::cluck q[unknown value for sort] if defined $sort && !grep { $sort eq $_ } qw[oldest newest most-likes random];
+            $prioritizeFollowedUsers = !!$prioritizeFollowedUsers if defined $prioritizeFollowedUsers && builtin::blessed $prioritizeFollowedUsers;
         }
 
         # perlclass does not have :reader yet
@@ -370,38 +296,44 @@ package At::Lexicon::app::bsky::actor 0.02 {
         method prioritizeFollowedUsers {$prioritizeFollowedUsers}
 
         method _raw() {
-            { '$type' => 'app.bsky.actor.defs#threadViewPref', sort => $sort, prioritizeFollowedUsers => !!$prioritizeFollowedUsers }
+            {   '$type' => $type,
+                defined $sort                    ? ( sort                    => $sort )                     : (),
+                defined $prioritizeFollowedUsers ? ( prioritizeFollowedUsers => \$prioritizeFollowedUsers ) : ()
+            }
         }
     }
 
     # A declaration of a profile.
     class At::Lexicon::app::bsky::actor::profile {
-        field $avatar : param      = ();    # image, 1000000 bytes max, png or jpeg
-        field $description : param = ();    # string, 256 graphemes max, 2560 bytes max
-        field $labels : param      = ();    # union (why?) of selfLabels
-        field $banner : param      = ();    # image, 1000000 bytes max, png or jpeg
         field $displayName : param = ();    # string, 64 graphemes max, 640 bytes max
+        field $description : param = ();    # string, 256 graphemes max, 2560 bytes max
+        field $avatar : param      = ();    # blob, 1000000 bytes max, png or jpeg
+        field $banner : param      = ();    # blob, 1000000 bytes max, png or jpeg
+        field $labels : param      = ();    # union (why?) of selfLabels
         ADJUST {
-            use Path::Tiny;
-            use Carp;
-            $avatar = path($avatar)->slurp_utf8 if defined $avatar && -f $avatar;
-            Carp::confess 'avatar is more than 1000000 bytes' if defined $avatar && length $avatar > 1000000;
-            $labels = At::Lexicon::com::atproto::label::selfLabel->new( values => $labels ) if defined $labels && !builtin::blessed $labels;
+            Carp::confess 'displayName is too long' if defined $displayName && ( length $displayName > 640  || At::_glength($displayName) > 64 );
+            Carp::confess 'description is too long' if defined $description && ( length $description > 2560 || At::_glength($description) > 256 );
+            $avatar = path($avatar)->slurp_utf8     if defined $avatar && -f $avatar;
+            Carp::confess 'avatar is more than 1000000 bytes'                               if defined $avatar && length $avatar > 1000000;
             $banner = path($banner)->slurp_utf8                                             if defined $banner && -f $banner;
-            Carp::confess 'banner is more than 1000000 bytes'      if defined $banner      && length $banner > 1000000;
-            Carp::confess 'displayName is more than 64 characters' if defined $displayName && length $displayName > 64;
-            Carp::confess 'displayName is more than 640 bytes'     if defined $displayName && bytes::length $displayName > 640;
+            Carp::confess 'banner is more than 1000000 bytes'                               if defined $banner && length $banner > 1000000;
+            $labels = At::Lexicon::com::atproto::label::selfLabel->new( values => $labels ) if defined $labels && !builtin::blessed $labels;
         }
 
         # perlclass does not have :reader yet
-        method avatar      {$avatar}
-        method description {$description}
-        method labels      {$labels}
-        method banner      {$banner}
         method displayName {$displayName}
+        method description {$description}
+        method avatar      {$avatar}
+        method banner      {$banner}
+        method labels      {$labels}
 
         method _raw() {
-            { avatar => $avatar, description => $description, labels => $labels->_raw, banner => $banner, displayName => $displayName }
+            {
+                defined $displayName ? ( displayName => $displayName ) : (), defined $description ? ( description => $description ) : (),
+                    defined $avatar  ? ( avatar      => $avatar ) : (),      defined $banner      ? ( banner => $banner ) : (),
+                    defined $labels  ? ( labels      => $labels->_raw ) :
+                    ()
+            }
         }
     }
 };

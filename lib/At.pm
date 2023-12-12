@@ -288,6 +288,19 @@ package At 0.02 {
             else                        { say 'Whatever...' }
         }
     }
+
+    sub _glength ($str) {    # https://www.perl.com/pub/2012/05/perlunicook-string-length-in-graphemes.html/
+        my $count = 0;
+        while ( $str =~ /\X/g ) { $count++ }
+        return $count;
+    }
+
+    sub _topkg ($name) {     # maps CID to our packages (I hope)
+        $name =~ s/\./::/g;
+        $name =~ s[::defs::][::];
+        $name =~ s/^(.+::)(.*?)#(.*)$/At::Lexicon::$1$3/;
+        return $name;
+    }
 }
 1;
 __END__

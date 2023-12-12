@@ -20,6 +20,7 @@ package At::Lexicon::app::bsky::richtext 0.02 {
                         return $_ = At::Lexicon::app::bsky::richtext::facet::link->new(%$_)    if $type eq 'app.bsky.richtext.facet#link';
                         return $_ = At::Lexicon::app::bsky::richtext::facet::tag->new(%$_)     if $type eq 'app.bsky.richtext.facet#tag';
                     }
+
                     # fallback
                     try {
                         $_ = At::Lexicon::app::bsky::richtext::facet::mention->new(%$_);
