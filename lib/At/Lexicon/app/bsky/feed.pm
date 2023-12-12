@@ -189,6 +189,7 @@ package At::Lexicon::app::bsky::feed 0.02 {
     #   type => "object",
     # }
     class At::Lexicon::app::bsky::feed::generatorView {
+        field $type : param($type) //= ();        # record field
         field $avatar : param = ();               # string
         field $cid : param;                       # cid, required
         field $creator : param;                   # ::actor::profileView, required
@@ -201,12 +202,12 @@ package At::Lexicon::app::bsky::feed 0.02 {
         field $uri : param;                       # uri, required
         field $viewer : param = ();               # ::generatorViewerState
         ADJUST {
-            $creator = At::Lexicon::app::bsky::author::profileView->new(%$creator) unless builtin::blessed $creator;
-            $did     = At::Protocol::DID->new( uri => $did )                       unless builtin::blessed $did;
+            $creator = At::Lexicon::app::bsky::actor::profileView->new(%$creator) unless builtin::blessed $creator;
+            $did     = At::Protocol::DID->new( uri => $did )                      unless builtin::blessed $did;
 
             # trash.pl:99: { maxGraphemes => 300, maxLength => 3000, type => "string" }
-            Carp::cluck q[description is too long; expected 300 characters or fewer] if length $description > 300;
-            Carp::cluck q[description is too long; expected 3000 bytes or fewer]     if bytes::length $description > 3000;
+            Carp::cluck q[description is too long; expected 300 characters or fewer] if defined $description && length $description > 300;
+            Carp::cluck q[description is too long; expected 3000 bytes or fewer]     if defined $description && bytes::length $description > 3000;
             $indexedAt = At::Protocol::Timestamp->new( timestamp => $indexedAt ) unless builtin::blessed $indexedAt;
 
             # trash.pl:92: { ref => "#generatorViewerState", type => "ref" }
@@ -238,24 +239,26 @@ package At::Lexicon::app::bsky::feed 0.02 {
         method cid               {$cid}
 
         method _raw() {
-            {   did       => $did->_raw,
-                indexedAt => $indexedAt->as_string,
-                viewer    => $viewer->_raw,
-                likeCount => $likeCount,
+            {
+                defined $type ? ( '$type' => $type ) : (),
+                    did       => $did->_raw,
+                    indexedAt => $indexedAt->as_string,
+                    viewer    => $viewer->_raw,
+                    likeCount => $likeCount,
 
-                # trash.pl:281: { minimum => 0, type => "integer" }
-                description       => $description,
-                uri               => $uri->as_string,
-                displayName       => $displayName,
-                creator           => $creator->_raw,
-                descriptionFacets => $descriptionFacets,
+                    # trash.pl:281: { minimum => 0, type => "integer" }
+                    description       => $description,
+                    uri               => $uri->as_string,
+                    displayName       => $displayName,
+                    creator           => $creator->_raw,
+                    descriptionFacets => $descriptionFacets,
 
-                # trash.pl:281: {
-                #   items => { ref => "app.bsky.richtext.facet", type => "ref" },
-                #   type  => "array",
-                # }
-                avatar => $avatar,
-                cid    => $cid
+                    # trash.pl:281: {
+                    #   items => { ref => "app.bsky.richtext.facet", type => "ref" },
+                    #   type  => "array",
+                    # }
+                    avatar => $avatar,
+                    cid    => $cid
             }
         }
     }

@@ -7,6 +7,7 @@ package At::Bluesky {
     #
     use At::Lexicon::com::atproto::label;
     use At::Lexicon::app::bsky::actor;
+    use At::Lexicon::app::bsky::embed;
     use At::Lexicon::app::bsky::graph;
     use At::Lexicon::app::bsky::richtext;
     use At::Lexicon::app::bsky::notification;

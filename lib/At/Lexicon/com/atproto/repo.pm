@@ -5,14 +5,19 @@ package At::Lexicon::com::atproto::repo 0.02 {
     use URI;
     #
     class At::Lexicon::com::atproto::repo::strongRef 1 {
-        field $uri : param;    # at-uri
-        field $cid : param;    # cid
+        field $type : param($type);    # record field
+        field $uri : param;            # at-uri
+        field $cid : param;            # cid
         ADJUST {
             $uri = URI->new($uri) unless builtin::blessed $uri;
         }
 
         method _raw {
-            { uri => $uri->as_string, cid => $cid }
+            {
+                defined $type ? ( '$type' => $type ) : (),
+                    uri => $uri->as_string,
+                    cid => $cid
+            }
         }
     };
 }

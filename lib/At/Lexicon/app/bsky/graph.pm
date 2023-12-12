@@ -47,6 +47,7 @@ package At::Lexicon::app::bsky::graph 0.02 {
     }
 
     class At::Lexicon::app::bsky::graph::listView {
+        field $type : param($type) //= ();        # record field
         field $viewer : param = ();               # #listViewerState
         field $uri : param;                       # at-uri, required
         field $indexedAt : param;                 # datetime, required
@@ -85,16 +86,18 @@ package At::Lexicon::app::bsky::graph 0.02 {
         method purpose           {$purpose}
 
         method _raw() {
-            {   viewer            => defined $viewer ? $viewer->_raw : undef,
-                uri               => $uri->as_string,
-                indexedAt         => $indexedAt->_raw,
-                avatar            => defined $avatar      ? $avatar      : undef,
-                description       => defined $description ? $description : undef,
-                name              => $name,
-                cid               => $cid,
-                creator           => $creator->_raw,
-                descriptionFacets => defined $descriptionFacets ? [ map { $_->_raw } @$descriptionFacets ] : undef,
-                purpose           => $purpose
+            {
+                defined $type ? ( '$type' => $type ) : (),
+                    viewer            => defined $viewer ? $viewer->_raw : undef,
+                    uri               => $uri->as_string,
+                    indexedAt         => $indexedAt->_raw,
+                    avatar            => defined $avatar      ? $avatar      : undef,
+                    description       => defined $description ? $description : undef,
+                    name              => $name,
+                    cid               => $cid,
+                    creator           => $creator->_raw,
+                    descriptionFacets => defined $descriptionFacets ? [ map { $_->_raw } @$descriptionFacets ] : undef,
+                    purpose           => $purpose
             }
         }
     }

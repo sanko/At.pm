@@ -296,10 +296,11 @@ package At 0.02 {
     }
 
     sub _topkg ($name) {     # maps CID to our packages (I hope)
-        $name =~ s/\./::/g;
+        $name =~ s/[\.\#]/::/g;
         $name =~ s[::defs::][::];
-        $name =~ s/^(.+::)(.*?)#(.*)$/At::Lexicon::$1$3/;
-        return $name;
+
+        #~ $name =~ s/^(.+::)(.*?)#(.*)$/$1$3/;
+        return 'At::Lexicon::' . $name;
     }
 }
 1;
