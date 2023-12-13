@@ -2,6 +2,9 @@ package At::Lexicon::app::bsky::graph 0.02 {
     use v5.38;
     no warnings 'experimental::class', 'experimental::builtin';    # Be quiet.
     use feature 'class';
+    use Carp;
+    use Path::Tiny;
+    use URI;
     our @CARP_NOT;
     #
     class At::Lexicon::app::bsky::graph::listViewBasic {
@@ -13,7 +16,6 @@ package At::Lexicon::app::bsky::graph 0.02 {
         field $cid : param;               # cid, required
         field $name : param;              # string, required, max len: 64, min len: 1
         ADJUST {
-            use Carp;
             $uri = URI->new($uri) unless builtin::blessed $uri;
 
             # modlist: A list of actors to apply an aggregate moderation action (mute/block) on.
@@ -47,7 +49,7 @@ package At::Lexicon::app::bsky::graph 0.02 {
     }
 
     class At::Lexicon::app::bsky::graph::listView {
-        field $type : param($type) //= ();        # record field
+        field $type : param($type);               # record field
         field $viewer : param = ();               # #listViewerState
         field $uri : param;                       # at-uri, required
         field $indexedAt : param;                 # datetime, required
@@ -86,18 +88,17 @@ package At::Lexicon::app::bsky::graph 0.02 {
         method purpose           {$purpose}
 
         method _raw() {
-            {
-                defined $type ? ( '$type' => $type ) : (),
-                    viewer            => defined $viewer ? $viewer->_raw : undef,
-                    uri               => $uri->as_string,
-                    indexedAt         => $indexedAt->_raw,
-                    avatar            => defined $avatar      ? $avatar      : undef,
-                    description       => defined $description ? $description : undef,
-                    name              => $name,
-                    cid               => $cid,
-                    creator           => $creator->_raw,
-                    descriptionFacets => defined $descriptionFacets ? [ map { $_->_raw } @$descriptionFacets ] : undef,
-                    purpose           => $purpose
+            {   '$type'           => $type,
+                viewer            => defined $viewer ? $viewer->_raw : undef,
+                uri               => $uri->as_string,
+                indexedAt         => $indexedAt->_raw,
+                avatar            => defined $avatar      ? $avatar      : undef,
+                description       => defined $description ? $description : undef,
+                name              => $name,
+                cid               => $cid,
+                creator           => $creator->_raw,
+                descriptionFacets => defined $descriptionFacets ? [ map { $_->_raw } @$descriptionFacets ] : undef,
+                purpose           => $purpose
             }
         }
     }
@@ -181,8 +182,6 @@ package At::Lexicon::app::bsky::graph 0.02 {
         field $description : param = ();          # string, max length: 3000, max graphemes: 300
         field $avatar : param      = ();          # blob, max size: 1000000, png or jpeg
         ADJUST {
-            use Path::Tiny;
-            use Carp;
             $avatar = path($avatar)->slurp_utf8 if defined $avatar && -f $avatar;
             Carp::confess 'avatar is more than 1000000 bytes' if defined $avatar && length $avatar > 1000000;
             $createdAt         = At::Protocol::Timestamp->new( timestamp => $createdAt ) unless builtin::blessed $createdAt;

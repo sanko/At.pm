@@ -14,24 +14,27 @@ isa_ok(
     '::richtext::facet::byteSlice'
 );
 isa_ok(
-    At::Lexicon::app::bsky::richtext::facet::link->new( uri => 'https://google.com/' ),
+    At::Lexicon::app::bsky::richtext::facet::link->new( '$type' => 'app.bsky.richtext.facet#link', uri => 'https://google.com/' ),
     ['At::Lexicon::app::bsky::richtext::facet::link'],
     '::richtext::facet::link'
 );
 isa_ok(
-    At::Lexicon::app::bsky::richtext::facet::tag->new( tag => 'test' ),
+    At::Lexicon::app::bsky::richtext::facet::tag->new( '$type' => 'app.bsky.richtext.facet#tag', tag => 'test' ),
     ['At::Lexicon::app::bsky::richtext::facet::tag'],
     '::richtext::facet::tag'
 );
 isa_ok(
-    At::Lexicon::app::bsky::richtext::facet::mention->new( did => 'did:plc:z72i7hdynmk6r22z27h6tvur' ),
-    ['At::Lexicon::app::bsky::richtext::facet::mention'],
-    '::richtext::facet::mention'
+    At::Lexicon::app::bsky::richtext::facet::mention->new( '$type' => 'app.bsky.richtext.facet#mention', did => 'did:plc:z72i7hdynmk6r22z27h6tvur' ),
+    ['At::Lexicon::app::bsky::richtext::facet::mention'], '::richtext::facet::mention'
 );
 subtest 'facet' => sub {
     my $facet = At::Lexicon::app::bsky::richtext::facet->new(
         index    => { byteEnd => 5, byteStart => 3 },
-        features => [ { uri => 'https://google.com/' }, { tag => 'hi' }, { did => 'did:plc:z72i7hdynmk6r22z27h6tvur' } ]
+        features => [
+            { '$type' => 'app::bsky::richtext::facet#link',    uri => 'https://google.com/' },
+            { '$type' => 'app::bsky::richtext::facet#tag',     tag => 'hi' },
+            { '$type' => 'app::bsky::richtext::facet#mention', did => 'did:plc:z72i7hdynmk6r22z27h6tvur' }
+        ]
     );
     isa_ok( $facet,                ['At::Lexicon::app::bsky::richtext::facet'],            '::richtext::facet' );
     isa_ok( $facet->index,         ['At::Lexicon::app::bsky::richtext::facet::byteSlice'], '::richtext::facet#index' );

@@ -2,71 +2,69 @@ package At::Lexicon::com::atproto::label 0.02 {
     use v5.38;
     no warnings 'experimental::class', 'experimental::builtin';    # Be quiet.
     use feature 'class';
+    use Carp;
 
     class At::Lexicon::com::atproto::label {
-        field $uri : param;
-        field $cid : param = ();
-        field $cts : param;
-        field $neg : param = ();
-        field $val : param;
-        field $src : param;
+        field $src : param;           # DID, required
+        field $uri : param;           # URI, required
+        field $cid : param //= ();    # CID
+        field $val : param;           # string, required, maxlen: 128
+        field $neg : param //= ();    # bool
+        field $cts : param;           # datetime, required
         ADJUST {
-            use Carp;
-            $uri = URI->new($uri) unless builtin::blessed $uri;
-            $cts = At::Protocol::Timestamp->new( timestamp => $cts ) if defined $cts && !builtin::blessed $cts;
-            Carp::cluck q[val is too long; expected 128 bytes or fewer] if length $val > 128;
             $src = At::Protocol::DID->new( uri => $src ) unless builtin::blessed $src;
+            $uri = URI->new($uri)                        unless builtin::blessed $uri;
+            Carp::confess 'val is too long' if length $val > 128;
+            $neg = !!$neg if defined $neg && builtin::blessed $neg;
+            $cts = At::Protocol::Timestamp->new( timestamp => $cts ) unless builtin::blessed $cts;
         }
 
         # perlclass does not have :reader yet
+        method src {$src}
         method uri {$uri}
         method cid {$cid}
-        method cts {$cts}
+        method val {$val}
         method neg {$neg}
-        method val {$val}
-        method src {$src}
+        method cts {$cts}
 
         method _raw() {
-            {   uri => $uri->as_string,
-                ( defined $cid ? ( cid => $cid->_raw ) : () ),
-                cts => $cts->_raw,
-                ( defined $neg ? ( neg => !!$neg ) : () ),
+            +{  src => $src->_raw,
+                uri => $uri->as_string,
+                defined $cid ? ( cid => $cid ) : (),
                 val => $val,
-                src => $src->_raw
-            }
+                defined $neg ? ( neg => \$neg ) : (), cts => $cts->_raw
+            };
         }
     }
 
-    class At::Lexicon::com::atproto::label::selfLabel {
-
-        # The short string name of the value or type of this label.
-        field $val : param;    # string, required
-        ADJUST {
-            Carp::cluck q[val is too long; expected 128 bytes or fewer] if length $val > 128;
-        }
-
-        # perlclass does not have :reader yet
-        method val {$val}
-
-        method _raw() {
-            { val => $val }
-        }
-    }
-
-    # Metadata tags on an atproto record, published by the author within the record.
     class At::Lexicon::com::atproto::label::selfLabels {
-        field $values : param;    # array
+        field $type : param($type) //= ();    # record field
+        field $values : param;                # array, required
         ADJUST {
-            use Carp qw[croak];
+            Carp::croak 'too many labels; max 10' if scalar @$values > 10;
             $values = [ map { $_ = At::Lexicon::com::atproto::label::selfLabel->new( val => $_ ) unless builtin::blessed $_ } @$values ];
-            croak 'too many labels; max 10' if scalar @$values > 10;
         }
 
         # perlclass does not have :reader yet
         method values {$values}
 
         method _raw() {
-            { values => [ map { $_->_raw } @$values ] }
+            +{ defined $type ? ( '$type' => $type ) : (), values => [ map { $_->_raw } @$values ] };
+        }
+    }
+
+    class At::Lexicon::com::atproto::label::selfLabel {
+        field $type : param($type) //= ();    # record field
+        field $val : param;                   # string, required, maxlen: 128
+        ADJUST {
+            Carp::confess q'val is too long' if length $val > 128;
+        }
+
+        # perlclass does not have :reader yet
+        method val {$val}
+
+        method _raw() {
+            +{ defined $type ? ( '$type' => $type ) : (), val => $val };
         }
     }
 };

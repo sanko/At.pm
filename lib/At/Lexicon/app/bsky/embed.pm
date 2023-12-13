@@ -5,11 +5,10 @@ package At::Lexicon::app::bsky::actor 0.02 {
     use Carp;
     use Path::Tiny;
 
-    #~ use URI;
-    #~ use Path::Tiny;
     class At::Lexicon::app::bsky::embed::recordWithMedia {
-        field $record : param;    # ::embed::record, required
-        field $media : param;     # union, required
+        field $type : param($type) //= ();    # record field
+        field $record : param;                # ::embed::record, required
+        field $media : param;                 # union, required
         ADJUST {
             $record = At::Lexicon::app::bsky::embed::record->new(%$record) unless builtin::blessed $record;
             $media  = At::_topkg( $media->{'$type'} )->new(%$media) if !builtin::blessed $media && defined $media->{'$type'};
@@ -20,14 +19,14 @@ package At::Lexicon::app::bsky::actor 0.02 {
         method media  {$media}
 
         method _raw() {
-            { record => $record->_raw, media => $media->_raw };
+            +{ defined $type ? ( '$type' => $type ) : (), record => $record->_raw, media => $media->_raw };
         }
     }
 
     class At::Lexicon::app::bsky::embed::recordWithMedia::view {
-        field $type : param($type) //= ();    # record field
-        field $record : param;                # app.bsky.embed.record#view, required
-        field $media : param;                 # union, required
+        field $type : param($type);    # record field
+        field $record : param;         # app.bsky.embed.record#view, required
+        field $media : param;          # union, required
         ADJUST {
             $record = At::Lexicon::app::bsky::embed::record::view->new(%$record) unless builtin::blessed $record;
             $media  = At::_topkg( $media->{'$type'} )->new(%$media) if !builtin::blessed $media && defined $media->{'$type'};
@@ -38,9 +37,7 @@ package At::Lexicon::app::bsky::actor 0.02 {
         method media  {$media}
 
         method _raw() {
-            defined $type ? ( '$type' => $type ) : (),
-                record => $record->_raw,
-                media  => $media->_raw;
+            +{ '$type' => $type, record => $record->_raw, media => $media->_raw };
         }
     }
 
@@ -56,11 +53,12 @@ package At::Lexicon::app::bsky::actor 0.02 {
         method images {$images}
 
         method _raw() {
-            { '$type' => $type, images => [ map { $_->_raw } @$images ] };
+            +{ '$type' => $type, images => [ map { $_->_raw } @$images ] };
         }
     }
 
     class At::Lexicon::app::bsky::embed::images::image {
+        field $type : param($type) //= ();    # record field
         field $image : param;                 # blob, required, 1000000 bytes max
         field $alt : param;                   # string, required
         field $aspectRatio : param //= ();    # ::aspectRatio
@@ -77,7 +75,11 @@ package At::Lexicon::app::bsky::actor 0.02 {
         method aspectRatio {$aspectRatio}
 
         method _raw() {
-            { image => $image, alt => $alt, defined $aspectRatio ? ( aspectRatio => { $aspectRatio->_raw } ) : () };
+            +{  defined $type ? ( '$type' => $type ) : (),
+                image => $image,
+                alt   => $alt,
+                defined $aspectRatio ? ( aspectRatio => $aspectRatio->_raw ) : ()
+            };
         }
     }
 
@@ -90,13 +92,13 @@ package At::Lexicon::app::bsky::actor 0.02 {
         method height {$height}
 
         method _raw() {
-            { width => $width, height => $height };
+            +{ width => $width, height => $height };
         }
     }
 
     class At::Lexicon::app::bsky::embed::images::view {
-        field $type : param($type) //= ();    # record field
-        field $images : param;                # array, required, max 4
+        field $type : param($type);    # record field
+        field $images : param;         # array, required, max 4
         ADJUST {
             Carp::confess 'too many images; 4 max' if scalar @$images > 4;
             $images = [ map { At::Lexicon::app::bsky::embed::images::viewImage->new(%$_) unless builtin::blessed $_ } @$images ];
@@ -106,9 +108,7 @@ package At::Lexicon::app::bsky::actor 0.02 {
         method images {$images}
 
         method _raw() {
-            {
-                defined $type ? ( '$type' => $type ) : (), images => [ map { $_->_raw } @$images ]
-            };
+            +{ '$type' => $type, images => [ map { $_->_raw } @$images ] };
         }
     }
 
@@ -118,7 +118,9 @@ package At::Lexicon::app::bsky::actor 0.02 {
         field $alt : param;                   # string, required
         field $aspectRatio : param //= ();    # ::aspectRatio
         ADJUST {
-            $aspectRatio = At::Lexicon::app::bsky::embed::images::aspectRatio->new(%$_) if defined $aspectRatio && !builtin::blessed $aspectRatio
+            $aspectRatio = At::Lexicon::app::bsky::embed::images::aspectRatio->new(%$aspectRatio)
+                if defined $aspectRatio &&
+                !builtin::blessed $aspectRatio
         }
 
         # perlclass does not have :reader yet
@@ -128,7 +130,7 @@ package At::Lexicon::app::bsky::actor 0.02 {
         method aspectRatio {$aspectRatio}
 
         method _raw() {
-            { thumb => $thumb, fullsize => $fullsize, alt => $alt, defined $aspectRatio ? ( aspectRatio => { $aspectRatio->_raw } ) : () }
+            +{ thumb => $thumb, fullsize => $fullsize, alt => $alt, defined $aspectRatio ? ( aspectRatio => $aspectRatio->_raw ) : () };
         }
     }
 
@@ -143,7 +145,7 @@ package At::Lexicon::app::bsky::actor 0.02 {
         method external {$external}
 
         method _raw() {
-            { '$type' => $type, external => $external->_raw }
+            +{ '$type' => $type, external => $external->_raw };
         }
     }
 
@@ -153,7 +155,7 @@ package At::Lexicon::app::bsky::actor 0.02 {
         field $description : param;     # string, required
         field $thumb : param //= ();    # blob, 1000000 bytes max
         ADJUST {
-            $uri   = URI->new(%$_) unless builtin::blessed $uri;
+            $uri   = URI->new($uri) unless builtin::blessed $uri;
             $thumb = path($thumb)->slurp_utf8 if defined $thumb && -f $thumb;
             Carp::confess 'thumb is more than 1000000 bytes' if defined $thumb && length $thumb > 1000000;
         }
@@ -165,13 +167,13 @@ package At::Lexicon::app::bsky::actor 0.02 {
         method thumb       {$thumb}
 
         method _raw() {
-            { uri => $uri->as_string, title => $title, description => $description, defined $thumb ? ( thumb => $thumb ) : () }
+            +{ uri => $uri->as_string, title => $title, description => $description, defined $thumb ? ( thumb => $thumb ) : () };
         }
     }
 
     class At::Lexicon::app::bsky::embed::external::view {
-        field $type : param($type) //= ();    # record field
-        field $external : param;              # array, required, max 4
+        field $type : param($type);    # record field
+        field $external : param;       # array, required, max 4
         ADJUST {
             $external = At::Lexicon::app::bsky::embed::external::viewExternal->new(%$external) unless builtin::blessed $external;
         }
@@ -180,7 +182,7 @@ package At::Lexicon::app::bsky::actor 0.02 {
         method external {$external}
 
         method _raw() {
-            { defined $type ? ( '$type' => $type ) : (), external => $external->_raw };
+            +{ '$type' => $type, external => $external->_raw };
         }
     }
 
@@ -200,12 +202,13 @@ package At::Lexicon::app::bsky::actor 0.02 {
         method thumb       {$thumb}
 
         method _raw() {
-            { uri => $uri->as_string, title => $title, description => $description, defined $thumb ? ( thumb => $thumb ) : () }
+            +{ uri => $uri->as_string, title => $title, description => $description, defined $thumb ? ( thumb => $thumb ) : () };
         }
     }
 
     class At::Lexicon::app::bsky::embed::record {
-        field $record : param;    # com.atproto.repo.strongRef, required
+        field $type : param($type);    # record field
+        field $record : param;         # com.atproto.repo.strongRef, required
         ADJUST {
             $record = At::Lexicon::com::atproto::repo::strongRef->new(%$record) unless builtin::blessed $record;
         }
@@ -214,7 +217,7 @@ package At::Lexicon::app::bsky::actor 0.02 {
         method record {$record}
 
         method _raw() {
-            { record => $record->_raw }
+            +{ '$type' => $type, record => $record->_raw };
         }
     }
 
@@ -229,19 +232,19 @@ package At::Lexicon::app::bsky::actor 0.02 {
         method record {$record}
 
         method _raw() {
-            { defined $type ? ( '$type' => $type ) : (), record => $record->_raw };
+            +{ defined $type ? ( '$type' => $type ) : (), record => $record->_raw };
         }
     }
 
     class At::Lexicon::app::bsky::embed::record::viewRecord {
-        field $type : param($type) //= ();    # record field
-        field $uri : param;                   # URI, required
-        field $cid : param;                   # CID, required
-        field $author : param;                # app.bsky.actor.defs#profileViewBasic, required
-        field $value : param;                 # unknown, required
-        field $labels : param //= ();         # array of com.atproto.label.defs#label
-        field $embeds : param //= ();         # array of unions...
-        field $indexedAt : param;             # datetime, required
+        field $type : param($type);      # record field
+        field $uri : param;              # URI, required
+        field $cid : param;              # CID, required
+        field $author : param;           # app.bsky.actor.defs#profileViewBasic, required
+        field $value : param;            # unknown, required
+        field $labels : param //= ();    # array of com.atproto.label.defs#label
+        field $embeds : param //= ();    # array of unions...
+        field $indexedAt : param;        # datetime, required
         ADJUST {
             $uri    = URI->new($uri)                                                 unless builtin::blessed $uri;
             $author = At::Lexicon::app::bsky::actor::profileViewBasic->new(%$author) unless builtin::blessed $author;
@@ -262,22 +265,21 @@ package At::Lexicon::app::bsky::actor 0.02 {
         method indexedAt {$indexedAt}
 
         method _raw() {
-            {
-                defined $type ? ( '$type' => $type ) : (),
-                    uri    => $uri,
-                    cid    => $cid,
-                    author => $author->_raw,
-                    value  => builtin::blessed $value ? $value->_raw : $value,
-                    defined $labels ? ( labels => [ map { $_ = $_->_raw if builtin::blessed $_; } @$labels ] ) : (),
-                    defined $embeds ? ( embeds => [ map { $_ = $_->_raw if builtin::blessed $_; } @$embeds ] ) : (), indexedAt => $indexedAt->_raw
-            }
+            +{  '$type' => $type,
+                uri     => $uri,
+                cid     => $cid,
+                author  => $author->_raw,
+                value   => builtin::blessed $value ? $value->_raw : $value,
+                defined $labels ? ( labels => [ map { $_ = $_->_raw if builtin::blessed $_; } @$labels ] ) : (),
+                defined $embeds ? ( embeds => [ map { $_ = $_->_raw if builtin::blessed $_; } @$embeds ] ) : (), indexedAt => $indexedAt->_raw
+            };
         }
     }
 
     class At::Lexicon::app::bsky::embed::record::viewNotFound {
-        field $type : param($type) //= ();    # record field
-        field $uri : param;                   # URI, required
-        field $notFound : param;              # bool, required
+        field $type : param($type);    # record field
+        field $uri : param;            # URI, required
+        field $notFound : param;       # bool, required
         ADJUST {
             $uri      = URI->new($uri) unless builtin::blessed $uri;
             $notFound = !!$notFound if builtin::blessed $notFound;
@@ -288,17 +290,15 @@ package At::Lexicon::app::bsky::actor 0.02 {
         method notFound {$notFound}
 
         method _raw() {
-            defined $type ? ( '$type' => $type ) : (),
-                uri      => $uri->as_string,
-                notFound => \$notFound;
+            +{ '$type' => $type, uri => $uri->as_string, notFound => \$notFound };
         }
     }
 
     class At::Lexicon::app::bsky::embed::record::viewBlocked {
-        field $type : param($type) //= ();    # record field
-        field $uri : param;                   # URI, required
-        field $blocked : param;               # bool, required
-        field $author : param;                # app.bsky.feed.defs#blockedAuthor, required
+        field $type : param($type);    # record field
+        field $uri : param;            # URI, required
+        field $blocked : param;        # bool, required
+        field $author : param;         # app.bsky.feed.defs#blockedAuthor, required
         ADJUST {
             $uri     = URI->new($uri) unless builtin::blessed $uri;
             $blocked = !!$blocked if builtin::blessed $blocked;
@@ -311,10 +311,7 @@ package At::Lexicon::app::bsky::actor 0.02 {
         method author  {$author}
 
         method _raw() {
-            defined $type ? ( '$type' => $type ) : (),
-                uri     => $uri->as_string,
-                blocked => \$blocked,
-                author  => $author->_raw;
+            +{ '$type' => $type, uri => $uri->as_string, blocked => \$blocked, author => $author->_raw };
         }
     }
 };

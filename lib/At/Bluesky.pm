@@ -62,7 +62,8 @@ package At::Bluesky {
 
         method getProfile ($actor) {
             $client->http->session // Carp::confess 'requires an authenticated client';
-            my $res = $client->http->get( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.actor.getProfile' ), { content => { actor => $actor } } );
+            my $res
+                = $client->http->get( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.actor.getProfile' ), { content => +{ actor => $actor } } );
             $res = At::Lexicon::app::bsky::actor::profileViewDetailed->new(%$res) if defined $res->{did};
             $res;
         }
@@ -71,7 +72,7 @@ package At::Bluesky {
             $client->http->session // Carp::confess 'requires an authenticated client';
             Carp::confess 'getProfiles( ... ) expects no more than 25 actors' if scalar @ids > 25;
             my $res
-                = $client->http->get( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.actor.getProfiles' ), { content => { actors => \@ids } } );
+                = $client->http->get( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.actor.getProfiles' ), { content => +{ actors => \@ids } } );
             $res->{profiles} = [ map { At::Lexicon::app::bsky::actor::profileViewDetailed->new(%$_) } @{ $res->{profiles} } ]
                 if defined $res->{profiles};
             $res;
@@ -81,7 +82,7 @@ package At::Bluesky {
             $client->http->session // Carp::confess 'requires an authenticated client';
             Carp::confess 'getSuggestions( ... ) expects a limit between 1 and 100 (default: 50)' if defined $limit && ( $limit < 1 || $limit > 100 );
             my $res = $client->http->get( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.actor.getSuggestions' ),
-                { content => { defined $limit ? ( limit => $limit ) : (), defined $cursor ? ( cursor => $cursor ) : () } } );
+                { content => +{ defined $limit ? ( limit => $limit ) : (), defined $cursor ? ( cursor => $cursor ) : () } } );
             $res->{actors} = [ map { At::Lexicon::app::bsky::actor::profileView->new(%$_) } @{ $res->{actors} } ] if defined $res->{actors};
             $res;
         }
@@ -91,7 +92,7 @@ package At::Bluesky {
             Carp::confess 'getSuggestions( ... ) expects a limit between 1 and 100 (default: 50)' if defined $limit && ( $limit < 1 || $limit > 100 );
             my $res = $client->http->get(
                 sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.actor.searchActorsTypeahead' ),
-                { content => { q => $q, defined $limit ? ( limit => $limit ) : () } }
+                { content => +{ q => $q, defined $limit ? ( limit => $limit ) : () } }
             );
             $res->{actors} = [ map { At::Lexicon::app::bsky::actor::profileView->new(%$_) } @{ $res->{actors} } ] if defined $res->{actors};
             $res;
@@ -102,7 +103,7 @@ package At::Bluesky {
             Carp::confess 'searchActorsTypeahead( ... ) expects a limit between 1 and 100 (default: 25)'
                 if defined $limit && ( $limit < 1 || $limit > 100 );
             my $res = $client->http->get( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.actor.searchActors' ),
-                { content => { q => $q, defined $limit ? ( limit => $limit ) : (), defined $cursor ? ( cursor => $cursor ) : () } } );
+                { content => +{ q => $q, defined $limit ? ( limit => $limit ) : (), defined $cursor ? ( cursor => $cursor ) : () } } );
             $res->{actors} = [ map { At::Lexicon::app::bsky::actor::profileView->new(%$_) } @{ $res->{actors} } ] if defined $res->{actors};
             $res;
         }
@@ -111,7 +112,7 @@ package At::Bluesky {
             $client->http->session // Carp::confess 'requires an authenticated client';
             my $preferences = At::Lexicon::app::bsky::actor::preferences->new( items => \@preferences );
             my $res         = $client->http->post( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.actor.putPreferences' ),
-                { content => { preferences => $preferences->_raw } } );
+                { content => +{ preferences => $preferences->_raw } } );
             return $res eq '';    # TODO: check HTTP status instead?
         }
     }
@@ -119,1025 +120,114 @@ package At::Bluesky {
     class At::Lexicon::Bluesky::Feed {
         field $client : param;
 
-        # app.bsky.feed.describeFeedGenerator at trash.pl line 204.
-        # trash.pl:205: {
-        #   description => "Get information about a feed generator, including policies and offered feed URIs.",
-        #   output => {
-        #     encoding => "application/json",
-        #     schema   => {
-        #                   properties => {
-        #                     did   => { format => "did", type => "string" },
-        #                     feeds => { items => { ref => "#feed", type => "ref" }, type => "array" },
-        #                     links => { ref => "#links", type => "ref" },
-        #                   },
-        #                   required => ["did", "feeds"],
-        #                   type => "object",
-        #                 },
-        #   },
-        #   type => "query",
-        # }
-        method describeFeedGenerator() {
-            $client->http->session // Carp::confess 'creating a post requires an authenticated client';
-
-            # trash.pl:216: {
-            #   description => "Get information about a feed generator, including policies and offered feed URIs.",
-            #   output => {
-            #     encoding => "application/json",
-            #     schema   => {
-            #                   properties => {
-            #                     did   => { format => "did", type => "string" },
-            #                     feeds => { items => { ref => "#feed", type => "ref" }, type => "array" },
-            #                     links => { ref => "#links", type => "ref" },
-            #                   },
-            #                   required => ["did", "feeds"],
-            #                   type => "object",
-            #                 },
-            #   },
-            #   type => "query",
-            # }
-            my $res = $client->http->get( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.feed.describeFeedGenerator' ) );
-            $res->{uri} = URI->new( $res->{uri} ) if defined $res->{uri};
+        method getSuggestedFeeds ( $limit //= (), $cursor //= () ) {
+            $client->http->session // Carp::confess 'requires an authenticated client';
+            Carp::cluck 'limit is too large' if defined $limit && $limit < 0;
+            Carp::cluck 'limit is too small' if defined $limit && $limit > 100;
+            my $res = $client->http->get( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.feed.getSuggestedFeeds' ),
+                { content => +{ defined $limit ? ( limit => $limit ) : (), defined $cursor ? ( cursor => $cursor ) : () } } );
+            $res->{feeds} = [ map { At::Lexicon::app::bsky::feed::generatorView->new(%$_) } @{ $res->{feeds} } ] if defined $res->{feeds};
             $res;
         }
 
-        # app.bsky.feed.getActorFeeds at trash.pl line 204.
-        # trash.pl:205: {
-        #   description => "Get a list of feeds created by the actor.",
-        #   output => {
-        #     encoding => "application/json",
-        #     schema   => {
-        #                   properties => {
-        #                     cursor => { type => "string" },
-        #                     feeds  => {
-        #                                 items => { ref => "app.bsky.feed.defs#generatorView", type => "ref" },
-        #                                 type  => "array",
-        #                               },
-        #                   },
-        #                   required => ["feeds"],
-        #                   type => "object",
-        #                 },
-        #   },
-        #   parameters => {
-        #     properties => {
-        #       actor  => { format => "at-identifier", type => "string" },
-        #       cursor => { type => "string" },
-        #       limit  => { default => 50, maximum => 100, minimum => 1, type => "integer" },
-        #     },
-        #     required => ["actor"],
-        #     type => "params",
-        #   },
-        #   type => "query",
-        # }
-        method getActorFeeds() {
-            $client->http->session // Carp::confess 'creating a post requires an authenticated client';
-
-            # trash.pl:216: {
-            #   description => "Get a list of feeds created by the actor.",
-            #   output => {
-            #     encoding => "application/json",
-            #     schema   => {
-            #                   properties => {
-            #                     cursor => { type => "string" },
-            #                     feeds  => {
-            #                                 items => { ref => "app.bsky.feed.defs#generatorView", type => "ref" },
-            #                                 type  => "array",
-            #                               },
-            #                   },
-            #                   required => ["feeds"],
-            #                   type => "object",
-            #                 },
-            #   },
-            #   parameters => {
-            #     properties => {
-            #       actor  => { format => "at-identifier", type => "string" },
-            #       cursor => { type => "string" },
-            #       limit  => { default => 50, maximum => 100, minimum => 1, type => "integer" },
-            #     },
-            #     required => ["actor"],
-            #     type => "params",
-            #   },
-            #   type => "query",
-            # }
-            my $res = $client->http->get( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.feed.getActorFeeds' ) );
-            $res->{uri} = URI->new( $res->{uri} ) if defined $res->{uri};
+        method getTimeline ( $algorithm //= (), $limit //= (), $cursor //= () ) {
+            $client->http->session // Carp::confess 'requires an authenticated client';
+            Carp::cluck 'limit is too large' if defined $limit && $limit < 0;
+            Carp::cluck 'limit is too small' if defined $limit && $limit > 100;
+            my $res = $client->http->get(
+                sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.feed.getTimeline' ),
+                {   content => +{
+                        defined $algorithm ? ( algorithm => $algorithm ) : (),
+                        defined $limit     ? ( limit     => $limit )     : (),
+                        defined $cursor    ? ( cursor    => $cursor )    : ()
+                    }
+                }
+            );
+            $res->{feed} = [ map { At::Lexicon::app::bsky::feed::feedViewPost->new(%$_) } @{ $res->{feed} } ] if defined $res->{feed};
             $res;
         }
 
-        # app.bsky.feed.getActorLikes at trash.pl line 204.
-        # trash.pl:205: {
-        #   description => "Get a list of posts liked by an actor.",
-        #   errors => [{ name => "BlockedActor" }, { name => "BlockedByActor" }],
-        #   output => {
-        #     encoding => "application/json",
-        #     schema   => {
-        #                   properties => {
-        #                     cursor => { type => "string" },
-        #                     feed   => {
-        #                                 items => { ref => "app.bsky.feed.defs#feedViewPost", type => "ref" },
-        #                                 type  => "array",
-        #                               },
-        #                   },
-        #                   required => ["feed"],
-        #                   type => "object",
-        #                 },
-        #   },
-        #   parameters => {
-        #     properties => {
-        #       actor  => { format => "at-identifier", type => "string" },
-        #       cursor => { type => "string" },
-        #       limit  => { default => 50, maximum => 100, minimum => 1, type => "integer" },
-        #     },
-        #     required => ["actor"],
-        #     type => "params",
-        #   },
-        #   type => "query",
-        # }
-        method getActorLikes() {
-            $client->http->session // Carp::confess 'creating a post requires an authenticated client';
-
-            # trash.pl:216: {
-            #   description => "Get a list of posts liked by an actor.",
-            #   errors => [{ name => "BlockedActor" }, { name => "BlockedByActor" }],
-            #   output => {
-            #     encoding => "application/json",
-            #     schema   => {
-            #                   properties => {
-            #                     cursor => { type => "string" },
-            #                     feed   => {
-            #                                 items => { ref => "app.bsky.feed.defs#feedViewPost", type => "ref" },
-            #                                 type  => "array",
-            #                               },
-            #                   },
-            #                   required => ["feed"],
-            #                   type => "object",
-            #                 },
-            #   },
-            #   parameters => {
-            #     properties => {
-            #       actor  => { format => "at-identifier", type => "string" },
-            #       cursor => { type => "string" },
-            #       limit  => { default => 50, maximum => 100, minimum => 1, type => "integer" },
-            #     },
-            #     required => ["actor"],
-            #     type => "params",
-            #   },
-            #   type => "query",
-            # }
-            my $res = $client->http->get( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.feed.getActorLikes' ) );
-            $res->{uri} = URI->new( $res->{uri} ) if defined $res->{uri};
+        method searchPosts ( $q, $limit //= (), $cursor //= () ) {
+            $client->http->session // Carp::confess 'requires an authenticated client';
+            Carp::cluck 'limit is too large' if defined $limit && $limit < 0;
+            Carp::cluck 'limit is too small' if defined $limit && $limit > 100;
+            my $res = $client->http->get( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.feed.searchPosts' ),
+                { content => +{ q => $q, defined $limit ? ( limit => $limit ) : (), defined $cursor ? ( cursor => $cursor ) : () } } );
+            $res->{posts} = [ map { At::Lexicon::app::bsky::feed::postView->new(%$_) } @{ $res->{posts} } ] if defined $res->{posts};
             $res;
         }
 
-        # app.bsky.feed.getAuthorFeed at trash.pl line 204.
-        # trash.pl:205: {
-        #   description => "Get a view of an actor's feed.",
-        #   errors => [{ name => "BlockedActor" }, { name => "BlockedByActor" }],
-        #   output => {
-        #     encoding => "application/json",
-        #     schema   => {
-        #                   properties => {
-        #                     cursor => { type => "string" },
-        #                     feed   => {
-        #                                 items => { ref => "app.bsky.feed.defs#feedViewPost", type => "ref" },
-        #                                 type  => "array",
-        #                               },
-        #                   },
-        #                   required => ["feed"],
-        #                   type => "object",
-        #                 },
-        #   },
-        #   parameters => {
-        #     properties => {
-        #       actor  => { format => "at-identifier", type => "string" },
-        #       cursor => { type => "string" },
-        #       filter => {
-        #                   default => "posts_with_replies",
-        #                   knownValues => ["posts_with_replies", "posts_no_replies", "posts_with_media"],
-        #                   type => "string",
-        #                 },
-        #       limit  => { default => 50, maximum => 100, minimum => 1, type => "integer" },
-        #     },
-        #     required => ["actor"],
-        #     type => "params",
-        #   },
-        #   type => "query",
-        # }
-        method getAuthorFeed() {
-            $client->http->session // Carp::confess 'creating a post requires an authenticated client';
-
-            # trash.pl:216: {
-            #   description => "Get a view of an actor's feed.",
-            #   errors => [{ name => "BlockedActor" }, { name => "BlockedByActor" }],
-            #   output => {
-            #     encoding => "application/json",
-            #     schema   => {
-            #                   properties => {
-            #                     cursor => { type => "string" },
-            #                     feed   => {
-            #                                 items => { ref => "app.bsky.feed.defs#feedViewPost", type => "ref" },
-            #                                 type  => "array",
-            #                               },
-            #                   },
-            #                   required => ["feed"],
-            #                   type => "object",
-            #                 },
-            #   },
-            #   parameters => {
-            #     properties => {
-            #       actor  => { format => "at-identifier", type => "string" },
-            #       cursor => { type => "string" },
-            #       filter => {
-            #                   default => "posts_with_replies",
-            #                   knownValues => ["posts_with_replies", "posts_no_replies", "posts_with_media"],
-            #                   type => "string",
-            #                 },
-            #       limit  => { default => 50, maximum => 100, minimum => 1, type => "integer" },
-            #     },
-            #     required => ["actor"],
-            #     type => "params",
-            #   },
-            #   type => "query",
-            # }
-            my $res = $client->http->get( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.feed.getAuthorFeed' ) );
-            $res->{uri} = URI->new( $res->{uri} ) if defined $res->{uri};
+        method getAuthorFeed ( $actor, $limit //= (), $filter //= (), $cursor //= () ) {
+            $client->http->session // Carp::confess 'requires an authenticated client';
+            Carp::cluck 'limit is too large' if defined $limit && $limit < 0;
+            Carp::cluck 'limit is too small' if defined $limit && $limit > 100;
+            my $res = $client->http->get(
+                sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.feed.getAuthorFeed' ),
+                {   content => +{
+                        actor => $actor,
+                        defined $limit ? ( limit => $limit ) : (), defined $filter ? ( filter => $filter ) : (),
+                        defined $cursor ? ( cursor => $cursor ) : ()
+                    }
+                }
+            );
+            $res->{feed} = [ map { At::Lexicon::app::bsky::feed::feedViewPost->new(%$_) } @{ $res->{feed} } ] if defined $res->{feed};
             $res;
         }
 
-        # app.bsky.feed.getFeed at trash.pl line 204.
-        # trash.pl:205: {
-        #   description => "Get a hydrated feed from an actor's selected feed generator.",
-        #   errors => [{ name => "UnknownFeed" }],
-        #   output => {
-        #     encoding => "application/json",
-        #     schema   => {
-        #                   properties => {
-        #                     cursor => { type => "string" },
-        #                     feed   => {
-        #                                 items => { ref => "app.bsky.feed.defs#feedViewPost", type => "ref" },
-        #                                 type  => "array",
-        #                               },
-        #                   },
-        #                   required => ["feed"],
-        #                   type => "object",
-        #                 },
-        #   },
-        #   parameters => {
-        #     properties => {
-        #       cursor => { type => "string" },
-        #       feed   => { format => "at-uri", type => "string" },
-        #       limit  => { default => 50, maximum => 100, minimum => 1, type => "integer" },
-        #     },
-        #     required => ["feed"],
-        #     type => "params",
-        #   },
-        #   type => "query",
-        # }
-        method getFeed() {
-            $client->http->session // Carp::confess 'creating a post requires an authenticated client';
-
-            # trash.pl:216: {
-            #   description => "Get a hydrated feed from an actor's selected feed generator.",
-            #   errors => [{ name => "UnknownFeed" }],
-            #   output => {
-            #     encoding => "application/json",
-            #     schema   => {
-            #                   properties => {
-            #                     cursor => { type => "string" },
-            #                     feed   => {
-            #                                 items => { ref => "app.bsky.feed.defs#feedViewPost", type => "ref" },
-            #                                 type  => "array",
-            #                               },
-            #                   },
-            #                   required => ["feed"],
-            #                   type => "object",
-            #                 },
-            #   },
-            #   parameters => {
-            #     properties => {
-            #       cursor => { type => "string" },
-            #       feed   => { format => "at-uri", type => "string" },
-            #       limit  => { default => 50, maximum => 100, minimum => 1, type => "integer" },
-            #     },
-            #     required => ["feed"],
-            #     type => "params",
-            #   },
-            #   type => "query",
-            # }
-            my $res = $client->http->get( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.feed.getFeed' ) );
-            $res->{uri} = URI->new( $res->{uri} ) if defined $res->{uri};
+        method getRepostedBy ( $uri, $cid //= (), $limit //= (), $cursor //= () ) {
+            $client->http->session // Carp::confess 'requires an authenticated client';
+            Carp::cluck 'limit is too large' if defined $limit && $limit < 0;
+            Carp::cluck 'limit is too small' if defined $limit && $limit > 100;
+            my $res = $client->http->get(
+                sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.feed.getRepostedBy' ),
+                {   content => +{
+                        uri => ( builtin::blessed $uri? $uri->as_string : $uri ),
+                        defined $cid ? ( cid => $cid ) : (), defined $limit ? ( limit => $limit ) : (), defined $cursor ? ( cursor => $cursor ) : ()
+                    }
+                }
+            );
+            $res->{uri}        = URI->new( $res->{uri} ) if defined $res->{uri};
+            $res->{repostedBy} = [ map { At::Lexicon::app::bsky::actor::profileView->new(%$_) } @{ $res->{repostedBy} } ]
+                if defined $res->{repostedBy};
             $res;
         }
 
-        # app.bsky.feed.getFeedGenerator at trash.pl line 204.
-        # trash.pl:205: {
-        #   description => "Get information about a feed generator.",
-        #   output => {
-        #     encoding => "application/json",
-        #     schema   => {
-        #                   properties => {
-        #                     isOnline => { type => "boolean" },
-        #                     isValid => { type => "boolean" },
-        #                     view => { ref => "app.bsky.feed.defs#generatorView", type => "ref" },
-        #                   },
-        #                   required => ["view", "isOnline", "isValid"],
-        #                   type => "object",
-        #                 },
-        #   },
-        #   parameters => {
-        #     properties => { feed => { format => "at-uri", type => "string" } },
-        #     required => ["feed"],
-        #     type => "params",
-        #   },
-        #   type => "query",
-        # }
-        method getFeedGenerator() {
-            $client->http->session // Carp::confess 'creating a post requires an authenticated client';
-
-            # trash.pl:216: {
-            #   description => "Get information about a feed generator.",
-            #   output => {
-            #     encoding => "application/json",
-            #     schema   => {
-            #                   properties => {
-            #                     isOnline => { type => "boolean" },
-            #                     isValid => { type => "boolean" },
-            #                     view => { ref => "app.bsky.feed.defs#generatorView", type => "ref" },
-            #                   },
-            #                   required => ["view", "isOnline", "isValid"],
-            #                   type => "object",
-            #                 },
-            #   },
-            #   parameters => {
-            #     properties => { feed => { format => "at-uri", type => "string" } },
-            #     required => ["feed"],
-            #     type => "params",
-            #   },
-            #   type => "query",
-            # }
-            my $res = $client->http->get( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.feed.getFeedGenerator' ) );
-            $res->{uri} = URI->new( $res->{uri} ) if defined $res->{uri};
+        method getActorFeeds ( $actor, $limit //= (), $cursor //= () ) {
+            $client->http->session // Carp::confess 'requires an authenticated client';
+            Carp::cluck 'limit is too large' if defined $limit && $limit < 0;
+            Carp::cluck 'limit is too small' if defined $limit && $limit > 100;
+            my $res = $client->http->get( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.feed.getActorFeeds' ),
+                { content => +{ actor => $actor, defined $limit ? ( limit => $limit ) : (), defined $cursor ? ( cursor => $cursor ) : () } } );
+            $res->{feeds} = [ map { At::Lexicon::app::bsky::feed::generatorView->new(%$_) } @{ $res->{feeds} } ] if defined $res->{feeds};
             $res;
         }
 
-        # app.bsky.feed.getFeedGenerators at trash.pl line 204.
-        # trash.pl:205: {
-        #   description => "Get information about a list of feed generators.",
-        #   output => {
-        #     encoding => "application/json",
-        #     schema   => {
-        #                   properties => {
-        #                     feeds => {
-        #                       items => { ref => "app.bsky.feed.defs#generatorView", type => "ref" },
-        #                       type  => "array",
-        #                     },
-        #                   },
-        #                   required => ["feeds"],
-        #                   type => "object",
-        #                 },
-        #   },
-        #   parameters => {
-        #     properties => {
-        #       feeds => { items => { format => "at-uri", type => "string" }, type => "array" },
-        #     },
-        #     required => ["feeds"],
-        #     type => "params",
-        #   },
-        #   type => "query",
-        # }
-        method getFeedGenerators() {
-            $client->http->session // Carp::confess 'creating a post requires an authenticated client';
-
-            # trash.pl:216: {
-            #   description => "Get information about a list of feed generators.",
-            #   output => {
-            #     encoding => "application/json",
-            #     schema   => {
-            #                   properties => {
-            #                     feeds => {
-            #                       items => { ref => "app.bsky.feed.defs#generatorView", type => "ref" },
-            #                       type  => "array",
-            #                     },
-            #                   },
-            #                   required => ["feeds"],
-            #                   type => "object",
-            #                 },
-            #   },
-            #   parameters => {
-            #     properties => {
-            #       feeds => { items => { format => "at-uri", type => "string" }, type => "array" },
-            #     },
-            #     required => ["feeds"],
-            #     type => "params",
-            #   },
-            #   type => "query",
-            # }
-            my $res = $client->http->get( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.feed.getFeedGenerators' ) );
-            $res->{uri} = URI->new( $res->{uri} ) if defined $res->{uri};
+        method getActorLikes ( $actor, $limit //= (), $cursor //= () ) {
+            $client->http->session // Carp::confess 'requires an authenticated client';
+            Carp::cluck 'limit is too large' if defined $limit && $limit < 0;
+            Carp::cluck 'limit is too small' if defined $limit && $limit > 100;
+            my $res = $client->http->get( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.feed.getActorLikes' ),
+                { content => +{ actor => $actor, defined $limit ? ( limit => $limit ) : (), defined $cursor ? ( cursor => $cursor ) : () } } );
+            $res->{feed} = [ map { At::Lexicon::app::bsky::feed::feedViewPost->new(%$_) } @{ $res->{feed} } ] if defined $res->{feed};
             $res;
         }
 
-        # app.bsky.feed.getFeedSkeleton at trash.pl line 204.
-        # trash.pl:205: {
-        #   description => "Get a skeleton of a feed provided by a feed generator.",
-        #   errors => [{ name => "UnknownFeed" }],
-        #   output => {
-        #     encoding => "application/json",
-        #     schema   => {
-        #                   properties => {
-        #                     cursor => { type => "string" },
-        #                     feed   => {
-        #                                 items => { ref => "app.bsky.feed.defs#skeletonFeedPost", type => "ref" },
-        #                                 type  => "array",
-        #                               },
-        #                   },
-        #                   required => ["feed"],
-        #                   type => "object",
-        #                 },
-        #   },
-        #   parameters => {
-        #     properties => {
-        #       cursor => { type => "string" },
-        #       feed   => { format => "at-uri", type => "string" },
-        #       limit  => { default => 50, maximum => 100, minimum => 1, type => "integer" },
-        #     },
-        #     required => ["feed"],
-        #     type => "params",
-        #   },
-        #   type => "query",
-        # }
-        method getFeedSkeleton() {
-            $client->http->session // Carp::confess 'creating a post requires an authenticated client';
-
-            # trash.pl:216: {
-            #   description => "Get a skeleton of a feed provided by a feed generator.",
-            #   errors => [{ name => "UnknownFeed" }],
-            #   output => {
-            #     encoding => "application/json",
-            #     schema   => {
-            #                   properties => {
-            #                     cursor => { type => "string" },
-            #                     feed   => {
-            #                                 items => { ref => "app.bsky.feed.defs#skeletonFeedPost", type => "ref" },
-            #                                 type  => "array",
-            #                               },
-            #                   },
-            #                   required => ["feed"],
-            #                   type => "object",
-            #                 },
-            #   },
-            #   parameters => {
-            #     properties => {
-            #       cursor => { type => "string" },
-            #       feed   => { format => "at-uri", type => "string" },
-            #       limit  => { default => 50, maximum => 100, minimum => 1, type => "integer" },
-            #     },
-            #     required => ["feed"],
-            #     type => "params",
-            #   },
-            #   type => "query",
-            # }
-            my $res = $client->http->get( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.feed.getFeedSkeleton' ) );
-            $res->{uri} = URI->new( $res->{uri} ) if defined $res->{uri};
+        method getPosts (@uris) {
+            $client->http->session // Carp::confess 'requires an authenticated client';
+            Carp::confess 'too many uris' if scalar @uris > 25;
+            my $res = $client->http->get( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.feed.getPosts' ), { content => +{ uris => \@uris } } );
+            $res->{posts} = [ map { At::Lexicon::app::bsky::feed::postView->new(%$_) } @{ $res->{posts} } ] if defined $res->{posts};
             $res;
         }
 
-        # app.bsky.feed.getLikes at trash.pl line 204.
-        # trash.pl:205: {
-        #   description => "Get the list of likes.",
-        #   output => {
-        #     encoding => "application/json",
-        #     schema   => {
-        #                   properties => {
-        #                     cid => { format => "cid", type => "string" },
-        #                     cursor => { type => "string" },
-        #                     likes => { items => { ref => "#like", type => "ref" }, type => "array" },
-        #                     uri => { format => "at-uri", type => "string" },
-        #                   },
-        #                   required => ["uri", "likes"],
-        #                   type => "object",
-        #                 },
-        #   },
-        #   parameters => {
-        #     properties => {
-        #       cid => { format => "cid", type => "string" },
-        #       cursor => { type => "string" },
-        #       limit => { default => 50, maximum => 100, minimum => 1, type => "integer" },
-        #       uri => { format => "at-uri", type => "string" },
-        #     },
-        #     required => ["uri"],
-        #     type => "params",
-        #   },
-        #   type => "query",
-        # }
-        method getLikes() {
-            $client->http->session // Carp::confess 'creating a post requires an authenticated client';
-
-            # trash.pl:216: {
-            #   description => "Get the list of likes.",
-            #   output => {
-            #     encoding => "application/json",
-            #     schema   => {
-            #                   properties => {
-            #                     cid => { format => "cid", type => "string" },
-            #                     cursor => { type => "string" },
-            #                     likes => { items => { ref => "#like", type => "ref" }, type => "array" },
-            #                     uri => { format => "at-uri", type => "string" },
-            #                   },
-            #                   required => ["uri", "likes"],
-            #                   type => "object",
-            #                 },
-            #   },
-            #   parameters => {
-            #     properties => {
-            #       cid => { format => "cid", type => "string" },
-            #       cursor => { type => "string" },
-            #       limit => { default => 50, maximum => 100, minimum => 1, type => "integer" },
-            #       uri => { format => "at-uri", type => "string" },
-            #     },
-            #     required => ["uri"],
-            #     type => "params",
-            #   },
-            #   type => "query",
-            # }
-            my $res = $client->http->get( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.feed.getLikes' ) );
-            $res->{uri} = URI->new( $res->{uri} ) if defined $res->{uri};
-            $res;
-        }
-
-        # app.bsky.feed.getListFeed at trash.pl line 204.
-        # trash.pl:205: {
-        #   description => "Get a view of a recent posts from actors in a list.",
-        #   errors => [{ name => "UnknownList" }],
-        #   output => {
-        #     encoding => "application/json",
-        #     schema   => {
-        #                   properties => {
-        #                     cursor => { type => "string" },
-        #                     feed   => {
-        #                                 items => { ref => "app.bsky.feed.defs#feedViewPost", type => "ref" },
-        #                                 type  => "array",
-        #                               },
-        #                   },
-        #                   required => ["feed"],
-        #                   type => "object",
-        #                 },
-        #   },
-        #   parameters => {
-        #     properties => {
-        #       cursor => { type => "string" },
-        #       limit  => { default => 50, maximum => 100, minimum => 1, type => "integer" },
-        #       list   => { format => "at-uri", type => "string" },
-        #     },
-        #     required => ["list"],
-        #     type => "params",
-        #   },
-        #   type => "query",
-        # }
-        method getListFeed() {
-            $client->http->session // Carp::confess 'creating a post requires an authenticated client';
-
-            # trash.pl:216: {
-            #   description => "Get a view of a recent posts from actors in a list.",
-            #   errors => [{ name => "UnknownList" }],
-            #   output => {
-            #     encoding => "application/json",
-            #     schema   => {
-            #                   properties => {
-            #                     cursor => { type => "string" },
-            #                     feed   => {
-            #                                 items => { ref => "app.bsky.feed.defs#feedViewPost", type => "ref" },
-            #                                 type  => "array",
-            #                               },
-            #                   },
-            #                   required => ["feed"],
-            #                   type => "object",
-            #                 },
-            #   },
-            #   parameters => {
-            #     properties => {
-            #       cursor => { type => "string" },
-            #       limit  => { default => 50, maximum => 100, minimum => 1, type => "integer" },
-            #       list   => { format => "at-uri", type => "string" },
-            #     },
-            #     required => ["list"],
-            #     type => "params",
-            #   },
-            #   type => "query",
-            # }
-            my $res = $client->http->get( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.feed.getListFeed' ) );
-            $res->{uri} = URI->new( $res->{uri} ) if defined $res->{uri};
-            $res;
-        }
-
-        # app.bsky.feed.getPostThread at trash.pl line 204.
-        # trash.pl:205: {
-        #   description => "Get posts in a thread.",
-        #   errors => [{ name => "NotFound" }],
-        #   output => {
-        #     encoding => "application/json",
-        #     schema   => {
-        #                   properties => {
-        #                     thread => {
-        #                       refs => [
-        #                                 "app.bsky.feed.defs#threadViewPost",
-        #                                 "app.bsky.feed.defs#notFoundPost",
-        #                                 "app.bsky.feed.defs#blockedPost",
-        #                               ],
-        #                       type => "union",
-        #                     },
-        #                   },
-        #                   required => ["thread"],
-        #                   type => "object",
-        #                 },
-        #   },
-        #   parameters => {
-        #     properties => {
-        #       depth => { default => 6, maximum => 1000, minimum => 0, type => "integer" },
-        #       parentHeight => { default => 80, maximum => 1000, minimum => 0, type => "integer" },
-        #       uri => { format => "at-uri", type => "string" },
-        #     },
-        #     required => ["uri"],
-        #     type => "params",
-        #   },
-        #   type => "query",
-        # }
-        method getPostThread() {
-            $client->http->session // Carp::confess 'creating a post requires an authenticated client';
-
-            # trash.pl:216: {
-            #   description => "Get posts in a thread.",
-            #   errors => [{ name => "NotFound" }],
-            #   output => {
-            #     encoding => "application/json",
-            #     schema   => {
-            #                   properties => {
-            #                     thread => {
-            #                       refs => [
-            #                                 "app.bsky.feed.defs#threadViewPost",
-            #                                 "app.bsky.feed.defs#notFoundPost",
-            #                                 "app.bsky.feed.defs#blockedPost",
-            #                               ],
-            #                       type => "union",
-            #                     },
-            #                   },
-            #                   required => ["thread"],
-            #                   type => "object",
-            #                 },
-            #   },
-            #   parameters => {
-            #     properties => {
-            #       depth => { default => 6, maximum => 1000, minimum => 0, type => "integer" },
-            #       parentHeight => { default => 80, maximum => 1000, minimum => 0, type => "integer" },
-            #       uri => { format => "at-uri", type => "string" },
-            #     },
-            #     required => ["uri"],
-            #     type => "params",
-            #   },
-            #   type => "query",
-            # }
-            my $res = $client->http->get( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.feed.getPostThread' ) );
-            $res->{uri} = URI->new( $res->{uri} ) if defined $res->{uri};
-            $res;
-        }
-
-        # app.bsky.feed.getPosts at trash.pl line 204.
-        # trash.pl:205: {
-        #   description => "Get a view of an actor's feed.",
-        #   output => {
-        #     encoding => "application/json",
-        #     schema   => {
-        #                   properties => {
-        #                     posts => {
-        #                       items => { ref => "app.bsky.feed.defs#postView", type => "ref" },
-        #                       type  => "array",
-        #                     },
-        #                   },
-        #                   required => ["posts"],
-        #                   type => "object",
-        #                 },
-        #   },
-        #   parameters => {
-        #     properties => {
-        #       uris => {
-        #         items => { format => "at-uri", type => "string" },
-        #         maxLength => 25,
-        #         type => "array",
-        #       },
-        #     },
-        #     required => ["uris"],
-        #     type => "params",
-        #   },
-        #   type => "query",
-        # }
-        method getPosts() {
-            $client->http->session // Carp::confess 'creating a post requires an authenticated client';
-
-            # trash.pl:216: {
-            #   description => "Get a view of an actor's feed.",
-            #   output => {
-            #     encoding => "application/json",
-            #     schema   => {
-            #                   properties => {
-            #                     posts => {
-            #                       items => { ref => "app.bsky.feed.defs#postView", type => "ref" },
-            #                       type  => "array",
-            #                     },
-            #                   },
-            #                   required => ["posts"],
-            #                   type => "object",
-            #                 },
-            #   },
-            #   parameters => {
-            #     properties => {
-            #       uris => {
-            #         items => { format => "at-uri", type => "string" },
-            #         maxLength => 25,
-            #         type => "array",
-            #       },
-            #     },
-            #     required => ["uris"],
-            #     type => "params",
-            #   },
-            #   type => "query",
-            # }
-            my $res = $client->http->get( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.feed.getPosts' ) );
-            $res->{uri} = URI->new( $res->{uri} ) if defined $res->{uri};
-            $res;
-        }
-
-        # app.bsky.feed.getRepostedBy at trash.pl line 204.
-        # trash.pl:205: {
-        #   description => "Get a list of reposts.",
-        #   output => {
-        #     encoding => "application/json",
-        #     schema   => {
-        #                   properties => {
-        #                     cid => { format => "cid", type => "string" },
-        #                     cursor => { type => "string" },
-        #                     repostedBy => {
-        #                       items => { ref => "app.bsky.actor.defs#profileView", type => "ref" },
-        #                       type  => "array",
-        #                     },
-        #                     uri => { format => "at-uri", type => "string" },
-        #                   },
-        #                   required => ["uri", "repostedBy"],
-        #                   type => "object",
-        #                 },
-        #   },
-        #   parameters => {
-        #     properties => {
-        #       cid => { format => "cid", type => "string" },
-        #       cursor => { type => "string" },
-        #       limit => { default => 50, maximum => 100, minimum => 1, type => "integer" },
-        #       uri => { format => "at-uri", type => "string" },
-        #     },
-        #     required => ["uri"],
-        #     type => "params",
-        #   },
-        #   type => "query",
-        # }
-        method getRepostedBy() {
-            $client->http->session // Carp::confess 'creating a post requires an authenticated client';
-
-            # trash.pl:216: {
-            #   description => "Get a list of reposts.",
-            #   output => {
-            #     encoding => "application/json",
-            #     schema   => {
-            #                   properties => {
-            #                     cid => { format => "cid", type => "string" },
-            #                     cursor => { type => "string" },
-            #                     repostedBy => {
-            #                       items => { ref => "app.bsky.actor.defs#profileView", type => "ref" },
-            #                       type  => "array",
-            #                     },
-            #                     uri => { format => "at-uri", type => "string" },
-            #                   },
-            #                   required => ["uri", "repostedBy"],
-            #                   type => "object",
-            #                 },
-            #   },
-            #   parameters => {
-            #     properties => {
-            #       cid => { format => "cid", type => "string" },
-            #       cursor => { type => "string" },
-            #       limit => { default => 50, maximum => 100, minimum => 1, type => "integer" },
-            #       uri => { format => "at-uri", type => "string" },
-            #     },
-            #     required => ["uri"],
-            #     type => "params",
-            #   },
-            #   type => "query",
-            # }
-            my $res = $client->http->get( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.feed.getRepostedBy' ) );
-            $res->{uri} = URI->new( $res->{uri} ) if defined $res->{uri};
-            $res;
-        }
-
-        # app.bsky.feed.getSuggestedFeeds at trash.pl line 204.
-        # trash.pl:205: {
-        #   description => "Get a list of suggested feeds for the viewer.",
-        #   output => {
-        #     encoding => "application/json",
-        #     schema   => {
-        #                   properties => {
-        #                     cursor => { type => "string" },
-        #                     feeds  => {
-        #                                 items => { ref => "app.bsky.feed.defs#generatorView", type => "ref" },
-        #                                 type  => "array",
-        #                               },
-        #                   },
-        #                   required => ["feeds"],
-        #                   type => "object",
-        #                 },
-        #   },
-        #   parameters => {
-        #     properties => {
-        #       cursor => { type => "string" },
-        #       limit  => { default => 50, maximum => 100, minimum => 1, type => "integer" },
-        #     },
-        #     type => "params",
-        #   },
-        #   type => "query",
-        # }
-        method getSuggestedFeeds() {
-            $client->http->session // Carp::confess 'creating a post requires an authenticated client';
-
-            # trash.pl:216: {
-            #   description => "Get a list of suggested feeds for the viewer.",
-            #   output => {
-            #     encoding => "application/json",
-            #     schema   => {
-            #                   properties => {
-            #                     cursor => { type => "string" },
-            #                     feeds  => {
-            #                                 items => { ref => "app.bsky.feed.defs#generatorView", type => "ref" },
-            #                                 type  => "array",
-            #                               },
-            #                   },
-            #                   required => ["feeds"],
-            #                   type => "object",
-            #                 },
-            #   },
-            #   parameters => {
-            #     properties => {
-            #       cursor => { type => "string" },
-            #       limit  => { default => 50, maximum => 100, minimum => 1, type => "integer" },
-            #     },
-            #     type => "params",
-            #   },
-            #   type => "query",
-            # }
-            my $res = $client->http->get( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.feed.getSuggestedFeeds' ) );
-            $res->{uri} = URI->new( $res->{uri} ) if defined $res->{uri};
-            $res;
-        }
-
-        # app.bsky.feed.getTimeline at trash.pl line 204.
-        # trash.pl:205: {
-        #   description => "Get a view of the actor's home timeline.",
-        #   output => {
-        #     encoding => "application/json",
-        #     schema   => {
-        #                   properties => {
-        #                     cursor => { type => "string" },
-        #                     feed   => {
-        #                                 items => { ref => "app.bsky.feed.defs#feedViewPost", type => "ref" },
-        #                                 type  => "array",
-        #                               },
-        #                   },
-        #                   required => ["feed"],
-        #                   type => "object",
-        #                 },
-        #   },
-        #   parameters => {
-        #     properties => {
-        #       algorithm => { type => "string" },
-        #       cursor    => { type => "string" },
-        #       limit     => { default => 50, maximum => 100, minimum => 1, type => "integer" },
-        #     },
-        #     type => "params",
-        #   },
-        #   type => "query",
-        # }
-        method getTimeline() {
-            $client->http->session // Carp::confess 'creating a post requires an authenticated client';
-
-            # trash.pl:216: {
-            #   description => "Get a view of the actor's home timeline.",
-            #   output => {
-            #     encoding => "application/json",
-            #     schema   => {
-            #                   properties => {
-            #                     cursor => { type => "string" },
-            #                     feed   => {
-            #                                 items => { ref => "app.bsky.feed.defs#feedViewPost", type => "ref" },
-            #                                 type  => "array",
-            #                               },
-            #                   },
-            #                   required => ["feed"],
-            #                   type => "object",
-            #                 },
-            #   },
-            #   parameters => {
-            #     properties => {
-            #       algorithm => { type => "string" },
-            #       cursor    => { type => "string" },
-            #       limit     => { default => 50, maximum => 100, minimum => 1, type => "integer" },
-            #     },
-            #     type => "params",
-            #   },
-            #   type => "query",
-            # }
-            my $res = $client->http->get( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.feed.getTimeline' ) );
-            $res->{uri} = URI->new( $res->{uri} ) if defined $res->{uri};
-            $res;
-        }
-
-# app.bsky.feed.searchPosts at trash.pl line 204.
-# trash.pl:205: {
-#   description => "Find posts matching search criteria.",
-#   errors => [{ name => "BadQueryString" }],
-#   output => {
-#     encoding => "application/json",
-#     schema   => {
-#                   properties => {
-#                     cursor    => { type => "string" },
-#                     hitsTotal => {
-#                                    description => "Count of search hits. Optional, may be rounded/truncated, and may not be possible to paginate through all hits.",
-#                                    type => "integer",
-#                                  },
-#                     posts     => {
-#                                    items => { ref => "app.bsky.feed.defs#postView", type => "ref" },
-#                                    type  => "array",
-#                                  },
-#                   },
-#                   required => ["posts"],
-#                   type => "object",
-#                 },
-#   },
-#   parameters => {
-#     properties => {
-#       cursor => {
-#         description => "Optional pagination mechanism; may not necessarily allow scrolling through entire result set.",
-#         type => "string",
-#       },
-#       limit => { default => 25, maximum => 100, minimum => 1, type => "integer" },
-#       q => {
-#         description => "Search query string; syntax, phrase, boolean, and faceting is unspecified, but Lucene query syntax is recommended.",
-#         type => "string",
-#       },
-#     },
-#     required => ["q"],
-#     type => "params",
-#   },
-#   type => "query",
-# }
-        method searchPosts() {
-            $client->http->session // Carp::confess 'creating a post requires an authenticated client';
-
-# trash.pl:216: {
-#   description => "Find posts matching search criteria.",
-#   errors => [{ name => "BadQueryString" }],
-#   output => {
-#     encoding => "application/json",
-#     schema   => {
-#                   properties => {
-#                     cursor    => { type => "string" },
-#                     hitsTotal => {
-#                                    description => "Count of search hits. Optional, may be rounded/truncated, and may not be possible to paginate through all hits.",
-#                                    type => "integer",
-#                                  },
-#                     posts     => {
-#                                    items => { ref => "app.bsky.feed.defs#postView", type => "ref" },
-#                                    type  => "array",
-#                                  },
-#                   },
-#                   required => ["posts"],
-#                   type => "object",
-#                 },
-#   },
-#   parameters => {
-#     properties => {
-#       cursor => {
-#         description => "Optional pagination mechanism; may not necessarily allow scrolling through entire result set.",
-#         type => "string",
-#       },
-#       limit => { default => 25, maximum => 100, minimum => 1, type => "integer" },
-#       q => {
-#         description => "Search query string; syntax, phrase, boolean, and faceting is unspecified, but Lucene query syntax is recommended.",
-#         type => "string",
-#       },
-#     },
-#     required => ["q"],
-#     type => "params",
-#   },
-#   type => "query",
-# }
-            my $res = $client->http->get( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.feed.searchPosts' ) );
-            $res->{uri} = URI->new( $res->{uri} ) if defined $res->{uri};
-            $res;
-        }
+        #~ method getFeed () {
+        #~ $client->http->session // Carp::confess 'requires an authenticated client';
+        #~ my $res = $client->http->get( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.feed.getFeed' ) );
+        #~ use Data::Dump;
+        #~ ddx $res;
+        #~ $res = At::Lexicon::app::bsky::actor::preferences->new( items => $res->{preferences} ) if defined $res->{preferences};
+        #~ $res;
+        #~ }
     }
 
     class At::Lexicon::Bluesky::Graph {
@@ -1147,7 +237,7 @@ package At::Bluesky {
             $client->http->session // Carp::confess 'requires an authenticated client';
             my $res = $client->http->get(
                 sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.graph.getFollows' ),
-                { content => { actor => $actor, limit => $limit, cursor => $cursor } }
+                { content => +{ actor => $actor, limit => $limit, cursor => $cursor } }
             );
             $res->{subject} = At::Lexicon::app::bsky::actor::profileView->new( %{ $res->{subject} } )               if defined $res->{subject};
             $res->{follows} = [ map { At::Lexicon::app::bsky::actor::profileView->new(%$_) } @{ $res->{follows} } ] if defined $res->{follows};
@@ -1158,7 +248,7 @@ package At::Bluesky {
             $client->http->session // Carp::confess 'requires an authenticated client';
             my $res = $client->http->get(
                 sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.graph.getFollowers' ),
-                { content => { actor => $actor, limit => $limit, cursor => $cursor } }
+                { content => +{ actor => $actor, limit => $limit, cursor => $cursor } }
             );
             $res->{subject}   = At::Lexicon::app::bsky::actor::profileView->new( %{ $res->{subject} } )                 if defined $res->{subject};
             $res->{followers} = [ map { At::Lexicon::app::bsky::actor::profileView->new(%$_) } @{ $res->{followers} } ] if defined $res->{followers};
@@ -1169,7 +259,7 @@ package At::Bluesky {
             $client->http->session // Carp::confess 'requires an authenticated client';
             my $res = $client->http->get(
                 sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.graph.getLists' ),
-                { content => { actor => $actor, limit => $limit, cursor => $cursor } }
+                { content => +{ actor => $actor, limit => $limit, cursor => $cursor } }
             );
             $res->{lists} = [ map { At::Lexicon::app::bsky::graph::listView->new(%$_) } @{ $res->{lists} } ] if defined $res->{lists};
             $res;
@@ -1179,7 +269,7 @@ package At::Bluesky {
             $client->http->session // Carp::confess 'requires an authenticated client';
             my $res = $client->http->get(
                 sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.graph.getList' ),
-                { content => { list => $list, limit => $limit, cursor => $cursor } }
+                { content => +{ list => $list, limit => $limit, cursor => $cursor } }
             );
             $res->{list}  = At::Lexicon::app::bsky::graph::listView->new( %{ $res->{list} } )                    if defined $res->{list};
             $res->{items} = [ map { At::Lexicon::app::bsky::graph::listItemView->new(%$_) } @{ $res->{items} } ] if defined $res->{items};
@@ -1189,7 +279,7 @@ package At::Bluesky {
         method getSuggestedFollowsByActor ($actor) {
             $client->http->session // Carp::confess 'requires an authenticated client';
             my $res = $client->http->get( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.graph.getSuggestedFollowsByActor' ),
-                { content => { actor => $actor } } );
+                { content => +{ actor => $actor } } );
 
             # current lexicon incorrectly claims this is a list of profileView objects
             $res->{suggestions} = [ map { At::Lexicon::app::bsky::actor::profileViewDetailed->new(%$_) } @{ $res->{suggestions} } ]
@@ -1200,7 +290,7 @@ package At::Bluesky {
         method getBlocks ( $limit //= 50, $cursor //= () ) {
             $client->http->session // Carp::confess 'requires an authenticated client';
             my $res = $client->http->get( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.graph.getBlocks' ),
-                { content => { limit => $limit, cursor => $cursor } } );
+                { content => +{ limit => $limit, cursor => $cursor } } );
             $res->{blocks} = [ map { At::Lexicon::app::bsky::graph::profileView->new(%$_) } @{ $res->{blocks} } ] if defined $res->{blocks};
             $res;
         }
@@ -1208,7 +298,7 @@ package At::Bluesky {
         method getListBlocks ( $limit //= 50, $cursor //= () ) {
             $client->http->session // Carp::confess 'requires an authenticated client';
             my $res = $client->http->get( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.graph.getListBlocks' ),
-                { content => { limit => $limit, cursor => $cursor } } );
+                { content => +{ limit => $limit, cursor => $cursor } } );
             $res->{lists} = [ map { At::Lexicon::app::bsky::graph::listView->new(%$_) } @{ $res->{lists} } ] if defined $res->{lists};
             $res;
         }
@@ -1216,7 +306,7 @@ package At::Bluesky {
         method getMutes ( $limit //= 50, $cursor //= () ) {
             $client->http->session // Carp::confess 'requires an authenticated client';
             my $res = $client->http->get( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.graph.getMutes' ),
-                { content => { limit => $limit, cursor => $cursor } } );
+                { content => +{ limit => $limit, cursor => $cursor } } );
             $res->{mutes} = [ map { At::Lexicon::app::bsky::graph::profileView->new(%$_) } @{ $res->{mutes} } ] if defined $res->{mutes};
             $res;
         }
@@ -1224,35 +314,36 @@ package At::Bluesky {
         method getListMutes ( $limit //= 50, $cursor //= () ) {
             $client->http->session // Carp::confess 'requires an authenticated client';
             my $res = $client->http->get( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.graph.getListMutes' ),
-                { content => { limit => $limit, cursor => $cursor } } );
+                { content => +{ limit => $limit, cursor => $cursor } } );
             $res->{lists} = [ map { At::Lexicon::app::bsky::graph::listView->new(%$_) } @{ $res->{lists} } ] if defined $res->{lists};
             $res;
         }
 
         method muteActor ($actor) {
             $client->http->session // Carp::confess 'requires an authenticated client';
-            my $res = $client->http->post( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.graph.muteActor' ), { content => { actor => $actor } } );
+            my $res
+                = $client->http->post( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.graph.muteActor' ), { content => +{ actor => $actor } } );
             $res;
         }
 
         method unmuteActor ($actor) {
             $client->http->session // Carp::confess 'requires an authenticated client';
             my $res
-                = $client->http->post( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.graph.unmuteActor' ), { content => { actor => $actor } } );
+                = $client->http->post( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.graph.unmuteActor' ), { content => +{ actor => $actor } } );
             $res;
         }
 
         method muteActorList ($list) {
             $client->http->session // Carp::confess 'requires an authenticated client';
             my $res
-                = $client->http->post( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.graph.muteActorList' ), { content => { list => $list } } );
+                = $client->http->post( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.graph.muteActorList' ), { content => +{ list => $list } } );
             $res;
         }
 
         method unmuteActorList ($list) {
             $client->http->session // Carp::confess 'requires an authenticated client';
-            my $res
-                = $client->http->post( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.graph.unmuteActorList' ), { content => { list => $list } } );
+            my $res = $client->http->post( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.graph.unmuteActorList' ),
+                { content => +{ list => $list } } );
             $res;
         }
     }
@@ -1265,7 +356,7 @@ package At::Bluesky {
             $seenAt = At::Protocol::Timestamp->new( timestamp => $seenAt ) if defined $seenAt && builtin::blessed $seenAt;
             my $res = $client->http->get(
                 sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.notification.listNotifications' ),
-                { content => { limit => $limit, cursor => $cursor, seenAt => defined $seenAt ? $seenAt->_raw : undef } }
+                { content => +{ limit => $limit, cursor => $cursor, seenAt => defined $seenAt ? $seenAt->_raw : undef } }
             );
             $res->{notifications} = [ map { At::Lexicon::app::bsky::notification->new(%$_) } @{ $res->{notifications} } ]
                 if defined $res->{notifications};
@@ -1277,7 +368,7 @@ package At::Bluesky {
             $seenAt = At::Protocol::Timestamp->new( timestamp => $seenAt ) if defined $seenAt && builtin::blessed $seenAt;
             my $res = $client->http->get(
                 sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.notification.getUnreadCount' ),
-                { content => { seenAt => defined $seenAt ? $seenAt->_raw : undef } }
+                { content => +{ seenAt => defined $seenAt ? $seenAt->_raw : undef } }
             );
             $res;
         }
@@ -1286,14 +377,14 @@ package At::Bluesky {
             $client->http->session // Carp::confess 'requires an authenticated client';
             $seenAt = At::Protocol::Timestamp->new( timestamp => $seenAt ) unless builtin::blessed $seenAt;
             my $res = $client->http->post( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.notification.updateSeen' ),
-                { content => { seenAt => $seenAt->_raw } } );
+                { content => +{ seenAt => $seenAt->_raw } } );
             $res;
         }
 
         method registerPush ( $appId, $platform, $serviceDid, $token ) {
             $client->http->session // Carp::confess 'requires an authenticated client';
             my $res = $client->http->post( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.notification.registerPush' ),
-                { content => { appId => $appId, platform => $platform, serviceDid => $serviceDid, token => $token } } );
+                { content => +{ appId => $appId, platform => $platform, serviceDid => $serviceDid, token => $token } } );
             $res;
         }
     }
@@ -1447,7 +538,7 @@ a cursor.
 
 =head2 C<putPreferences( ... )>
 
-    $bsky->actor->putPreferences( { enabled => false } ); # pass along a coerced adultContentPref object
+    $bsky->actor->putPreferences( { '$type' => 'app.bsky.actor#adultContentPref', enabled => false } ); # pass along a coerced adultContentPref object
 
 Set the private preferences attached to the account. This may be an C<At::Lexicon::app::bsky::actor::adultContentPref>,
 C<At::Lexicon::app::bsky::actor::contentLabelPref>, C<At::Lexicon::app::bsky::actor::savedFeedsPref>,
@@ -1455,6 +546,400 @@ C<At::Lexicon::app::bsky::actor::personalDetailsPref>, C<At::Lexicon::app::bsky:
 C<At::Lexicon::app::bsky::actor::threadViewPref>. They're coerced if not already objects.
 
 On success, returns a true value.
+
+=head1 Feed Methods
+
+
+
+=head2 C<getSuggestedFeeds( [...] )>
+
+    $bsky->feed->getSuggestedFeeds( );
+
+Get a list of suggested feeds for the viewer.
+
+Expected parameters include:
+
+=over
+
+=item C<limit>
+
+The number of feeds to return. Min. is 1, max is 100, 50 is the default.
+
+=item C<cursor>
+
+=back
+
+On success, returns a list of feeds as new C<At::Lexicon::app::bsky::feed::generatorView> objects and (optionally) a
+cursor.
+
+=head2 C<getTimeline( [...] )>
+
+    $bsky->feed->getTimeline( );
+
+    $bsky->feed->getTimeline( 'reverse-chronological', 30 );
+
+Get a view of the actor's home timeline.
+
+Expected parameters include:
+
+=over
+
+=item C<algorithm>
+
+Potential values include: C<reverse-chronological>
+
+=item C<limit>
+
+The number of posts to return. Min. is 1, max is 100, 50 is the default.
+
+=item C<cursor>
+
+=back
+
+On success, returns the feed containing a list of new C<At::Lexicon::app::bsky::feed::feedViewPost> objects and
+(optionally) a cursor.
+
+=head2 C<searchPosts( ..., [...] )>
+
+    $bsky->feed->searchPosts( "perl" );
+
+Find posts matching search criteria.
+
+Expected parameters include:
+
+=over
+
+=item C<q> - required
+
+Search query string; syntax, phrase, boolean, and faceting is unspecified, but Lucene query syntax is recommended.
+
+=item C<limit>
+
+The number of posts to return. Min. is 1, max is 100, 25 is the default.
+
+=item C<cursor>
+
+Optional pagination mechanism; may not necessarily allow scrolling through entire result set.
+
+=back
+
+On success, returns a list of posts containing new C<At::Lexicon::app::bsky::feed::postView> objects and (optionally) a
+cursor. The total number of hits might also be returned. If so, the value may be rounded/truncated, and it may not be
+possible to paginate through all hits
+
+=head2 C<getAuthorFeed( ..., [...] )>
+
+    $bsky->feed->getAuthorFeed( "bsky.app" );
+
+Get a view of an actor's feed.
+
+Expected parameters include:
+
+=over
+
+=item C<actor> - required
+
+=item C<limit>
+
+The number of posts to return. Min. is 1, max is 100, 50 is the default.
+
+=item C<filter>
+
+Options:
+
+=over
+
+=item C<posts_with_replies> - default
+
+=item C<posts_no_replies>
+
+=item C<posts_with_media>
+
+=item C<posts_and_author_threads>
+
+=back
+
+=item C<cursor>
+
+Optional pagination mechanism; may not necessarily allow scrolling through entire result set.
+
+=back
+
+On success, returns a feed of posts containing new C<At::Lexicon::app::bsky::feed::feedViewPost> objects and
+(optionally) a cursor.
+
+=head2 C<getRepostedBy( ..., [...] )>
+
+    $bsky->feed->getRepostedBy( 'at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.post/3kghpdkfnsk2i' );
+
+Get a list of reposts.
+
+Expected parameters include:
+
+=over
+
+=item C<uri> - required
+
+=item C<cid>
+
+=item C<limit>
+
+The number of authors to return. Min. is 1, max is 100, 50 is the default.
+
+=item C<cursor>
+
+=back
+
+On success, returns the original uri, a list of reposters as C<At::Lexicon::app::bsky::actor::profileView> objects and
+(optionally) a cursor and the original cid.
+
+=head2 C<getActorFeeds( ..., [...] )>
+
+    $bsky->feed->getActorFeeds( 'bsky.app' );
+
+Get a list of feeds created by the actor.
+
+Expected parameters include:
+
+=over
+
+=item C<actor> - required
+
+=item C<limit>
+
+The number of feeds to return. Min. is 1, max is 100, 50 is the default.
+
+=item C<cursor>
+
+=back
+
+On success, returns a list of feeds as C<At::Lexicon::app::bsky::feed::generatorView> objects and (optionally) a
+cursor.
+
+=head2 C<getActorLikes( ..., [...] )>
+
+    $bsky->feed->getActorLikes( 'bsky.app' );
+
+Get a list of posts liked by an actor.
+
+Expected parameters include:
+
+=over
+
+=item C<actor> - required
+
+=item C<limit>
+
+The number of posts to return. Min. is 1, max is 100, 50 is the default.
+
+=item C<cursor>
+
+=back
+
+On success, returns a list of posts as C<At::Lexicon::app::bsky::feed::feedViewPost> objects and (optionally) a cursor.
+
+=head2 C<getPosts( ... )>
+
+    $bsky->feed->getPosts( 'at://did:plc:ewvi7nxzyoun6zhxrhs64oiz/app.bsky.feed.post/3kftlbujmfk24' );
+
+Get a view of an actor's feed.
+
+Expected parameters include:
+
+=over
+
+=item C<uris> - required
+
+List of C<at://> URIs. No more than 25 at a time.
+
+=back
+
+On success, returns a list of posts as C<At::Lexicon::app::bsky::feed::postView> objects.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 =head1 Graph Methods
 
@@ -1864,7 +1349,7 @@ Sanko Robinson E<lt>sanko@cpan.orgE<gt>
 
 =begin stopwords
 
-Bluesky ios
+Bluesky ios cid reposters reposts
 
 =end stopwords
 

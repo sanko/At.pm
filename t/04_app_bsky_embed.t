@@ -32,13 +32,13 @@ isa_ok(
     '::recordWithMedia (external)'
 );
 isa_ok(
-    At::Lexicon::app::bsky::embed::record->new( record => { '$type' => 'app.bsky.embed.record#viewRecord', uri => 'https://at.uri/', cid => 'ok' } ),
+    At::Lexicon::app::bsky::embed::record->new( '$type' => 'app.bsky.embed.record#viewRecord', record => { uri => 'https://at.uri/', cid => 'ok' } ),
     ['At::Lexicon::app::bsky::embed::record'], '::record'
 );
 isa_ok(
     At::Lexicon::app::bsky::embed::record::view->new(
-        record => {
-            '$type'   => 'app.bsky.embed.record#viewRecord',
+        '$type' => 'app.bsky.embed.record#viewRecord',
+        record  => {
             uri       => 'https://at.uri/',
             cid       => 'blah',
             author    => { did => 'did:web:fdsafdsajfkldsajkfldsajk', handle => 'fun.com' },
@@ -51,27 +51,24 @@ isa_ok(
 );
 isa_ok(
     At::Lexicon::app::bsky::embed::record::view->new(
-        record => { '$type' => 'app.bsky.embed.record#viewNotFound', uri => 'https://at.uri/', notFound => 1 }
+        '$type' => 'app.bsky.embed.record#viewNotFound',
+        record  => { uri => 'https://at.uri/', notFound => 1 }
     ),
     ['At::Lexicon::app::bsky::embed::record::view'],
     '::record::view (#viewNotFound)'
 );
 isa_ok(
     At::Lexicon::app::bsky::embed::record::view->new(
-        record => {
-            '$type' => 'app.bsky.embed.record#viewBlocked',
-            uri     => 'https://at.uri/',
-            blocked => 1,
-            author  => { did => 'did:web:fdsafdsafdsafdsafsdafdsa' }
-        }
+        '$type' => 'app.bsky.embed.record#viewBlocked',
+        record  => { uri => 'https://at.uri/', blocked => 1, author => { did => 'did:web:fdsafdsafdsafdsafsdafdsa' } }
     ),
     ['At::Lexicon::app::bsky::embed::record::view'],
     '::record::view (#viewBlocked)'
 );
 isa_ok(
     At::Lexicon::app::bsky::embed::record::view->new(
-        record => {
-            '$type'     => 'app.bsky.feed.defs#generatorView',
+        '$type' => 'app.bsky.feed.defs#generatorView',
+        record  => {
             cid         => 'idk',
             creator     => { did => 'did:web:fdsafdsafdasfdsafds', handle => 'random.user' },
             did         => 'did:web:fdsjaofewaofewafdsajfkd',
@@ -85,8 +82,8 @@ isa_ok(
 );
 isa_ok(
     At::Lexicon::app::bsky::embed::record::view->new(
-        record => {
-            '$type'   => 'app.bsky.graph.defs#listView',
+        '$type' => 'app.bsky.graph.defs#listView',
+        record  => {
             uri       => 'https://google.com/',
             indexedAt => '2023-12-13T01:51:24Z',
             name      => 'fake',
@@ -112,7 +109,11 @@ isa_ok(
                 external => { uri => 'https://google.com', title => 'Google', description => 'Search engine' }
             },
             { '$type' => 'app.bsky.embed.record#view', record => {} },
-            { '$type' => 'app.bsky.embed.recordWithMedia#view', record => { record => {}, }, media => {} }
+            {   '$type' => 'app.bsky.embed.recordWithMedia#view',
+                record  => { '$type' => 'app.bsky.embed.record#view', record => {} },
+                media   =>
+                    { '$type' => 'app.bsky.embed.external', external => { uri => 'https://google.com/', title => 'Google', description => 'NA' } }
+            }
         ]
     ),
     ['At::Lexicon::app::bsky::embed::record::viewRecord'],

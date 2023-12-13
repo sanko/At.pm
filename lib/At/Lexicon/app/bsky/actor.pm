@@ -7,12 +7,12 @@ package At::Lexicon::app::bsky::actor 0.02 {
     use Path::Tiny;
     #
     class At::Lexicon::app::bsky::actor::profileViewBasic {
-        field $did : param;                 # string, did, required
-        field $handle : param;              # string, handle, required
-        field $displayName : param = ();    # string
-        field $avatar : param      = ();    # string
-        field $viewer : param      = ();    # ::viewerState
-        field $labels : param      = ();    # array of com.atproto.label.defs#label
+        field $did : param;                   # string, did, required
+        field $handle : param;                # string, handle, required
+        field $displayName : param //= ();    # string
+        field $avatar : param      //= ();    # string
+        field $viewer : param      //= ();    # ::viewerState
+        field $labels : param      //= ();    # array of com.atproto.label.defs#label
         ADJUST {
             $did    = At::Protocol::DID->new( uri => $did )      unless builtin::blessed $did;
             $handle = At::Protocol::Handle->new( id => $handle ) unless builtin::blessed $handle;
@@ -30,7 +30,7 @@ package At::Lexicon::app::bsky::actor 0.02 {
         method labels      {$labels}
 
         method _raw() {
-            {   did    => $did->_raw,
+            +{  did    => $did->_raw,
                 handle => $handle->_raw,
                 defined $displayName ? ( displayName => $displayName )  : (), defined $avatar ? ( avatar => $avatar )                       : (),
                 defined $viewer      ? ( viewer      => $viewer->_raw ) : (), defined $labels ? ( labels => [ map { $_->_raw } @$labels ] ) : ()
@@ -39,14 +39,14 @@ package At::Lexicon::app::bsky::actor 0.02 {
     }
 
     class At::Lexicon::app::bsky::actor::profileView {
-        field $did : param;                 # string, did, required
-        field $handle : param;              # string, handle, required
-        field $displayName : param = ();    # string, 64 grapheme, 640 len
-        field $description : param = ();    # string, 256 grapheme, 2560 len
-        field $avatar : param      = ();    # string
-        field $indexedAt : param   = ();    # datetime
-        field $viewer : param      = ();    # viewState
-        field $labels : param      = ();    # array of labels
+        field $did : param;                   # string, did, required
+        field $handle : param;                # string, handle, required
+        field $displayName : param //= ();    # string, 64 grapheme, 640 len
+        field $description : param //= ();    # string, 256 grapheme, 2560 len
+        field $avatar : param      //= ();    # string
+        field $indexedAt : param   //= ();    # datetime
+        field $viewer : param      //= ();    # viewState
+        field $labels : param      //= ();    # array of labels
         ADJUST {
             $did    = At::Protocol::DID->new( uri => $did ) if defined $did && !builtin::blessed $did;
             $handle = At::Protocol::Handle->new( id => $handle ) unless builtin::blessed $handle;
@@ -65,33 +65,31 @@ package At::Lexicon::app::bsky::actor 0.02 {
         method avatar      {$avatar}
         method indexedAt   {$indexedAt}
         method viewer      {$viewer}
+        method labels      {$labels}
 
         method _raw() {
-            method labels {$labels}
-            {   did         => $did->_raw,
-                handle      => $handle->_raw,
-                displayName => $displayName,
-                description => $description,
-                avatar      => $avatar,
-                defined $indexedAt ? ( indexedAt => $indexedAt->_raw ) : (), defined $viewer ? ( viewer => $viewer->_raw ) : (),
-                defined $labels ? ( labels => [ map { $_->_raw } @$labels ] ) : (),
+            +{  did    => $did->_raw,
+                handle => $handle->_raw,
+                defined $displayName ? ( displayName => $displayName )  : (), defined $description ? ( description => $description )             : (),
+                defined $avatar      ? ( avatar      => $avatar )       : (), defined $indexedAt   ? ( indexedAt   => $indexedAt->_raw )         : (),
+                defined $viewer      ? ( viewer      => $viewer->_raw ) : (), defined $labels      ? ( labels => [ map { $_->_raw } @$labels ] ) : ()
             };
         }
     }
 
     class At::Lexicon::app::bsky::actor::profileViewDetailed {
-        field $did : param;                    # string, did, required
-        field $handle : param;                 # handle, required
-        field $displayName : param    = ();    # string, len 640 max, grapheme 64 max
-        field $description : param    = ();    # string, len 2560 max, grapheme 256 max
-        field $avatar : param         = ();    # string
-        field $banner : param         = ();    # string
-        field $followersCount : param = ();    # int
-        field $followsCount : param   = ();    # int
-        field $postsCount : param     = ();    # int
-        field $indexedAt : param      = ();    # datetime
-        field $viewer : param         = ();    # viewerState
-        field $labels : param         = ();    # array of lables
+        field $did : param;                      # string, did, required
+        field $handle : param;                   # handle, required
+        field $displayName : param    //= ();    # string, len 640 max, grapheme 64 max
+        field $description : param    //= ();    # string, len 2560 max, grapheme 256 max
+        field $avatar : param         //= ();    # string
+        field $banner : param         //= ();    # string
+        field $followersCount : param //= ();    # int
+        field $followsCount : param   //= ();    # int
+        field $postsCount : param     //= ();    # int
+        field $indexedAt : param      //= ();    # datetime
+        field $viewer : param         //= ();    # viewerState
+        field $labels : param         //= ();    # array of lables
         ADJUST {
             $did    = At::Protocol::DID->new( uri => $did )      unless builtin::blessed $did;
             $handle = At::Protocol::Handle->new( id => $handle ) unless builtin::blessed $handle;
@@ -117,25 +115,25 @@ package At::Lexicon::app::bsky::actor 0.02 {
         method labels         {$labels}
 
         method _raw() {
-            {   did    => $did->_raw,
+            +{  did    => $did->_raw,
                 handle => $handle->_raw,
                 defined $displayName    ? ( displayName    => $displayName )    : (), defined $description  ? ( description  => $description )  : (),
                 defined $avatar         ? ( avatar         => $avatar )         : (), defined $banner       ? ( banner       => $banner )       : (),
                 defined $followersCount ? ( followersCount => $followersCount ) : (), defined $followsCount ? ( followsCount => $followsCount ) : (),
                 defined $postsCount     ? ( postsCount     => $postsCount )     : (), defined $indexedAt    ? ( indexedAt => $indexedAt->_raw ) : (),
                 defined $viewer         ? ( viewer => { $viewer->_raw } ) : (), defined $labels ? ( labels => [ map { $_->_raw } @$labels ] )   : ()
-            }
+            };
         }
     }
 
     class At::Lexicon::app::bsky::actor::viewerState {
-        field $muted : param          = ();    # bool
-        field $mutedByList : param    = ();    # app.bsky.graph.defs#listViewBasic
-        field $blockedBy : param      = ();    # bool
-        field $blocking : param       = ();    # at-uri
-        field $blockingByList : param = ();    # app.bsky.graph.defs#listViewBasic
-        field $following : param      = ();    # at-uri
-        field $followedBy : param     = ();    # at-uri
+        field $muted : param          //= ();    # bool
+        field $mutedByList : param    //= ();    # app.bsky.graph.defs#listViewBasic
+        field $blockedBy : param      //= ();    # bool
+        field $blocking : param       //= ();    # at-uri
+        field $blockingByList : param //= ();    # app.bsky.graph.defs#listViewBasic
+        field $following : param      //= ();    # at-uri
+        field $followedBy : param     //= ();    # at-uri
         ADJUST {
             $muted       = !!$muted if defined $muted && builtin::blessed $muted;
             $mutedByList = At::Lexicon::app::bsky::graph::listViewBasic->new( list => $mutedByList )
@@ -158,19 +156,19 @@ package At::Lexicon::app::bsky::actor 0.02 {
         method followedBy     {$followedBy}
 
         method _raw() {
-            {
-                defined $muted              ? ( muted     => \$muted )     : (), defined $mutedByList ? ( mutedByList => $mutedByList->_raw )   : (),
-                    defined $blockedBy      ? ( blockedBy => \$blockedBy ) : (), defined $blocking    ? ( blocking    => $blocking->as_string ) : (),
-                    defined $blockingByList ? ( blockingByList => $blockingByList->_raw ) : (),
-                    defined $following      ? ( following      => $following->as_string ) : (),
-                    defined $followedBy     ? ( followedBy     => $followedBy->as_string ) :
-                    ()
-            }
+            +{  defined $muted          ? ( muted          => \$muted )                : (),
+                defined $mutedByList    ? ( mutedByList    => $mutedByList->_raw )     : (),
+                defined $blockedBy      ? ( blockedBy      => \$blockedBy )            : (),
+                defined $blocking       ? ( blocking       => $blocking->as_string )   : (),
+                defined $blockingByList ? ( blockingByList => $blockingByList->_raw )  : (),
+                defined $following      ? ( following      => $following->as_string )  : (),
+                defined $followedBy     ? ( followedBy     => $followedBy->as_string ) : ()
+            };
         }
     }
 
     class At::Lexicon::app::bsky::actor::preferences {
-        field $items : param = ();    # array of unions
+        field $items : param //= ();    # array of unions
         ADJUST {
             $items = [ map { At::_topkg( $_->{'$type'} )->new(%$_) if !builtin::blessed $_ && defined $_->{'$type'}; } @$items ] if defined $items;
         }
@@ -179,7 +177,7 @@ package At::Lexicon::app::bsky::actor 0.02 {
         method items {$items}
 
         method _raw() {
-            [ map { $_->_raw } @$items ]
+            +[ map { $_->_raw } @$items ];
         }
     }
 
@@ -194,7 +192,7 @@ package At::Lexicon::app::bsky::actor 0.02 {
         method enabled {$enabled}
 
         method _raw() {
-            { '$type' => $type, enabled => \$enabled }
+            +{ '$type' => $type, enabled => \$enabled };
         }
     }
 
@@ -211,7 +209,7 @@ package At::Lexicon::app::bsky::actor 0.02 {
         method visibility {$visibility}
 
         method _raw() {
-            { '$type' => $type, label => $label, visibility => $visibility }
+            +{ '$type' => $type, label => $label, visibility => $visibility };
         }
     }
 
@@ -229,13 +227,13 @@ package At::Lexicon::app::bsky::actor 0.02 {
         method saved  {$saved}
 
         method _raw() {
-            { '$type' => $type, pinned => [ map { $_->as_string } @$pinned ], saved => [ map { $_->as_string } @$saved ] }
+            +{ '$type' => $type, pinned => [ map { $_->as_string } @$pinned ], saved => [ map { $_->as_string } @$saved ] };
         }
     }
 
     class At::Lexicon::app::bsky::actor::personalDetailsPref {
-        field $type : param($type);       # record field
-        field $birthDate : param = ();    # datetime
+        field $type : param($type);         # record field
+        field $birthDate : param //= ();    # datetime
         ADJUST {
             $birthDate = At::Protocol::Timestamp->new( timestamp => $birthDate ) unless builtin::blessed $birthDate;
         }
@@ -244,18 +242,18 @@ package At::Lexicon::app::bsky::actor 0.02 {
         method birthDate {$birthDate}
 
         method _raw() {
-            { '$type' => $type, birthDate => $birthDate->_raw }
+            +{ '$type' => $type, birthDate => $birthDate->_raw };
         }
     }
 
     class At::Lexicon::app::bsky::actor::feedViewPref {
-        field $type : param($type);                     # record field
-        field $feed : param;                            # string, required
-        field $hideReplies : param             = ();    # bool
-        field $hideRepliesByUnfollowed : param = ();    # bool
-        field $hideRepliesByLikeCount : param  = ();    # int
-        field $hideReposts : param             = ();    # bool
-        field $hideQuotePosts : param          = ();    # bool
+        field $type : param($type);                       # record field
+        field $feed : param;                              # string, required
+        field $hideReplies : param             //= ();    # bool
+        field $hideRepliesByUnfollowed : param //= ();    # bool
+        field $hideRepliesByLikeCount : param  //= ();    # int
+        field $hideReposts : param             //= ();    # bool
+        field $hideQuotePosts : param          //= ();    # bool
         ADJUST {
             $hideReplies             = !!$hideReplies             if defined $hideReplies             && builtin::blessed $hideReplies;
             $hideRepliesByUnfollowed = !!$hideRepliesByUnfollowed if defined $hideRepliesByUnfollowed && builtin::blessed $hideRepliesByUnfollowed;
@@ -272,20 +270,20 @@ package At::Lexicon::app::bsky::actor 0.02 {
         method hideQuotePosts          {$hideQuotePosts}
 
         method _raw() {
-            {   '$type' => $type,
+            +{  '$type' => $type,
                 feed    => $feed,
                 defined $hideReplies             ? ( hideReplies             => \$hideReplies )             : (),
                 defined $hideRepliesByUnfollowed ? ( hideRepliesByUnfollowed => \$hideRepliesByUnfollowed ) : (),
                 defined $hideRepliesByLikeCount  ? ( hideRepliesByLikeCount  => $hideRepliesByLikeCount )   : (),
                 defined $hideReposts ? ( hideReposts => \$hideReposts ) : (), defined $hideQuotePosts ? ( hideQuotePosts => \$hideQuotePosts ) : ()
-            }
+            };
         }
     }
 
     class At::Lexicon::app::bsky::actor::threadViewPref {
-        field $type : param($type);                     # record field
-        field $sort : param                    = ();    # string, enum
-        field $prioritizeFollowedUsers : param = ();    # bool
+        field $type : param($type);                       # record field
+        field $sort : param                    //= ();    # string, enum
+        field $prioritizeFollowedUsers : param //= ();    # bool
         ADJUST {
             Carp::cluck q[unknown value for sort] if defined $sort && !grep { $sort eq $_ } qw[oldest newest most-likes random];
             $prioritizeFollowedUsers = !!$prioritizeFollowedUsers if defined $prioritizeFollowedUsers && builtin::blessed $prioritizeFollowedUsers;
@@ -296,20 +294,20 @@ package At::Lexicon::app::bsky::actor 0.02 {
         method prioritizeFollowedUsers {$prioritizeFollowedUsers}
 
         method _raw() {
-            {   '$type' => $type,
+            +{  '$type' => $type,
                 defined $sort                    ? ( sort                    => $sort )                     : (),
                 defined $prioritizeFollowedUsers ? ( prioritizeFollowedUsers => \$prioritizeFollowedUsers ) : ()
-            }
+            };
         }
     }
 
     # A declaration of a profile.
     class At::Lexicon::app::bsky::actor::profile {
-        field $displayName : param = ();    # string, 64 graphemes max, 640 bytes max
-        field $description : param = ();    # string, 256 graphemes max, 2560 bytes max
-        field $avatar : param      = ();    # blob, 1000000 bytes max, png or jpeg
-        field $banner : param      = ();    # blob, 1000000 bytes max, png or jpeg
-        field $labels : param      = ();    # union (why?) of selfLabels
+        field $displayName : param //= ();    # string, 64 graphemes max, 640 bytes max
+        field $description : param //= ();    # string, 256 graphemes max, 2560 bytes max
+        field $avatar : param      //= ();    # blob, 1000000 bytes max, png or jpeg
+        field $banner : param      //= ();    # blob, 1000000 bytes max, png or jpeg
+        field $labels : param      //= ();    # union (why?) of selfLabels
         ADJUST {
             Carp::confess 'displayName is too long' if defined $displayName && ( length $displayName > 640  || At::_glength($displayName) > 64 );
             Carp::confess 'description is too long' if defined $description && ( length $description > 2560 || At::_glength($description) > 256 );
@@ -328,12 +326,12 @@ package At::Lexicon::app::bsky::actor 0.02 {
         method labels      {$labels}
 
         method _raw() {
-            {
-                defined $displayName ? ( displayName => $displayName ) : (), defined $description ? ( description => $description ) : (),
-                    defined $avatar  ? ( avatar      => $avatar ) : (),      defined $banner      ? ( banner => $banner ) : (),
-                    defined $labels  ? ( labels      => $labels->_raw ) :
-                    ()
-            }
+            +{  defined $displayName ? ( displayName => $displayName )  : (),
+                defined $description ? ( description => $description )  : (),
+                defined $avatar      ? ( avatar      => $avatar )       : (),
+                defined $banner      ? ( banner      => $banner )       : (),
+                defined $labels      ? ( labels      => $labels->_raw ) : ()
+            };
         }
     }
 };

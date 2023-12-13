@@ -18,6 +18,7 @@ isa_ok(
 );
 isa_ok(
     At::Lexicon::app::bsky::graph::listView->new(
+        '$type'   => 'app.bsky.graph#listView',
         uri       => 'at://blah.com',
         indexedAt => time,
         name      => 'Test',
