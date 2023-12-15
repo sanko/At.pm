@@ -221,8 +221,7 @@ package At::Lexicon::app::bsky::feed 0.02 {
     }
 
     class At::Lexicon::app::bsky::feed::generatorView {
-
-        #~ field $type : param($type);                 # record field
+        field $type : param($type) //= ();          # record field
         field $uri : param;                         # URI, required
         field $cid : param;                         # CID, required
         field $did : param;                         # DID, required
@@ -260,8 +259,7 @@ package At::Lexicon::app::bsky::feed 0.02 {
         method indexedAt        {$indexedAt}
 
         method _raw() {
-            +{
-                #~ '$type'     => $type,
+            +{  defined $type ? ( '$type' => $type ) : (),
                 uri         => $uri->as_string,
                 cid         => $cid,
                 did         => $did->_raw,

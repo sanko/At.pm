@@ -80,12 +80,16 @@ subtest 'live' => sub {
         my $post = $results->{posts}->[0];
         isa_ok $post, ['At::Lexicon::app::bsky::feed::postView'], '...contains list of postView objects';
     };
-
-    #~ https://bsky.app/profile/bsky.app
-    #~ for my $post (grep {$_->replyCount} @{$results->{posts}}){
-    #~ use Data::Dump;
-    #~ ddx $post->_raw
-    #~ }
+    subtest 'getPostThread' => sub {    # hardcoded from https://bsky.app/profile/atproto.com/post/3kftlbujmfk24
+        ok my $results = $bsky->feed->getPostThread('at://did:plc:ewvi7nxzyoun6zhxrhs64oiz/app.bsky.feed.post/3kftlbujmfk24'),
+            '$bsky->feed->getPostThread("at://did:plc:ewvi...")';
+        isa_ok $results->{thread}, ['At::Lexicon::app::bsky::feed::threadViewPost'], '...returns a threadViewPost object';
+    };
+    subtest 'getLikes' => sub {
+        ok my $results = $bsky->feed->getLikes('at://did:plc:ewvi7nxzyoun6zhxrhs64oiz/app.bsky.feed.post/3kftlbujmfk24'),
+            '$bsky->feed->getLikes("at://did:plc:ewvi[...]")';
+        isa_ok $results->{likes}->[0], ['At::Lexicon::app::bsky::feed::getLikes::like'], '...contains list of ::feed::getLikes::like objects';
+    };
 };
 #
 done_testing;

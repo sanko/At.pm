@@ -220,14 +220,38 @@ package At::Bluesky {
             $res;
         }
 
-        #~ method getFeed () {
-        #~ $client->http->session // Carp::confess 'requires an authenticated client';
-        #~ my $res = $client->http->get( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.feed.getFeed' ) );
-        #~ use Data::Dump;
-        #~ ddx $res;
-        #~ $res = At::Lexicon::app::bsky::actor::preferences->new( items => $res->{preferences} ) if defined $res->{preferences};
-        #~ $res;
-        #~ }
+        method getPostThread ( $uri, $depth //= (), $parentHeight //= () ) {
+            $client->http->session // Carp::confess 'requires an authenticated client';
+            Carp::confess 'depth is too low'         if defined $depth        && $depth < 0;
+            Carp::confess 'depth is too high'        if defined $depth        && $depth > 1000;
+            Carp::confess 'parentHeight is too low'  if defined $parentHeight && $parentHeight < 0;
+            Carp::confess 'parentHeight is too high' if defined $parentHeight && $parentHeight > 1000;
+            my $res = $client->http->get(
+                sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.feed.getPostThread' ),
+                {   content =>
+                        +{ uri => $uri, defined $depth ? ( depth => $depth ) : (), defined $parentHeight ? ( parentHeight => $parentHeight ) : () }
+                }
+            );
+            $res->{thread} = At::_topkg( $res->{thread}->{'$type'} )->new( %{ $res->{thread} } )
+                if defined $res->{thread} && defined $res->{thread}{'$type'};
+            $res;
+        }
+
+        method getLikes ( $uri, $cid //= (), $limit //= (), $cursor //= () ) {
+            $client->http->session // Carp::confess 'requires an authenticated client';
+            Carp::confess 'limit is too low'  if defined $limit && $limit < 1;
+            Carp::confess 'limit is too high' if defined $limit && $limit > 100;
+            my $res = $client->http->get(
+                sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.feed.getLikes' ),
+                {   content => +{
+                        uri => $uri,
+                        defined $cid ? ( cid => $cid ) : (), defined $limit ? ( limit => $limit ) : (), defined $cursor ? ( cursor => $cursor ) : ()
+                    }
+                }
+            );
+            $res->{likes} = [ map { At::Lexicon::app::bsky::feed::getLikes::like->new(%$_) } @{ $res->{likes} } ] if defined $res->{likes};
+            $res;
+        }
     }
 
     class At::Lexicon::Bluesky::Graph {
@@ -755,6 +779,58 @@ List of C<at://> URIs. No more than 25 at a time.
 =back
 
 On success, returns a list of posts as C<At::Lexicon::app::bsky::feed::postView> objects.
+
+=head2 C<getPostThread( ..., [...] )>
+
+    $bsky->feed->getPostThread( 'at://did:plc:ewvi7nxzyoun6zhxrhs64oiz/app.bsky.feed.post/3kftlbujmfk24' );
+
+Get posts in a thread.
+
+Expected parameters include:
+
+=over
+
+=item C<uri> - required
+
+An C<at://> URI.
+
+=item C<depth>
+
+Integer. Maximum value: 1000, Minimum value: 0, Default: 6.
+
+=item C<parentHeight>
+
+Integer. Maximum value: 1000, Minimum value: 0, Default: 80.
+
+=back
+
+On success, returns the thread containing replies as a new C<At::Lexicon::app::bsky::feed::threadViewPost> object.
+
+=head2 C<getLikes( ..., [...] )>
+
+    $bsky->feed->getLikes( 'at://did:plc:ewvi7nxzyoun6zhxrhs64oiz/app.bsky.feed.post/3kftlbujmfk24' );
+
+Get the list of likes.
+
+Expected parameters include:
+
+=over
+
+=item C<uri> - required
+
+=item C<cid>
+
+=item C<limit>
+
+The number of likes to return. Min. is 1, max is 100, 50 is the default.
+
+=item C<cursor>
+
+=back
+
+On success, returns the original URI, a list of likes as C<At::Lexicon::app::bsky::feed::getLikes::like> objects and
+(optionally) a cursor, and the original cid.
+
 
 
 
