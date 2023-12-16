@@ -7,17 +7,32 @@ BEGIN { chdir '../' if !-d 't'; }
 use lib '../lib', 'lib', '../blib/arch', '../blib/lib', 'blib/arch', 'blib/lib', '../../', '.';
 #
 use At;
-my $at = At->new( host => 'https://bsky.social' );
+subtest 'init' => sub {
+    my $at = At->new( host => 'https://bsky.social' );
+    ok my $desc = $at->server->describeServer(), '$at->server->describeServer()';
+    like $desc->{availableUserDomains}, ['.bsky.social'], '... availableUserDomains';
+    like $desc->{inviteCodeRequired},   !!1,              '... inviteCodeRequired';     # XXX - Might be false in the future
+    isa_ok $desc->{links}, ['At::Lexicon::com::atproto::server::describeServer::links'], '... links';
+    like $desc->{links}->_raw, {
+        privacyPolicy  => qr[https://.+],                                               # https://blueskyweb.xyz/support/privacy-policy
+        termsOfService => qr[https://.+]                                                # https://blueskyweb.xyz/support/tos
+        },
+        '... links->_raw';
+};
 #
-ok my $desc = $at->server->describeServer(), '$at->server->describeServer()';
-like $desc->{availableUserDomains}, ['.bsky.social'], '... availableUserDomains';
-like $desc->{inviteCodeRequired},   !!1,              '... inviteCodeRequired';     # XXX - Might be false in the future
-isa_ok $desc->{links}, ['At::Lexicon::com::atproto::server::describeServer::links'], '... links';
-like $desc->{links}->_raw, {
-    privacyPolicy  => qr[https://.+],                                               # https://blueskyweb.xyz/support/privacy-policy
-    termsOfService => qr[https://.+]                                                # https://blueskyweb.xyz/support/tos
-    },
-    '... links->_raw';
+subtest 'live' => sub {
+    my $at = At->new( host => 'https://bsky.social', identifier => 'atperl.bsky.social', password => 'ck2f-bqxl-h54l-xm3l' );
+    subtest 'listAppPasswords' => sub {
+        ok my $pws = $at->server->listAppPasswords(), '$at->server->listAppPasswords()';
+        isa_ok $pws->{passwords}->[0], ['At::Lexicon::com::atproto::server::listAppPasswords::appPassword'], 'correct type';
+    };
+    subtest 'getSession' => sub {
+        ok my $ses = $at->server->getSession(), '$at->server->getSession()';
+        isa_ok $ses->{handle}, ['At::Protocol::Handle'], '...handle';
+        isa_ok $ses->{did},    ['At::Protocol::DID'],    '...did';
+    };
+    diag 'getAccountInviteCodes cannot be tested with an app password';
+};
 #
 done_testing;
 __END__

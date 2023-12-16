@@ -79,6 +79,29 @@ package At 0.02 {
                 if defined $res->{passwords};
             $res;
         }
+
+        method getSession () {
+            $client->http->session // Carp::confess 'requires an authenticated client';
+            my $res = $client->http->get( sprintf( '%s/xrpc/%s', $client->host(), 'com.atproto.server.getSession' ) );
+            $res->{handle}         = At::Protocol::Handle->new( id => $res->{handle} ) if defined $res->{handle};
+            $res->{did}            = At::Protocol::DID->new( uri => $res->{did} )      if defined $res->{did};
+            $res->{emailConfirmed} = !!$res->{emailConfirmed} if defined $res->{emailConfirmed} && builtin::blessed $res->{emailConfirmed};
+            $res;
+        }
+
+        method getAccountInviteCodes ( $includeUsed //= (), $createAvailable //= () ) {
+            $client->http->session // Carp::confess 'requires an authenticated client';
+            my $res = $client->http->get(
+                sprintf( '%s/xrpc/%s', $client->host(), 'com.atproto.server.getAccountInviteCodes' ),
+                {   content => +{
+                        defined $includeUsed     ? ( includeUsed     => $includeUsed )     : (),
+                        defined $createAvailable ? ( createAvailable => $createAvailable ) : ()
+                    }
+                }
+            );
+            $res->{codes} = [ map { At::Lexicon::com::atproto::server::inviteCode->new(%$_) } @{ $res->{codes} } ] if defined $res->{codes};
+            $res;
+        }
     }
 
     class At::Lexicon::AtProto::Repo {
@@ -535,7 +558,46 @@ the TOS and privacy policy.
 
 List all App Passwords.
 
-Reeturns a list of passwords as new C<At::Lexicon::com::atproto::server::listAppPasswords::appPassword> objects.
+Returns a list of passwords as new C<At::Lexicon::com::atproto::server::listAppPasswords::appPassword> objects.
+
+=head2 C<getSession( )>
+
+    $at->server->getSession( );
+
+Get information about the current session.
+
+Returns the handle, DID, and (optionally) other data.
+
+=head2 C<getAccountInviteCodes( )>
+
+    $at->server->getAccountInviteCodes( );
+
+Get all invite codes for a given account.
+
+Returns codes as a list of new C<At::Lexicon::com::atproto::server::inviteCode> objects.
+
+=head2 C<getAccountInviteCodes( [...] )>
+
+    $at->server->getAccountInviteCodes( );
+
+Get all invite codes for a given account.
+
+Expected parameters include:
+
+=over
+
+=item C<includeUsed>
+
+Optional boolean flag.
+
+=item C<createAvailable>
+
+Optional boolean flag.
+
+=back
+
+Returns a list of C<At::Lexicon::com::atproto::server::inviteCode> objects on success. Note that this method returns an
+error if the session was authorized with an app password.
 
 =begin todo
 

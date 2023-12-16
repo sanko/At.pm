@@ -106,6 +106,23 @@ package At::Lexicon::com::atproto::server 0.02 {
             };
         }
     };
+
+    class At::Lexicon::com::atproto::server::listAppPasswords::appPassword {
+        field $type : param($type) //= ();    # record field
+        field $name : param;                  # string, required
+        field $createdAt : param;             # datetime, required
+        ADJUST {
+            $createdAt = At::Protocol::Timestamp->new( timestamp => $createdAt ) unless builtin::blessed $createdAt;
+        }
+
+        # perlclass does not have :reader yet
+        method name      {$name}
+        method createdAt {$createdAt}
+
+        method _raw {
+            +{ defined $type ? ( '$type' => $type ) : (), name => $name, createdAt => $createdAt->_raw };
+        }
+    };
 }
 1;
 __END__

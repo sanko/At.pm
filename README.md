@@ -172,6 +172,57 @@ This method does not require an authenticated session.
 Returns a boolean value indicating whether an invite code is required, a list of available user domains, and links to
 the TOS and privacy policy.
 
+## `listAppPasswords( )`
+
+```
+$at->server->listAppPasswords( );
+```
+
+List all App Passwords.
+
+Returns a list of passwords as new `At::Lexicon::com::atproto::server::listAppPasswords::appPassword` objects.
+
+## `getSession( )`
+
+```
+$at->server->getSession( );
+```
+
+Get information about the current session.
+
+Returns the handle, DID, and (optionally) other data.
+
+## `getAccountInviteCodes( )`
+
+```
+$at->server->getAccountInviteCodes( );
+```
+
+Get all invite codes for a given account.
+
+Returns codes as a list of new `At::Lexicon::com::atproto::server::inviteCode` objects.
+
+## `getAccountInviteCodes( [...] )`
+
+```
+$at->server->getAccountInviteCodes( );
+```
+
+Get all invite codes for a given account.
+
+Expected parameters include:
+
+- `includeUsed`
+
+    Optional boolean flag.
+
+- `createAvailable`
+
+    Optional boolean flag.
+
+Returns a list of `At::Lexicon::com::atproto::server::inviteCode` objects on success. Note that this method returns an
+error if the session was authorized with an app password.
+
 # See Also
 
 [https://atproto.com/](https://atproto.com/)
