@@ -14,9 +14,6 @@ package At::Bluesky {
     use At::Lexicon::app::bsky::feed;
     #
     class At::Bluesky : isa(At) {
-        field $identifier : param = ();
-        field $password : param   = ();
-        #
         field $actor;
         method _actor ($a) { $actor = $a }
         method actor       {$actor}
@@ -33,7 +30,6 @@ package At::Bluesky {
         # Required in subclasses of At
         method host { URI->new('https://bsky.social') }
         ADJUST {
-            $self->server->createSession( identifier => $identifier, password => $password ) if defined $identifier && defined $password; # auto-login
             $self->_repo( At::Lexicon::AtProto::Repo->new( client => $self, did => $self->http->session->did->_raw ) ) if defined $self->repo;
             $self->_actor( At::Lexicon::Bluesky::Actor->new( client => $self ) );
             $self->_graph( At::Lexicon::Bluesky::Graph->new( client => $self ) );

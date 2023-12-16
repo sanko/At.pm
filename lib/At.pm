@@ -15,6 +15,8 @@ package At 0.02 {
         method http {$http}
         field $host : param = ();
         field $repo : param = ();
+        field $identifier : param //= ();
+        field $password : param   //= ();
 
         method repo {
             @_ ? At::Lexicon::AtProto::Repo->new( client => $self, @_ ) : $repo;
@@ -46,6 +48,9 @@ package At 0.02 {
             my $host = $self->host;
             $host = 'https://' . $host unless $host =~ /^https?:/;
             $host = URI->new($host)    unless builtin::blessed $host;
+            $self->server->createSession( identifier => $identifier, password => $password ) if defined $identifier && defined $password;
+
+            # auto-login
         }
     }
 
@@ -56,7 +61,7 @@ package At 0.02 {
 
         method createSession (%args) {
             my $session = $client->http->post( sprintf( '%s/xrpc/%s', $client->host, 'com.atproto.server.createSession' ), { content => \%args } );
-            $client->http->session($session);
+            $client->http->set_session($session);
             $client->_repo( At::Lexicon::AtProto::Repo->new( client => $client, did => $client->http->session->did->_raw ) );
             $session;
         }
@@ -64,6 +69,14 @@ package At 0.02 {
         method describeServer () {    # functions without auth session
             my $res = $client->http->get( sprintf( '%s/xrpc/%s', $client->host(), 'com.atproto.server.describeServer' ) );
             $res->{links} = At::Lexicon::com::atproto::server::describeServer::links->new( %{ $res->{links} } ) if defined $res->{links};
+            $res;
+        }
+
+        method listAppPasswords () {
+            $client->http->session // Carp::confess 'requires an authenticated client';
+            my $res = $client->http->get( sprintf( '%s/xrpc/%s', $client->host(), 'com.atproto.server.listAppPasswords' ) );
+            $res->{passwords} = [ map { $_ = At::Lexicon::com::atproto::server::listAppPasswords::appPassword->new(%$_) } @{ $res->{passwords} } ]
+                if defined $res->{passwords};
             $res;
         }
     }
@@ -192,7 +205,16 @@ package At 0.02 {
     }
 
     class At::UserAgent {
-        method session ( $s = () ) { ...; }
+        field $session : param = ();
+
+        method session ( ) {
+            $session;
+        }
+
+        method set_session ($s) {
+            $session = builtin::blessed $s ? $s : At::Protocol::Session->new(%$s);
+            $self->_set_bearer_token( 'Bearer ' . $s->{accessJwt} );
+        }
 
         method get ( $url, $req = () ) {
             ...;
@@ -201,6 +223,7 @@ package At 0.02 {
         method post ( $url, $req = () ) {
             ...;
         }
+        method _set_bearer_token ($token) {...}
     }
 
     class At::UserAgent::Tiny : isa(At::UserAgent) {
@@ -212,13 +235,6 @@ package At 0.02 {
             agent           => sprintf( 'At.pm/%1.2f;Tiny ', $At::VERSION ),
             default_headers => { 'Content-Type' => 'application/json', Accept => 'application/json' }
         );
-        field $session : param = ();
-
-        method session ( $s = () ) {
-            $s // return $session;
-            $session = At::Protocol::Session->new(%$s);
-            $agent->{default_headers}{Authorization} = 'Bearer ' . $s->{accessJwt};
-        }
 
         sub _url_encode {
             my $rv = shift;
@@ -248,6 +264,10 @@ package At 0.02 {
             $res->{content} = decode_json $res->{content} if $res->{content};
             return $res->{content};
         }
+
+        method _set_bearer_token ($token) {
+            $agent->{default_headers}{Authorization} = $token;
+        }
     }
 
     class At::UserAgent::Mojo : isa(At::UserAgent) {
@@ -261,19 +281,11 @@ package At 0.02 {
             $ua;
             }
             ->();
-        field $session : param = ();
-
-        method session ( $s = () ) {
-            $s // return $session;
-            $session = At::Protocol::Session->new(%$s);
-        }
+        field $auth : param //= ();
 
         method get ( $url, $req = () ) {
-            my $res = $agent->get(
-                $url,
-                defined $session        ? { Authorization => 'Bearer ' . $session->accessJwt } : (),
-                defined $req->{content} ? ( form => $req->{content} )                          : ()
-            )->result;
+            my $res = $agent->get( $url, defined $auth ? { Authorization => $auth } : (), defined $req->{content} ? ( form => $req->{content} ) : () )
+                ->result;
 
             # todo: error handling
             if    ( $res->is_success )  { return $res->content ? $res->json : () }
@@ -283,17 +295,19 @@ package At 0.02 {
         }
 
         method post ( $url, $req = () ) {
-            my $res = $agent->post(
-                $url,
-                defined $session        ? { Authorization => 'Bearer ' . $session->accessJwt } : (),
-                defined $req->{content} ? ( json => $req->{content} )                          : ()
-            )->result;
+            my $res
+                = $agent->post( $url, defined $auth ? { Authorization => $auth } : (), defined $req->{content} ? ( json => $req->{content} ) : () )
+                ->result;
 
             # todo: error handling
             if    ( $res->is_success )  { return $res->content ? $res->json : () }
             elsif ( $res->is_error )    { say $res->message }
             elsif ( $res->code == 301 ) { say $res->headers->location }
             else                        { say 'Whatever...' }
+        }
+
+        method _set_bearer_token ($token) {
+            $auth = $token;
         }
     }
 
@@ -514,6 +528,14 @@ This method does not require an authenticated session.
 
 Returns a boolean value indicating whether an invite code is required, a list of available user domains, and links to
 the TOS and privacy policy.
+
+=head2 C<listAppPasswords( )>
+
+    $at->server->listAppPasswords( );
+
+List all App Passwords.
+
+Reeturns a list of passwords as new C<At::Lexicon::com::atproto::server::listAppPasswords::appPassword> objects.
 
 =begin todo
 
