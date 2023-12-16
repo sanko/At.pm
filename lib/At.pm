@@ -52,8 +52,8 @@ package At 0.02 {
     class At::Lexicon::AtProto::Server {
         field $client : param;
         field $host : param;
+        use At::Lexicon::com::atproto::server;
 
-        # https://github.com/bluesky-social/atproto/blob/main/lexicons/com/atproto/
         method createSession (%args) {
             my $session = $client->http->post( sprintf( '%s/xrpc/%s', $client->host, 'com.atproto.server.createSession' ), { content => \%args } );
             $client->http->session($session);
@@ -61,8 +61,10 @@ package At 0.02 {
             $session;
         }
 
-        method describeServer {
-            $client->http->get( sprintf( '%s/xrpc/%s', $client->host, 'com.atproto.server.describeServer' ) );
+        method describeServer () {    # functions without auth session
+            my $res = $client->http->get( sprintf( '%s/xrpc/%s', $client->host(), 'com.atproto.server.describeServer' ) );
+            $res->{links} = At::Lexicon::com::atproto::server::describeServer::links->new( %{ $res->{links} } ) if defined $res->{links};
+            $res;
         }
     }
 
@@ -506,9 +508,12 @@ You know this.
 
 Get a document describing the service's accounts configuration.
 
-    $at->server->describeServer();
+    $at->server->describeServer( );
 
 This method does not require an authenticated session.
+
+Returns a boolean value indicating whether an invite code is required, a list of available user domains, and links to
+the TOS and privacy policy.
 
 =begin todo
 

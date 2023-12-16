@@ -11,6 +11,8 @@ package At::Lexicon::com::atproto::repo 0.02 {
         ADJUST {
             $uri = URI->new($uri) unless builtin::blessed $uri;
         }
+        method uri {$uri}
+        method cid {$cid}
 
         method _raw {
             +{ defined $type ? ( '$type' => $type ) : (), uri => $uri->as_string, cid => $cid };

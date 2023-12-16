@@ -87,9 +87,16 @@ subtest 'live' => sub {
     };
     subtest 'getLikes' => sub {
         ok my $results = $bsky->feed->getLikes('at://did:plc:ewvi7nxzyoun6zhxrhs64oiz/app.bsky.feed.post/3kftlbujmfk24'),
-            '$bsky->feed->getLikes("at://did:plc:ewvi[...]")';
+            '$bsky->feed->getLikes("at://did:plc:ewvi...")';
         isa_ok $results->{likes}->[0], ['At::Lexicon::app::bsky::feed::getLikes::like'], '...contains list of ::feed::getLikes::like objects';
     };
+    #~ subtest 'getFeedGenerator' => sub {
+        #~ ok my $results = $bsky->feed->getFeedGenerator('at://did:web:ewvi7nxzyoun6zhxrhs64oiz/app.bsky.feed.generator'),
+            #~ '$bsky->feed->getFeedGenerator("at://did:plc:ewvi...")';
+
+        #~ my $post = $results->{repostedBy}->[0];
+        #~ isa_ok $post, ['At::Lexicon::app::bsky::actor::profileView'], '...contains list of profileView objects';
+    #~ };
 };
 #
 done_testing;

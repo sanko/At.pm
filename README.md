@@ -164,10 +164,13 @@ Expected parameters include:
 Get a document describing the service's accounts configuration.
 
 ```
-$at->server->describeServer();
+$at->server->describeServer( );
 ```
 
 This method does not require an authenticated session.
+
+Returns a boolean value indicating whether an invite code is required, a list of available user domains, and links to
+the TOS and privacy policy.
 
 # See Also
 
