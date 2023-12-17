@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 use Test2::V0;
-use Test2::Tools::Class qw[isa_ok];
+use Test2::Tools::Class qw[isa_ok can_ok];
 #
 BEGIN { chdir '../' if !-d 't'; }
 use lib '../lib', 'lib', '../blib/arch', '../blib/lib', 'blib/arch', 'blib/lib', '../../', '.';
@@ -31,7 +31,12 @@ subtest 'live' => sub {
         isa_ok $ses->{handle}, ['At::Protocol::Handle'], '...handle';
         isa_ok $ses->{did},    ['At::Protocol::DID'],    '...did';
     };
-    diag 'getAccountInviteCodes cannot be tested with an app password';
+    subtest '$at->server->can(...)' => sub {
+        note 'running these tests are either impossible with an app password session or would modify the account in harmful ways';
+        can_ok $at->server, [$_], $_
+            for sort
+            qw[getAccountInviteCodes updateEmail requestEmailUpdate revokeAppPassword resetPassword reserveSigningKey requestPasswordReset requestEmailConfirmation requestAccountDelete deleteSession deleteAccount createSession createInviteCodes createInviteCode createAppPassword createAccount confirmEmail];
+    }
 };
 #
 done_testing;

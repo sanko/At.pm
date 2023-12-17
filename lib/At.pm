@@ -48,9 +48,11 @@ package At 0.02 {
             my $host = $self->host;
             $host = 'https://' . $host unless $host =~ /^https?:/;
             $host = URI->new($host)    unless builtin::blessed $host;
-            $self->server->createSession( identifier => $identifier, password => $password ) if defined $identifier && defined $password;
-
-            # auto-login
+            if ( defined $identifier && defined $password ) {    # auto-login
+                my $session = $self->server->createSession( $identifier, $password );
+                $http->set_session($session);
+                $repo = At::Lexicon::AtProto::Repo->new( client => $self, did => $http->session->did->_raw );
+            }
         }
     }
 
@@ -59,11 +61,15 @@ package At 0.02 {
         field $host : param;
         use At::Lexicon::com::atproto::server;
 
-        method createSession (%args) {
-            my $session = $client->http->post( sprintf( '%s/xrpc/%s', $client->host, 'com.atproto.server.createSession' ), { content => \%args } );
-            $client->http->set_session($session);
-            $client->_repo( At::Lexicon::AtProto::Repo->new( client => $client, did => $client->http->session->did->_raw ) );
-            $session;
+        method createSession ( $identifier, $password ) {
+            my $res = $client->http->post(
+                sprintf( '%s/xrpc/%s', $client->host, 'com.atproto.server.createSession' ),
+                { content => +{ identifier => $identifier, password => $password } }
+            );
+            $res->{handle}         = At::Protocol::Handle->new( id => $res->{handle} ) if defined $res->{handle};
+            $res->{did}            = At::Protocol::DID->new( uri => $res->{did} )      if defined $res->{did};
+            $res->{emailConfirmed} = !!$res->{emailConfirmed} if defined $res->{emailConfirmed} && builtin::blessed $res->{emailConfirmed};
+            $res;
         }
 
         method describeServer () {    # functions without auth session
@@ -100,6 +106,138 @@ package At 0.02 {
                 }
             );
             $res->{codes} = [ map { At::Lexicon::com::atproto::server::inviteCode->new(%$_) } @{ $res->{codes} } ] if defined $res->{codes};
+            $res;
+        }
+
+        method updateEmail ( $email, $token //= () ) {
+            $client->http->session // Carp::confess 'requires an authenticated client';
+            my $res = $client->http->post(
+                sprintf( '%s/xrpc/%s', $client->host(), 'com.atproto.server.updateEmail' ),
+                { content => +{ email => $email, defined $token ? ( token => $token ) : () } }
+            );
+            $res;
+        }
+
+        method requestEmailUpdate ($tokenRequired) {
+            $client->http->session // Carp::confess 'requires an authenticated client';
+            my $res = $client->http->post( sprintf( '%s/xrpc/%s', $client->host(), 'com.atproto.server.requestEmailUpdate' ),
+                { content => +{ tokenRequired => !!$tokenRequired } } );
+            $res;
+        }
+
+        method revokeAppPassword ($name) {
+            $client->http->session // Carp::confess 'requires an authenticated client';
+            my $res = $client->http->post( sprintf( '%s/xrpc/%s', $client->host(), 'com.atproto.server.revokeAppPassword' ),
+                { content => +{ name => $name } } );
+            $res;
+        }
+
+        method resetPassword ( $token, $password ) {
+            $client->http->session // Carp::confess 'requires an authenticated client';
+            my $res = $client->http->post( sprintf( '%s/xrpc/%s', $client->host(), 'com.atproto.server.resetPassword' ),
+                { content => +{ token => $token, password => $password } } );
+            $res;
+        }
+
+        method reserveSigningKey ($did) {
+            $client->http->session // Carp::confess 'requires an authenticated client';
+            my $res = $client->http->post( sprintf( '%s/xrpc/%s', $client->host(), 'com.atproto.server.reserveSigningKey' ),
+                { content => +{ defined $did ? ( did => $did ) : () } } );
+            $res;
+        }
+
+        method requestPasswordReset ($email) {
+            $client->http->session // Carp::confess 'requires an authenticated client';
+            my $res = $client->http->post( sprintf( '%s/xrpc/%s', $client->host(), 'com.atproto.server.requestPasswordReset' ),
+                { content => +{ email => $email } } );
+            $res;
+        }
+
+        method requestEmailConfirmation ( ) {
+            $client->http->session // Carp::confess 'requires an authenticated client';
+            my $res = $client->http->post( sprintf( '%s/xrpc/%s', $client->host(), 'com.atproto.server.requestEmailConfirmation' ) );
+            $res;
+        }
+
+        method requestAccountDelete ( ) {
+            $client->http->session // Carp::confess 'requires an authenticated client';
+            my $res = $client->http->post( sprintf( '%s/xrpc/%s', $client->host(), 'com.atproto.server.requestAccountDelete' ) );
+            $res;
+        }
+
+        method deleteSession ( ) {
+            $client->http->session // Carp::confess 'requires an authenticated client';
+            my $res = $client->http->post( sprintf( '%s/xrpc/%s', $client->host(), 'com.atproto.server.deleteSession' ) );
+            $res;
+        }
+
+        method deleteAccount ( $did, $password, $token ) {
+            $client->http->session // Carp::confess 'requires an authenticated client';
+            my $res = $client->http->post(
+                sprintf( '%s/xrpc/%s', $client->host(), 'com.atproto.server.deleteAccount' ),
+                { content => +{ did => $did, password => $password, token => $token } }
+            );
+            $res;
+        }
+
+        method createInviteCodes ( $codeCount, $useCount, $forAccounts //= () ) {
+            $client->http->session // Carp::confess 'requires an authenticated client';
+            my $res = $client->http->post(
+                sprintf( '%s/xrpc/%s', $client->host(), 'com.atproto.server.createInviteCodes' ),
+                {   content => +{
+                        codeCount => $codeCount,
+                        useCount  => $useCount,
+                        defined $forAccounts ? ( forAccounts => [ map { $_ = $_->_raw if builtin::blessed $_ } @$forAccounts ] ) : ()
+                    }
+                }
+            );
+            $res->{codes} = [ map { At::Lexicon::com::atproto::server::createInviteCodes::accountCodes->new(%$_) } @{ $res->{codes} } ]
+                if defined $res->{codes};
+            $res;
+        }
+
+        method createInviteCode ( $useCount, $forAccount //= () ) {
+            $client->http->session // Carp::confess 'requires an authenticated client';
+            my $res = $client->http->post(
+                sprintf( '%s/xrpc/%s', $client->host(), 'com.atproto.server.createInviteCode' ),
+                {   content => +{
+                        useCount => $useCount,
+                        defined $forAccount ? ( forAccount => builtin::blessed $forAccount? $forAccount->_raw : $forAccount ) : ()
+                    }
+                }
+            );
+            $res;
+        }
+
+        method createAppPassword ($name) {
+            $client->http->session // Carp::confess 'requires an authenticated client';
+            my $res = $client->http->post( sprintf( '%s/xrpc/%s', $client->host(), 'com.atproto.server.createAppPassword' ),
+                { content => +{ name => $name } } );
+            $res->{appPassword} = At::Lexicon::com::atproto::server::createAppPassword::appPassword->new( %{ $res->{appPassword} } )
+                if defined $res->{appPassword};
+            $res;
+        }
+
+        method createAccount ( $handle, $email //= (), $password //= (), $inviteCode //= (), $did //= (), $recoveryKey //= (), $plcOP //= () ) {
+            Carp::cluck 'likely do not want an authenticated client' if defined $client->http->session;
+            my $res = $client->http->post(
+                sprintf( '%s/xrpc/%s', $client->host(), 'com.atproto.server.createAccount' ),
+                {   content => +{
+                        handle => $handle,
+                        defined $email       ? ( email       => $email )       : (), defined $did      ? ( did      => $did )      : (),
+                        defined $inviteCode  ? ( inviteCode  => $inviteCode )  : (), defined $password ? ( password => $password ) : (),
+                        defined $recoveryKey ? ( recoveryKey => $recoveryKey ) : (), defined $plcOP    ? ( plcOP    => $plcOP )    : ()
+                    }
+                }
+            );
+            $res->{handle} = At::Protocol::Handle->new( id => $res->{handle} ) if defined $res->{handle};
+            $res->{did}    = At::Protocol::DID->new( uri => $res->{did} )      if defined $res->{did};
+            $res;
+        }
+
+        method confirmEmail ( $email, $token ) {
+            my $res = $client->http->post( sprintf( '%s/xrpc/%s', $client->host(), 'com.atproto.server.confirmEmail' ),
+                { content => +{ email => $email, token => $token } } );
             $res;
         }
     }
@@ -361,7 +499,7 @@ At - The AT Protocol for Social Networking
 
     use At;
     my $at = At->new( host => 'https://fun.example' );
-    $at->server->createSession( identifier => 'sanko', password => '1111-aaaa-zzzz-0000' );
+    $at->server->createSession( 'sanko', '1111-aaaa-zzzz-0000' );
     $at->repo->createRecord(
         collection => 'app.bsky.feed.post',
         record     => { '$type' => 'app.bsky.feed.post', text => 'Hello world! I posted this via the API.', createdAt => time }
@@ -525,7 +663,9 @@ Server methods may require an authorized session.
 
 =head2 C<createSession( ... )>
 
-    $at->server->createSession( identifier => 'sanko', password => '1111-2222-3333-4444' );
+    $at->server->createSession( 'sanko', '1111-2222-3333-4444' );
+
+Create an authentication session.
 
 Expected parameters include:
 
@@ -537,9 +677,9 @@ Handle or other identifier supported by the server for the authenticating user.
 
 =item C<password> - required
 
-You know this.
-
 =back
+
+On success, the access and refresh JSON web tokens, the account's handle, DID and (optionally) other data is returned.
 
 =head2 C<describeServer( )>
 
@@ -598,6 +738,262 @@ Optional boolean flag.
 
 Returns a list of C<At::Lexicon::com::atproto::server::inviteCode> objects on success. Note that this method returns an
 error if the session was authorized with an app password.
+
+=head2 C<updateEmail( ..., [...] )>
+
+    $at->server->updateEmail( 'smith...@gmail.com' );
+
+Update an account's email.
+
+Expected parameters include:
+
+=over
+
+=item C<email> - required
+
+=item C<token>
+
+This method requires a token from C<requestEmailUpdate( ... )> if the account's email has been confirmed.
+
+=back
+
+=head2 C<requestEmailUpdate( ... )>
+
+    $at->server->requestEmailUpdate( 1 );
+
+Request a token in order to update email.
+
+Expected parameters include:
+
+=over
+
+=item C<tokenRequired> - required
+
+Boolean value.
+
+=back
+
+=head2 C<revokeAppPassword( ... )>
+
+    $at->server->revokeAppPassword( 'Demo App [beta]' );
+
+Revoke an App Password by name.
+
+Expected parameters include:
+
+=over
+
+=item C<name> - required
+
+=back
+
+=head2 C<resetPassword( ... )>
+
+    $at->server->resetPassword( 'fdsjlkJIofdsaf89w3jqirfu2q8docwe', '****************' );
+
+Reset a user account password using a token.
+
+Expected parameters include:
+
+=over
+
+=item C<token> - required
+
+=item C<password> - required
+
+=back
+
+=head2 C<resetPassword( ... )>
+
+    $at->server->resetPassword( 'fdsjlkJIofdsaf89w3jqirfu2q8docwe', '****************' );
+
+Reset a user account password using a token.
+
+Expected parameters include:
+
+=over
+
+=item C<token> - required
+
+=item C<password> - required
+
+=back
+
+=head2 C<reserveSigningKey( [...] )>
+
+    $at->server->reserveSigningKey( 'did:...' );
+
+Reserve a repo signing key for account creation.
+
+Expected parameters include:
+
+=over
+
+=item C<did>
+
+The did to reserve a new did:key for.
+
+=back
+
+On success, a public signing key in the form of a did:key is returned.
+
+=head2 C<requestPasswordReset( [...] )>
+
+    $at->server->requestPasswordReset( 'smith...@gmail.com' );
+
+Initiate a user account password reset via email.
+
+Expected parameters include:
+
+=over
+
+=item C<email> - required
+
+=back
+
+=head2 C<requestEmailConfirmation( )>
+
+    $at->server->requestEmailConfirmation( );
+
+Request an email with a code to confirm ownership of email.
+
+=head2 C<requestAccountDelete( )>
+
+    $at->server->requestAccountDelete( );
+
+Initiate a user account deletion via email.
+
+=head2 C<deleteSession( )>
+
+    $at->server->deleteSession( );
+
+Initiate a user account deletion via email.
+
+=head2 C<deleteAccount( )>
+
+    $at->server->deleteAccount( );
+
+Delete an actor's account with a token and password.
+
+Expected parameters include:
+
+=over
+
+=item C<did> - required
+
+=item C<password> - required
+
+=item C<token> - required
+
+=back
+
+=head2 C<createInviteCodes( ..., [...] )>
+
+    $at->server->createInviteCodes( 1, 1 );
+
+Create invite codes.
+
+Expected parameters include:
+
+=over
+
+=item C<codeCount> - required
+
+The number of codes to create. Default value is 1.
+
+=item C<useCount> - required
+
+Int.
+
+=item C<forAccounts>
+
+List of DIDs.
+
+=back
+
+On success, returns a list of new C<At::Lexicon::com::atproto::server::createInviteCodes::accountCodes> objects.
+
+=head2 C<createInviteCode( ..., [...] )>
+
+    $at->server->createInviteCode( 1 );
+
+Create an invite code.
+
+Expected parameters include:
+
+=over
+
+=item C<useCount> - required
+
+Int.
+
+=item C<forAccounts>
+
+List of DIDs.
+
+=back
+
+On success, a new invite code is returned.
+
+=head2 C<createAppPassword( ..., [...] )>
+
+    $at->server->createAppPassword( 'AT Client [release]' );
+
+Create an App Password.
+
+Expected parameters include:
+
+=over
+
+=item C<name> - required
+
+=back
+
+On success, a new C<At::Lexicon::com::atproto::server::createAppPassword::appPassword> object.
+
+=head2 C<createAccount( ..., [...] )>
+
+    $at->server->createAccount( 'jsmith....', '*********' );
+
+Create an account.
+
+Expected parameters include:
+
+=over
+
+=item C<handle> - required
+
+=item C<email>
+
+=item C<password>
+
+=item C<inviteCode>
+
+=item C<did>
+
+=item C<recoveryKey>
+
+=item C<plcOP>
+
+=back
+
+On success, JSON web access and refresh tokens, the handle, did, and (optionally) a server defined didDoc are returned.
+
+=head2 C<confirmEmail( ... )>
+
+    $at->server->confirmEmail( 'jsmith...@gmail.com', 'idkidkidkidkdifkasjkdfsaojfd' );
+
+Confirm an email using a token from C<requestEmailConfirmation( )>,
+
+Expected parameters include:
+
+=over
+
+=item C<email> - required
+
+=item C<token> - required
+
+=back
 
 =begin todo
 
@@ -675,5 +1071,11 @@ This library is free software; you can redistribute it and/or modify it under th
 =head1 AUTHOR
 
 Sanko Robinson E<lt>sanko@cpan.orgE<gt>
+
+=begin stopwords
+
+didDoc
+
+=end stopwords
 
 =cut

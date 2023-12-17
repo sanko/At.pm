@@ -8,7 +8,7 @@ At - The AT Protocol for Social Networking
 ```perl
 use At;
 my $at = At->new( host => 'https://fun.example' );
-$at->server->createSession( identifier => 'sanko', password => '1111-aaaa-zzzz-0000' );
+$at->server->createSession( 'sanko', '1111-aaaa-zzzz-0000' );
 $at->repo->createRecord(
     collection => 'app.bsky.feed.post',
     record     => { '$type' => 'app.bsky.feed.post', text => 'Hello world! I posted this via the API.', createdAt => time }
@@ -145,9 +145,11 @@ Server methods may require an authorized session.
 
 ## `createSession( ... )`
 
-```perl
-$at->server->createSession( identifier => 'sanko', password => '1111-2222-3333-4444' );
 ```
+$at->server->createSession( 'sanko', '1111-2222-3333-4444' );
+```
+
+Create an authentication session.
 
 Expected parameters include:
 
@@ -157,7 +159,7 @@ Expected parameters include:
 
 - `password` - required
 
-    You know this.
+On success, the access and refresh JSON web tokens, the account's handle, DID and (optionally) other data is returned.
 
 ## `describeServer( )`
 
@@ -222,6 +224,230 @@ Expected parameters include:
 
 Returns a list of `At::Lexicon::com::atproto::server::inviteCode` objects on success. Note that this method returns an
 error if the session was authorized with an app password.
+
+## `updateEmail( ..., [...] )`
+
+```
+$at->server->updateEmail( 'smith...@gmail.com' );
+```
+
+Update an account's email.
+
+Expected parameters include:
+
+- `email` - required
+- `token`
+
+    This method requires a token from `requestEmailUpdate( ... )` if the account's email has been confirmed.
+
+## `requestEmailUpdate( ... )`
+
+```
+$at->server->requestEmailUpdate( 1 );
+```
+
+Request a token in order to update email.
+
+Expected parameters include:
+
+- `tokenRequired` - required
+
+    Boolean value.
+
+## `revokeAppPassword( ... )`
+
+```
+$at->server->revokeAppPassword( 'Demo App [beta]' );
+```
+
+Revoke an App Password by name.
+
+Expected parameters include:
+
+- `name` - required
+
+## `resetPassword( ... )`
+
+```
+$at->server->resetPassword( 'fdsjlkJIofdsaf89w3jqirfu2q8docwe', '****************' );
+```
+
+Reset a user account password using a token.
+
+Expected parameters include:
+
+- `token` - required
+- `password` - required
+
+## `resetPassword( ... )`
+
+```
+$at->server->resetPassword( 'fdsjlkJIofdsaf89w3jqirfu2q8docwe', '****************' );
+```
+
+Reset a user account password using a token.
+
+Expected parameters include:
+
+- `token` - required
+- `password` - required
+
+## `reserveSigningKey( [...] )`
+
+```
+$at->server->reserveSigningKey( 'did:...' );
+```
+
+Reserve a repo signing key for account creation.
+
+Expected parameters include:
+
+- `did`
+
+    The did to reserve a new did:key for.
+
+On success, a public signing key in the form of a did:key is returned.
+
+## `requestPasswordReset( [...] )`
+
+```
+$at->server->requestPasswordReset( 'smith...@gmail.com' );
+```
+
+Initiate a user account password reset via email.
+
+Expected parameters include:
+
+- `email` - required
+
+## `requestEmailConfirmation( )`
+
+```
+$at->server->requestEmailConfirmation( );
+```
+
+Request an email with a code to confirm ownership of email.
+
+## `requestAccountDelete( )`
+
+```
+$at->server->requestAccountDelete( );
+```
+
+Initiate a user account deletion via email.
+
+## `deleteSession( )`
+
+```
+$at->server->deleteSession( );
+```
+
+Initiate a user account deletion via email.
+
+## `deleteAccount( )`
+
+```
+$at->server->deleteAccount( );
+```
+
+Delete an actor's account with a token and password.
+
+Expected parameters include:
+
+- `did` - required
+- `password` - required
+- `token` - required
+
+## `createInviteCodes( ..., [...] )`
+
+```
+$at->server->createInviteCodes( 1, 1 );
+```
+
+Create invite codes.
+
+Expected parameters include:
+
+- `codeCount` - required
+
+    The number of codes to create. Default value is 1.
+
+- `useCount` - required
+
+    Int.
+
+- `forAccounts`
+
+    List of DIDs.
+
+On success, returns a list of new `At::Lexicon::com::atproto::server::createInviteCodes::accountCodes` objects.
+
+## `createInviteCode( ..., [...] )`
+
+```
+$at->server->createInviteCode( 1 );
+```
+
+Create an invite code.
+
+Expected parameters include:
+
+- `useCount` - required
+
+    Int.
+
+- `forAccounts`
+
+    List of DIDs.
+
+On success, a new invite code is returned.
+
+## `createAppPassword( ..., [...] )`
+
+```
+$at->server->createAppPassword( 'AT Client [release]' );
+```
+
+Create an App Password.
+
+Expected parameters include:
+
+- `name` - required
+
+On success, a new `At::Lexicon::com::atproto::server::createAppPassword::appPassword` object.
+
+## `createAccount( ..., [...] )`
+
+```
+$at->server->createAccount( 'jsmith....', '*********' );
+```
+
+Create an account.
+
+Expected parameters include:
+
+- `handle` - required
+- `email`
+- `password`
+- `inviteCode`
+- `did`
+- `recoveryKey`
+- `plcOP`
+
+On success, JSON web access and refresh tokens, the handle, did, and (optionally) a server defined didDoc are returned.
+
+## `confirmEmail( ... )`
+
+```
+$at->server->confirmEmail( 'jsmith...@gmail.com', 'idkidkidkidkdifkasjkdfsaojfd' );
+```
+
+Confirm an email using a token from `requestEmailConfirmation( )`,
+
+Expected parameters include:
+
+- `email` - required
+- `token` - required
 
 # See Also
 
