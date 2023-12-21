@@ -456,6 +456,9 @@ package At::Lexicon::app::bsky::feed 0.02 {
 
         # Bluesky is returning this from time to time as of Dec. 14, 2023
         field $via : param //= ();       # string
+
+        # API is returning this but it's not in the lexicon as of Dec. 20th, 2023
+        field $length : param //= ();    # int
         ADJUST {
             Carp::confess 'text is too long' if length $text > 3000 || At::_glength($text) > 300;
             $facets = [ map { $_ = At::Lexicon::app::bsky::richtext::facet->new(%$_) unless builtin::blessed $_ } @$facets ] if defined $facets;
@@ -485,7 +488,7 @@ package At::Lexicon::app::bsky::feed 0.02 {
                 defined $embed  ? ( embed  => $embed->_raw )                  : (), defined $langs ? ( langs => $langs )                      : (),
                 defined $labels ? ( labels => $labels->_raw )                 : (), defined $tags  ? ( tags  => [ map { $_->_raw } @$tags ] ) : (),
                 createdAt => $createdAt->_raw,
-                defined $via ? ( via => $via ) : ()
+                defined $via ? ( via => $via ) : (), defined $length ? ( length => $length ) : ()
             };
         }
     }

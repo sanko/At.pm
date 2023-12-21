@@ -67,6 +67,40 @@ package At::Lexicon::com::atproto::label 0.02 {
             +{ defined $type ? ( '$type' => $type ) : (), val => $val };
         }
     }
+
+    class At::Lexicon::com::atproto::label::subscribeLabels::labels {
+        field $type : param($type) //= ();    # record field
+        field $seq : param;                   # int, required
+        field $labels : param;                # array, required
+        ADJUST {
+            $labels = [ map { $_ = At::Lexicon::com::atproto::label->new(%$_) unless builtin::blessed $_ } @$labels ];
+        }
+
+        # perlclass does not have :reader yet
+        method seq    {$seq}
+        method lables {$labels}
+
+        method _raw() {
+            +{ defined $type ? ( '$type' => $type ) : (), seq => $seq, labels => [ map { $_->_raw } @$labels ] };
+        }
+    }
+
+    class At::Lexicon::com::atproto::label::subscribeLabels::info {
+        field $type : param($type) //= ();    # record field
+        field $name : param;                  # string, required
+        field $message : param //= ();        # string
+        ADJUST {
+            Carp::confess 'unknown name' unless grep { $name eq $_ } qw[OutdatedCursor];
+        }
+
+        # perlclass does not have :reader yet
+        method name    {$name}
+        method message {$message}
+
+        method _raw() {
+            +{ defined $type ? ( '$type' => $type ) : (), name => $name, defined $message ? ( message => $message ) : () };
+        }
+    }
 };
 1;
 __END__

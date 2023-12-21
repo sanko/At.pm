@@ -14,28 +14,9 @@ package At::Bluesky {
     use At::Lexicon::app::bsky::feed;
     #
     class At::Bluesky : isa(At) {
-        field $actor;
-        method _actor ($a) { $actor = $a }
-        method actor       {$actor}
-        field $graph;
-        method _graph ($g) { $graph = $g }
-        method graph       {$graph}
-        field $notification;
-        method _notification ($n) { $notification = $n }
-        method notification       {$notification}
-        field $feed;
-        method _feed ($f) { $feed = $f }
-        method feed       {$feed}
 
         # Required in subclasses of At
         method host { URI->new('https://bsky.social') }
-        ADJUST {
-            $self->_repo( At::Lexicon::AtProto::Repo->new( client => $self, did => $self->http->session->did->_raw ) ) if defined $self->repo;
-            $self->_actor( At::Lexicon::Bluesky::Actor->new( client => $self ) );
-            $self->_graph( At::Lexicon::Bluesky::Graph->new( client => $self ) );
-            $self->_notification( At::Lexicon::Bluesky::Notification->new( client => $self ) );
-            $self->_feed( At::Lexicon::Bluesky::Feed->new( client => $self ) );
-        }
 
         # Sugar
         method post (%args) {
@@ -46,48 +27,46 @@ package At::Bluesky {
         }
     }
 
-    class At::Lexicon::Bluesky::Actor {
-        field $client : param;
+    #~ class At::Lexicon::Bluesky::Actor
+    {
 
         method getPreferences () {
-            $client->http->session // Carp::confess 'requires an authenticated client';
-            my $res = $client->http->get( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.actor.getPreferences' ) );
+            $self->http->session // Carp::confess 'requires an authenticated client';
+            my $res = $self->http->get( sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.actor.getPreferences' ) );
             $res = At::Lexicon::app::bsky::actor::preferences->new( items => $res->{preferences} ) if defined $res->{preferences};
             $res;
         }
 
         method getProfile ($actor) {
-            $client->http->session // Carp::confess 'requires an authenticated client';
-            my $res
-                = $client->http->get( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.actor.getProfile' ), { content => +{ actor => $actor } } );
+            $self->http->session // Carp::confess 'requires an authenticated client';
+            my $res = $self->http->get( sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.actor.getProfile' ), { content => +{ actor => $actor } } );
             $res = At::Lexicon::app::bsky::actor::profileViewDetailed->new(%$res) if defined $res->{did};
             $res;
         }
 
         method getProfiles (@ids) {
-            $client->http->session // Carp::confess 'requires an authenticated client';
+            $self->http->session // Carp::confess 'requires an authenticated client';
             Carp::confess 'getProfiles( ... ) expects no more than 25 actors' if scalar @ids > 25;
-            my $res
-                = $client->http->get( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.actor.getProfiles' ), { content => +{ actors => \@ids } } );
+            my $res = $self->http->get( sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.actor.getProfiles' ), { content => +{ actors => \@ids } } );
             $res->{profiles} = [ map { At::Lexicon::app::bsky::actor::profileViewDetailed->new(%$_) } @{ $res->{profiles} } ]
                 if defined $res->{profiles};
             $res;
         }
 
         method getSuggestions ( $limit //= (), $cursor //= () ) {
-            $client->http->session // Carp::confess 'requires an authenticated client';
+            $self->http->session // Carp::confess 'requires an authenticated client';
             Carp::confess 'getSuggestions( ... ) expects a limit between 1 and 100 (default: 50)' if defined $limit && ( $limit < 1 || $limit > 100 );
-            my $res = $client->http->get( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.actor.getSuggestions' ),
+            my $res = $self->http->get( sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.actor.getSuggestions' ),
                 { content => +{ defined $limit ? ( limit => $limit ) : (), defined $cursor ? ( cursor => $cursor ) : () } } );
             $res->{actors} = [ map { At::Lexicon::app::bsky::actor::profileView->new(%$_) } @{ $res->{actors} } ] if defined $res->{actors};
             $res;
         }
 
         method searchActorsTypeahead ( $q, $limit //= () ) {
-            $client->http->session // Carp::confess 'requires an authenticated client';
+            $self->http->session // Carp::confess 'requires an authenticated client';
             Carp::confess 'getSuggestions( ... ) expects a limit between 1 and 100 (default: 50)' if defined $limit && ( $limit < 1 || $limit > 100 );
-            my $res = $client->http->get(
-                sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.actor.searchActorsTypeahead' ),
+            my $res = $self->http->get(
+                sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.actor.searchActorsTypeahead' ),
                 { content => +{ q => $q, defined $limit ? ( limit => $limit ) : () } }
             );
             $res->{actors} = [ map { At::Lexicon::app::bsky::actor::profileView->new(%$_) } @{ $res->{actors} } ] if defined $res->{actors};
@@ -95,43 +74,43 @@ package At::Bluesky {
         }
 
         method searchActors ( $q, $limit //= (), $cursor //= () ) {
-            $client->http->session // Carp::confess 'requires an authenticated client';
+            $self->http->session // Carp::confess 'requires an authenticated client';
             Carp::confess 'searchActorsTypeahead( ... ) expects a limit between 1 and 100 (default: 25)'
                 if defined $limit && ( $limit < 1 || $limit > 100 );
-            my $res = $client->http->get( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.actor.searchActors' ),
+            my $res = $self->http->get( sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.actor.searchActors' ),
                 { content => +{ q => $q, defined $limit ? ( limit => $limit ) : (), defined $cursor ? ( cursor => $cursor ) : () } } );
             $res->{actors} = [ map { At::Lexicon::app::bsky::actor::profileView->new(%$_) } @{ $res->{actors} } ] if defined $res->{actors};
             $res;
         }
 
         method putPreferences (@preferences) {
-            $client->http->session // Carp::confess 'requires an authenticated client';
+            $self->http->session // Carp::confess 'requires an authenticated client';
             my $preferences = At::Lexicon::app::bsky::actor::preferences->new( items => \@preferences );
-            my $res         = $client->http->post( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.actor.putPreferences' ),
+            my $res         = $self->http->post( sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.actor.putPreferences' ),
                 { content => +{ preferences => $preferences->_raw } } );
             return $res eq '';    # TODO: check HTTP status instead?
         }
     }
 
-    class At::Lexicon::Bluesky::Feed {
-        field $client : param;
+    #~ class At::Lexicon::Bluesky::Feed
+    {
 
         method getSuggestedFeeds ( $limit //= (), $cursor //= () ) {
-            $client->http->session // Carp::confess 'requires an authenticated client';
+            $self->http->session // Carp::confess 'requires an authenticated client';
             Carp::cluck 'limit is too large' if defined $limit && $limit < 0;
             Carp::cluck 'limit is too small' if defined $limit && $limit > 100;
-            my $res = $client->http->get( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.feed.getSuggestedFeeds' ),
+            my $res = $self->http->get( sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.feed.getSuggestedFeeds' ),
                 { content => +{ defined $limit ? ( limit => $limit ) : (), defined $cursor ? ( cursor => $cursor ) : () } } );
             $res->{feeds} = [ map { At::Lexicon::app::bsky::feed::generatorView->new(%$_) } @{ $res->{feeds} } ] if defined $res->{feeds};
             $res;
         }
 
         method getTimeline ( $algorithm //= (), $limit //= (), $cursor //= () ) {
-            $client->http->session // Carp::confess 'requires an authenticated client';
+            $self->http->session // Carp::confess 'requires an authenticated client';
             Carp::cluck 'limit is too large' if defined $limit && $limit < 0;
             Carp::cluck 'limit is too small' if defined $limit && $limit > 100;
-            my $res = $client->http->get(
-                sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.feed.getTimeline' ),
+            my $res = $self->http->get(
+                sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.feed.getTimeline' ),
                 {   content => +{
                         defined $algorithm ? ( algorithm => $algorithm ) : (),
                         defined $limit     ? ( limit     => $limit )     : (),
@@ -144,21 +123,21 @@ package At::Bluesky {
         }
 
         method searchPosts ( $q, $limit //= (), $cursor //= () ) {
-            $client->http->session // Carp::confess 'requires an authenticated client';
+            $self->http->session // Carp::confess 'requires an authenticated client';
             Carp::cluck 'limit is too large' if defined $limit && $limit < 0;
             Carp::cluck 'limit is too small' if defined $limit && $limit > 100;
-            my $res = $client->http->get( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.feed.searchPosts' ),
+            my $res = $self->http->get( sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.feed.searchPosts' ),
                 { content => +{ q => $q, defined $limit ? ( limit => $limit ) : (), defined $cursor ? ( cursor => $cursor ) : () } } );
             $res->{posts} = [ map { At::Lexicon::app::bsky::feed::postView->new(%$_) } @{ $res->{posts} } ] if defined $res->{posts};
             $res;
         }
 
         method getAuthorFeed ( $actor, $limit //= (), $filter //= (), $cursor //= () ) {
-            $client->http->session // Carp::confess 'requires an authenticated client';
+            $self->http->session // Carp::confess 'requires an authenticated client';
             Carp::cluck 'limit is too large' if defined $limit && $limit < 0;
             Carp::cluck 'limit is too small' if defined $limit && $limit > 100;
-            my $res = $client->http->get(
-                sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.feed.getAuthorFeed' ),
+            my $res = $self->http->get(
+                sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.feed.getAuthorFeed' ),
                 {   content => +{
                         actor => $actor,
                         defined $limit ? ( limit => $limit ) : (), defined $filter ? ( filter => $filter ) : (),
@@ -171,11 +150,11 @@ package At::Bluesky {
         }
 
         method getRepostedBy ( $uri, $cid //= (), $limit //= (), $cursor //= () ) {
-            $client->http->session // Carp::confess 'requires an authenticated client';
+            $self->http->session // Carp::confess 'requires an authenticated client';
             Carp::cluck 'limit is too large' if defined $limit && $limit < 0;
             Carp::cluck 'limit is too small' if defined $limit && $limit > 100;
-            my $res = $client->http->get(
-                sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.feed.getRepostedBy' ),
+            my $res = $self->http->get(
+                sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.feed.getRepostedBy' ),
                 {   content => +{
                         uri => ( builtin::blessed $uri? $uri->as_string : $uri ),
                         defined $cid ? ( cid => $cid ) : (), defined $limit ? ( limit => $limit ) : (), defined $cursor ? ( cursor => $cursor ) : ()
@@ -189,41 +168,41 @@ package At::Bluesky {
         }
 
         method getActorFeeds ( $actor, $limit //= (), $cursor //= () ) {
-            $client->http->session // Carp::confess 'requires an authenticated client';
+            $self->http->session // Carp::confess 'requires an authenticated client';
             Carp::cluck 'limit is too large' if defined $limit && $limit < 0;
             Carp::cluck 'limit is too small' if defined $limit && $limit > 100;
-            my $res = $client->http->get( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.feed.getActorFeeds' ),
+            my $res = $self->http->get( sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.feed.getActorFeeds' ),
                 { content => +{ actor => $actor, defined $limit ? ( limit => $limit ) : (), defined $cursor ? ( cursor => $cursor ) : () } } );
             $res->{feeds} = [ map { At::Lexicon::app::bsky::feed::generatorView->new(%$_) } @{ $res->{feeds} } ] if defined $res->{feeds};
             $res;
         }
 
         method getActorLikes ( $actor, $limit //= (), $cursor //= () ) {
-            $client->http->session // Carp::confess 'requires an authenticated client';
+            $self->http->session // Carp::confess 'requires an authenticated client';
             Carp::cluck 'limit is too large' if defined $limit && $limit < 0;
             Carp::cluck 'limit is too small' if defined $limit && $limit > 100;
-            my $res = $client->http->get( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.feed.getActorLikes' ),
+            my $res = $self->http->get( sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.feed.getActorLikes' ),
                 { content => +{ actor => $actor, defined $limit ? ( limit => $limit ) : (), defined $cursor ? ( cursor => $cursor ) : () } } );
             $res->{feed} = [ map { At::Lexicon::app::bsky::feed::feedViewPost->new(%$_) } @{ $res->{feed} } ] if defined $res->{feed};
             $res;
         }
 
         method getPosts (@uris) {
-            $client->http->session // Carp::confess 'requires an authenticated client';
+            $self->http->session // Carp::confess 'requires an authenticated client';
             Carp::confess 'too many uris' if scalar @uris > 25;
-            my $res = $client->http->get( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.feed.getPosts' ), { content => +{ uris => \@uris } } );
+            my $res = $self->http->get( sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.feed.getPosts' ), { content => +{ uris => \@uris } } );
             $res->{posts} = [ map { At::Lexicon::app::bsky::feed::postView->new(%$_) } @{ $res->{posts} } ] if defined $res->{posts};
             $res;
         }
 
         method getPostThread ( $uri, $depth //= (), $parentHeight //= () ) {
-            $client->http->session // Carp::confess 'requires an authenticated client';
+            $self->http->session // Carp::confess 'requires an authenticated client';
             Carp::confess 'depth is too low'         if defined $depth        && $depth < 0;
             Carp::confess 'depth is too high'        if defined $depth        && $depth > 1000;
             Carp::confess 'parentHeight is too low'  if defined $parentHeight && $parentHeight < 0;
             Carp::confess 'parentHeight is too high' if defined $parentHeight && $parentHeight > 1000;
-            my $res = $client->http->get(
-                sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.feed.getPostThread' ),
+            my $res = $self->http->get(
+                sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.feed.getPostThread' ),
                 {   content =>
                         +{ uri => $uri, defined $depth ? ( depth => $depth ) : (), defined $parentHeight ? ( parentHeight => $parentHeight ) : () }
                 }
@@ -234,11 +213,11 @@ package At::Bluesky {
         }
 
         method getLikes ( $uri, $cid //= (), $limit //= (), $cursor //= () ) {
-            $client->http->session // Carp::confess 'requires an authenticated client';
+            $self->http->session // Carp::confess 'requires an authenticated client';
             Carp::confess 'limit is too low'  if defined $limit && $limit < 1;
             Carp::confess 'limit is too high' if defined $limit && $limit > 100;
-            my $res = $client->http->get(
-                sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.feed.getLikes' ),
+            my $res = $self->http->get(
+                sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.feed.getLikes' ),
                 {   content => +{
                         uri => $uri,
                         defined $cid ? ( cid => $cid ) : (), defined $limit ? ( limit => $limit ) : (), defined $cursor ? ( cursor => $cursor ) : ()
@@ -248,15 +227,33 @@ package At::Bluesky {
             $res->{likes} = [ map { At::Lexicon::app::bsky::feed::getLikes::like->new(%$_) } @{ $res->{likes} } ] if defined $res->{likes};
             $res;
         }
+
+        #~ method getFeedGenerator ( $uri, $cid //= (), $limit //= (), $cursor //= () ) {
+        #~ $self->http->session // Carp::confess 'requires an authenticated client';
+        #~ Carp::confess 'limit is too low'  if defined $limit && $limit < 1;
+        #~ Carp::confess 'limit is too high' if defined $limit && $limit > 100;
+        #~ my $res = $self->http->get(
+        #~ sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.feed.getFeed' ),
+        #~ {   content => +{
+        #~ feed => $uri,
+        #~ defined $cid ? ( cid => $cid ) : (), defined $limit ? ( limit => $limit ) : (), defined $cursor ? ( cursor => $cursor ) : ()
+        #~ }
+        #~ }
+        #~ );
+        #~ use Data::Dump;
+        #~ ddx $res;
+        #~ $res->{likes} = [ map { At::Lexicon::app::bsky::feed::getLikes::like->new(%$_) } @{ $res->{likes} } ] if defined $res->{likes};
+        #~ $res;
+        #~ }
     }
 
-    class At::Lexicon::Bluesky::Graph {
-        field $client : param;
+    #~ class At::Lexicon::Bluesky::Graph
+    {
 
         method getFollows ( $actor, $limit //= 50, $cursor //= () ) {
-            $client->http->session // Carp::confess 'requires an authenticated client';
-            my $res = $client->http->get(
-                sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.graph.getFollows' ),
+            $self->http->session // Carp::confess 'requires an authenticated client';
+            my $res = $self->http->get(
+                sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.graph.getFollows' ),
                 { content => +{ actor => $actor, limit => $limit, cursor => $cursor } }
             );
             $res->{subject} = At::Lexicon::app::bsky::actor::profileView->new( %{ $res->{subject} } )               if defined $res->{subject};
@@ -265,9 +262,9 @@ package At::Bluesky {
         }
 
         method getFollowers ( $actor, $limit //= 50, $cursor //= () ) {
-            $client->http->session // Carp::confess 'requires an authenticated client';
-            my $res = $client->http->get(
-                sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.graph.getFollowers' ),
+            $self->http->session // Carp::confess 'requires an authenticated client';
+            my $res = $self->http->get(
+                sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.graph.getFollowers' ),
                 { content => +{ actor => $actor, limit => $limit, cursor => $cursor } }
             );
             $res->{subject}   = At::Lexicon::app::bsky::actor::profileView->new( %{ $res->{subject} } )                 if defined $res->{subject};
@@ -276,9 +273,9 @@ package At::Bluesky {
         }
 
         method getLists ( $actor, $limit //= 50, $cursor //= () ) {
-            $client->http->session // Carp::confess 'requires an authenticated client';
-            my $res = $client->http->get(
-                sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.graph.getLists' ),
+            $self->http->session // Carp::confess 'requires an authenticated client';
+            my $res = $self->http->get(
+                sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.graph.getLists' ),
                 { content => +{ actor => $actor, limit => $limit, cursor => $cursor } }
             );
             $res->{lists} = [ map { At::Lexicon::app::bsky::graph::listView->new(%$_) } @{ $res->{lists} } ] if defined $res->{lists};
@@ -286,9 +283,9 @@ package At::Bluesky {
         }
 
         method getList ( $list, $limit //= 50, $cursor //= () ) {
-            $client->http->session // Carp::confess 'requires an authenticated client';
-            my $res = $client->http->get(
-                sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.graph.getList' ),
+            $self->http->session // Carp::confess 'requires an authenticated client';
+            my $res = $self->http->get(
+                sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.graph.getList' ),
                 { content => +{ list => $list, limit => $limit, cursor => $cursor } }
             );
             $res->{list}  = At::Lexicon::app::bsky::graph::listView->new( %{ $res->{list} } )                    if defined $res->{list};
@@ -297,8 +294,8 @@ package At::Bluesky {
         }
 
         method getSuggestedFollowsByActor ($actor) {
-            $client->http->session // Carp::confess 'requires an authenticated client';
-            my $res = $client->http->get( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.graph.getSuggestedFollowsByActor' ),
+            $self->http->session // Carp::confess 'requires an authenticated client';
+            my $res = $self->http->get( sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.graph.getSuggestedFollowsByActor' ),
                 { content => +{ actor => $actor } } );
 
             # current lexicon incorrectly claims this is a list of profileView objects
@@ -308,102 +305,97 @@ package At::Bluesky {
         }
 
         method getBlocks ( $limit //= 50, $cursor //= () ) {
-            $client->http->session // Carp::confess 'requires an authenticated client';
-            my $res = $client->http->get( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.graph.getBlocks' ),
+            $self->http->session // Carp::confess 'requires an authenticated client';
+            my $res = $self->http->get( sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.graph.getBlocks' ),
                 { content => +{ limit => $limit, cursor => $cursor } } );
             $res->{blocks} = [ map { At::Lexicon::app::bsky::graph::profileView->new(%$_) } @{ $res->{blocks} } ] if defined $res->{blocks};
             $res;
         }
 
         method getListBlocks ( $limit //= 50, $cursor //= () ) {
-            $client->http->session // Carp::confess 'requires an authenticated client';
-            my $res = $client->http->get( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.graph.getListBlocks' ),
+            $self->http->session // Carp::confess 'requires an authenticated client';
+            my $res = $self->http->get( sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.graph.getListBlocks' ),
                 { content => +{ limit => $limit, cursor => $cursor } } );
             $res->{lists} = [ map { At::Lexicon::app::bsky::graph::listView->new(%$_) } @{ $res->{lists} } ] if defined $res->{lists};
             $res;
         }
 
         method getMutes ( $limit //= 50, $cursor //= () ) {
-            $client->http->session // Carp::confess 'requires an authenticated client';
-            my $res = $client->http->get( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.graph.getMutes' ),
+            $self->http->session // Carp::confess 'requires an authenticated client';
+            my $res = $self->http->get( sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.graph.getMutes' ),
                 { content => +{ limit => $limit, cursor => $cursor } } );
             $res->{mutes} = [ map { At::Lexicon::app::bsky::graph::profileView->new(%$_) } @{ $res->{mutes} } ] if defined $res->{mutes};
             $res;
         }
 
         method getListMutes ( $limit //= 50, $cursor //= () ) {
-            $client->http->session // Carp::confess 'requires an authenticated client';
-            my $res = $client->http->get( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.graph.getListMutes' ),
+            $self->http->session // Carp::confess 'requires an authenticated client';
+            my $res = $self->http->get( sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.graph.getListMutes' ),
                 { content => +{ limit => $limit, cursor => $cursor } } );
             $res->{lists} = [ map { At::Lexicon::app::bsky::graph::listView->new(%$_) } @{ $res->{lists} } ] if defined $res->{lists};
             $res;
         }
 
         method muteActor ($actor) {
-            $client->http->session // Carp::confess 'requires an authenticated client';
-            my $res
-                = $client->http->post( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.graph.muteActor' ), { content => +{ actor => $actor } } );
+            $self->http->session // Carp::confess 'requires an authenticated client';
+            my $res = $self->http->post( sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.graph.muteActor' ), { content => +{ actor => $actor } } );
             $res;
         }
 
         method unmuteActor ($actor) {
-            $client->http->session // Carp::confess 'requires an authenticated client';
-            my $res
-                = $client->http->post( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.graph.unmuteActor' ), { content => +{ actor => $actor } } );
+            $self->http->session // Carp::confess 'requires an authenticated client';
+            my $res = $self->http->post( sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.graph.unmuteActor' ), { content => +{ actor => $actor } } );
             $res;
         }
 
         method muteActorList ($list) {
-            $client->http->session // Carp::confess 'requires an authenticated client';
-            my $res
-                = $client->http->post( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.graph.muteActorList' ), { content => +{ list => $list } } );
+            $self->http->session // Carp::confess 'requires an authenticated client';
+            my $res = $self->http->post( sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.graph.muteActorList' ), { content => +{ list => $list } } );
             $res;
         }
 
         method unmuteActorList ($list) {
-            $client->http->session // Carp::confess 'requires an authenticated client';
-            my $res = $client->http->post( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.graph.unmuteActorList' ),
-                { content => +{ list => $list } } );
+            $self->http->session // Carp::confess 'requires an authenticated client';
+            my $res
+                = $self->http->post( sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.graph.unmuteActorList' ), { content => +{ list => $list } } );
             $res;
         }
     }
 
-    class At::Lexicon::Bluesky::Notification {
-        field $client : param;
+    #~ class At::Lexicon::Bluesky::Notification
+    {
 
         method listNotifications ( $seenAt //= (), $limit //= 50, $cursor //= () ) {
-            $client->http->session // Carp::confess 'requires an authenticated client';
+            $self->http->session // Carp::confess 'requires an authenticated client';
             $seenAt = At::Protocol::Timestamp->new( timestamp => $seenAt ) if defined $seenAt && builtin::blessed $seenAt;
-            my $res = $client->http->get(
-                sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.notification.listNotifications' ),
-                { content => +{ limit => $limit, cursor => $cursor, seenAt => defined $seenAt ? $seenAt->_raw : undef } }
-            );
+            my $res = $self->http->get( sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.notification.listNotifications' ),
+                { content => +{ limit => $limit, cursor => $cursor, seenAt => defined $seenAt ? $seenAt->_raw : undef } } );
             $res->{notifications} = [ map { At::Lexicon::app::bsky::notification->new(%$_) } @{ $res->{notifications} } ]
                 if defined $res->{notifications};
             $res;
         }
 
         method getUnreadCount ( $seenAt //= () ) {
-            $client->http->session // Carp::confess 'requires an authenticated client';
+            $self->http->session // Carp::confess 'requires an authenticated client';
             $seenAt = At::Protocol::Timestamp->new( timestamp => $seenAt ) if defined $seenAt && builtin::blessed $seenAt;
-            my $res = $client->http->get(
-                sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.notification.getUnreadCount' ),
+            my $res = $self->http->get(
+                sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.notification.getUnreadCount' ),
                 { content => +{ seenAt => defined $seenAt ? $seenAt->_raw : undef } }
             );
             $res;
         }
 
         method updateSeen ($seenAt) {
-            $client->http->session // Carp::confess 'requires an authenticated client';
+            $self->http->session // Carp::confess 'requires an authenticated client';
             $seenAt = At::Protocol::Timestamp->new( timestamp => $seenAt ) unless builtin::blessed $seenAt;
-            my $res = $client->http->post( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.notification.updateSeen' ),
+            my $res = $self->http->post( sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.notification.updateSeen' ),
                 { content => +{ seenAt => $seenAt->_raw } } );
             $res;
         }
 
         method registerPush ( $appId, $platform, $serviceDid, $token ) {
-            $client->http->session // Carp::confess 'requires an authenticated client';
-            my $res = $client->http->post( sprintf( '%s/xrpc/%s', $client->host(), 'app.bsky.notification.registerPush' ),
+            $self->http->session // Carp::confess 'requires an authenticated client';
+            my $res = $self->http->post( sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.notification.registerPush' ),
                 { content => +{ appId => $appId, platform => $platform, serviceDid => $serviceDid, token => $token } } );
             $res;
         }
@@ -456,7 +448,7 @@ These methods act on data for actor in the Bluesky network. Bluesky uses "actors
 
 =head2 C<getPreferences( )>
 
-    $bsky->actor->getPreferences;
+    $bsky->getPreferences;
 
 Get private preferences attached to the account.
 
@@ -464,7 +456,7 @@ On success, returns a new C<At::Lexicon::app::bsky::actor::preferences> object.
 
 =head2 C<getProfile( ... )>
 
-    $bsky->actor->getProfile( 'sankor.bsky.social' );
+    $bsky->getProfile( 'sankor.bsky.social' );
 
 Get detailed profile view of an actor.
 
@@ -472,7 +464,7 @@ On success, returns a new C<At::Lexicon::app::bsky::actor::profileViewDetailed> 
 
 =head2 C<getProfiles( ... )>
 
-    $bsky->actor->getProfiles( 'xkcd.com', 'marthawells.bsky.social' );
+    $bsky->getProfiles( 'xkcd.com', 'marthawells.bsky.social' );
 
 Get detailed profile views of multiple actors.
 
@@ -480,11 +472,11 @@ On success, returns a list of up to 25 new C<At::Lexicon::app::bsky::actor::prof
 
 =head2 C<getSuggestions( [...] )>
 
-    $bsky->actor->getSuggestions( ); # grab 50 results
+    $bsky->getSuggestions( ); # grab 50 results
 
-    my $res = $bsky->actor->getSuggestions( 75 ); # limit number of results to 75
+    my $res = $bsky->getSuggestions( 75 ); # limit number of results to 75
 
-    $bsky->actor->getSuggestions( 75, $res->{cursor} ); # look for the next group of 75 results
+    $bsky->getSuggestions( 75, $res->{cursor} ); # look for the next group of 75 results
 
 Get a list of suggested actors, used for discovery.
 
@@ -505,9 +497,9 @@ cursor.
 
 =head2 C<searchActorsTypeahead( ..., [...] )>
 
-    $bsky->actor->searchActorsTypeahead( 'joh' ); # grab 10 results
+    $bsky->searchActorsTypeahead( 'joh' ); # grab 10 results
 
-    $bsky->actor->searchActorsTypeahead( 'joh', 30 ); # limit number of results to 30
+    $bsky->searchActorsTypeahead( 'joh', 30 ); # limit number of results to 30
 
 Find actor suggestions for a prefix search term.
 
@@ -529,11 +521,11 @@ On success, returns a list of actors as new C<At::Lexicon::app::bsky::actor::pro
 
 =head2 C<searchActors( ..., [...] )>
 
-    $bsky->actor->searchActors( 'john' ); # grab 25 results
+    $bsky->searchActors( 'john' ); # grab 25 results
 
-    my $res = $bsky->actor->searchActors( 'john', 30 ); # limit number of results to 30
+    my $res = $bsky->searchActors( 'john', 30 ); # limit number of results to 30
 
-    $bsky->actor->searchActors( 'john', 30, $res->{cursor} ); # next 30 results
+    $bsky->searchActors( 'john', 30, $res->{cursor} ); # next 30 results
 
 Find actors (profiles) matching search criteria.
 
@@ -558,7 +550,7 @@ a cursor.
 
 =head2 C<putPreferences( ... )>
 
-    $bsky->actor->putPreferences( { '$type' => 'app.bsky.actor#adultContentPref', enabled => false } ); # pass along a coerced adultContentPref object
+    $bsky->putPreferences( { '$type' => 'app.bsky.actor#adultContentPref', enabled => false } ); # pass along a coerced adultContentPref object
 
 Set the private preferences attached to the account. This may be an C<At::Lexicon::app::bsky::actor::adultContentPref>,
 C<At::Lexicon::app::bsky::actor::contentLabelPref>, C<At::Lexicon::app::bsky::actor::savedFeedsPref>,
@@ -573,7 +565,7 @@ On success, returns a true value.
 
 =head2 C<getSuggestedFeeds( [...] )>
 
-    $bsky->feed->getSuggestedFeeds( );
+    $bsky->getSuggestedFeeds( );
 
 Get a list of suggested feeds for the viewer.
 
@@ -594,9 +586,9 @@ cursor.
 
 =head2 C<getTimeline( [...] )>
 
-    $bsky->feed->getTimeline( );
+    $bsky->getTimeline( );
 
-    $bsky->feed->getTimeline( 'reverse-chronological', 30 );
+    $bsky->getTimeline( 'reverse-chronological', 30 );
 
 Get a view of the actor's home timeline.
 
@@ -621,7 +613,7 @@ On success, returns the feed containing a list of new C<At::Lexicon::app::bsky::
 
 =head2 C<searchPosts( ..., [...] )>
 
-    $bsky->feed->searchPosts( "perl" );
+    $bsky->searchPosts( "perl" );
 
 Find posts matching search criteria.
 
@@ -649,7 +641,7 @@ possible to paginate through all hits
 
 =head2 C<getAuthorFeed( ..., [...] )>
 
-    $bsky->feed->getAuthorFeed( "bsky.app" );
+    $bsky->getAuthorFeed( "bsky.app" );
 
 Get a view of an actor's feed.
 
@@ -690,7 +682,7 @@ On success, returns a feed of posts containing new C<At::Lexicon::app::bsky::fee
 
 =head2 C<getRepostedBy( ..., [...] )>
 
-    $bsky->feed->getRepostedBy( 'at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.post/3kghpdkfnsk2i' );
+    $bsky->getRepostedBy( 'at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.post/3kghpdkfnsk2i' );
 
 Get a list of reposts.
 
@@ -715,7 +707,7 @@ On success, returns the original uri, a list of reposters as C<At::Lexicon::app:
 
 =head2 C<getActorFeeds( ..., [...] )>
 
-    $bsky->feed->getActorFeeds( 'bsky.app' );
+    $bsky->getActorFeeds( 'bsky.app' );
 
 Get a list of feeds created by the actor.
 
@@ -738,7 +730,7 @@ cursor.
 
 =head2 C<getActorLikes( ..., [...] )>
 
-    $bsky->feed->getActorLikes( 'bsky.app' );
+    $bsky->getActorLikes( 'bsky.app' );
 
 Get a list of posts liked by an actor.
 
@@ -760,7 +752,7 @@ On success, returns a list of posts as C<At::Lexicon::app::bsky::feed::feedViewP
 
 =head2 C<getPosts( ... )>
 
-    $bsky->feed->getPosts( 'at://did:plc:ewvi7nxzyoun6zhxrhs64oiz/app.bsky.feed.post/3kftlbujmfk24' );
+    $bsky->getPosts( 'at://did:plc:ewvi7nxzyoun6zhxrhs64oiz/app.bsky.feed.post/3kftlbujmfk24' );
 
 Get a view of an actor's feed.
 
@@ -778,7 +770,7 @@ On success, returns a list of posts as C<At::Lexicon::app::bsky::feed::postView>
 
 =head2 C<getPostThread( ..., [...] )>
 
-    $bsky->feed->getPostThread( 'at://did:plc:ewvi7nxzyoun6zhxrhs64oiz/app.bsky.feed.post/3kftlbujmfk24' );
+    $bsky->getPostThread( 'at://did:plc:ewvi7nxzyoun6zhxrhs64oiz/app.bsky.feed.post/3kftlbujmfk24' );
 
 Get posts in a thread.
 
@@ -804,7 +796,7 @@ On success, returns the thread containing replies as a new C<At::Lexicon::app::b
 
 =head2 C<getLikes( ..., [...] )>
 
-    $bsky->feed->getLikes( 'at://did:plc:ewvi7nxzyoun6zhxrhs64oiz/app.bsky.feed.post/3kftlbujmfk24' );
+    $bsky->getLikes( 'at://did:plc:ewvi7nxzyoun6zhxrhs64oiz/app.bsky.feed.post/3kftlbujmfk24' );
 
 Get the list of likes.
 
@@ -1019,7 +1011,7 @@ Methods related to the Bluesky social graph.
 
 =head2 C<getFollows( ..., [ ... ] )>
 
-    $bsky->graph->getFollows('sankor.bsky.social');
+    $bsky->getFollows('sankor.bsky.social');
 
 Get a list of who the actor follows.
 
@@ -1042,7 +1034,7 @@ as the subject, and, potentially, a cursor.
 
 =head2 C<getFollowers( ..., [ ... ] )>
 
-    $bsky->graph->getFollowers('sankor.bsky.social');
+    $bsky->getFollowers('sankor.bsky.social');
 
 Get a list of an actor's followers.
 
@@ -1065,7 +1057,7 @@ as the subject, and, potentially, a cursor.
 
 =head2 C<getLists( ..., [ ... ] )>
 
-    $bsky->graph->getLists('sankor.bsky.social');
+    $bsky->getLists('sankor.bsky.social');
 
 Get a list of lists that belong to an actor.
 
@@ -1087,7 +1079,7 @@ On success, returns a list of C<At::Lexicon::app::bsky::graph::listView> objects
 
 =head2 C<getList( ..., [ ... ] )>
 
-    $bsky->graph->getList('at://did:plc:.../app.bsky.graph.list/...');
+    $bsky->getList('at://did:plc:.../app.bsky.graph.list/...');
 
 Get a list of actors.
 
@@ -1112,7 +1104,7 @@ C<At::Lexicon::app::bsky::graph::listView> object and, potentially, a cursor.
 
 =head2 C<getSuggestedFollowsByActor( ... )>
 
-    $bsky->graph->getSuggestedFollowsByActor('sankor.bsky.social');
+    $bsky->getSuggestedFollowsByActor('sankor.bsky.social');
 
 Get suggested follows related to a given actor.
 
@@ -1128,7 +1120,7 @@ On success, returns a list of C<At::Lexicon::app::bsky::actor::profileViewDetail
 
 =head2 C<getBlocks( [ ... ] )>
 
-    $bsky->graph->getBlocks( );
+    $bsky->getBlocks( );
 
 Get a list of who the actor is blocking.
 
@@ -1148,7 +1140,7 @@ On success, returns a list of C<At::Lexicon::app::bsky::actor::profileView> obje
 
 =head2 C<getListBlocks( [ ... ] )>
 
-    $bsky->graph->getListBlocks( );
+    $bsky->getListBlocks( );
 
 Get lists that the actor is blocking.
 
@@ -1168,7 +1160,7 @@ On success, returns a list of C<At::Lexicon::app::bsky::graph::listView> objects
 
 =head2 C<getMutes( [ ... ] )>
 
-    $bsky->graph->getMutes( );
+    $bsky->getMutes( );
 
 Get a list of who the actor mutes.
 
@@ -1188,7 +1180,7 @@ On success, returns a list of C<At::Lexicon::app::bsky::actor::profileView> obje
 
 =head2 C<getListMutes( [ ... ] )>
 
-    $bsky->graph->getListMutes( );
+    $bsky->getListMutes( );
 
 Get lists that the actor is muting.
 
@@ -1208,7 +1200,7 @@ On success, returns a list of C<At::Lexicon::app::bsky::graph::listView> objects
 
 =head2 C<muteActor( ... )>
 
-    $bsky->graph->muteActor( 'sankor.bsky.social' );
+    $bsky->muteActor( 'sankor.bsky.social' );
 
 Mute an actor by DID or handle.
 
@@ -1224,7 +1216,7 @@ Person to mute.
 
 =head2 C<unmuteActor( ... )>
 
-    $bsky->graph->unmuteActor( 'sankor.bsky.social' );
+    $bsky->unmuteActor( 'sankor.bsky.social' );
 
 Unmute an actor by DID or handle.
 
@@ -1240,7 +1232,7 @@ Person to mute.
 
 =head2 C<muteActorList( ... )>
 
-    $bsky->graph->muteActorList( 'at://...' );
+    $bsky->muteActorList( 'at://...' );
 
 Mute a list of actors.
 
@@ -1254,7 +1246,7 @@ Expected parameters include:
 
 =head2 C<unmuteActorList( ... )>
 
-    $bsky->graph->unmuteActorList( 'at://...' );
+    $bsky->unmuteActorList( 'at://...' );
 
 Unmute a list of actors.
 
@@ -1272,7 +1264,7 @@ Notifications keep you up to date.
 
 =head2 C<listNotifications( [...] )>
 
-    $bsky->notification->listNotifications( );
+    $bsky->listNotifications( );
 
 Get a list of notifications.
 
@@ -1295,7 +1287,7 @@ cursor.
 
 =head2 C<getUnreadCount( [...] )>
 
-    $bsky->notification->getUnreadCount( );
+    $bsky->getUnreadCount( );
 
 Get the count of unread notifications.
 
@@ -1313,7 +1305,7 @@ On success, returns a count of unread notifications.
 
 =head2 C<updateSeen( ... )>
 
-    $bsky->notification->updateSeen( time );
+    $bsky->updateSeen( time );
 
 Notify server that the user has seen notifications.
 
@@ -1329,7 +1321,7 @@ A timestamp.
 
 =head2 C<registerPush( [...] )>
 
-    $bsky->notification->registerPush(
+    $bsky->registerPush(
 
     );
 

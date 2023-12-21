@@ -25,6 +25,19 @@
          "author"
       ]
    },
+   "optional_features" : {
+      "websockets" : {
+         "description" : "Websocket based streaming services",
+         "prereqs" : {
+            "runtime" : {
+               "requires" : {
+                  "CBOR::Free" : "0",
+                  "Mojo::UserAgent" : "0"
+               }
+            }
+         }
+      }
+   },
    "prereqs" : {
       "configure" : {
          "requires" : {

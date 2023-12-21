@@ -8,8 +8,8 @@ At - The AT Protocol for Social Networking
 ```perl
 use At;
 my $at = At->new( host => 'https://fun.example' );
-$at->server->createSession( 'sanko', '1111-aaaa-zzzz-0000' );
-$at->repo->createRecord(
+$at->createSession( 'sanko', '1111-aaaa-zzzz-0000' );
+$at->createRecord(
     collection => 'app.bsky.feed.post',
     record     => { '$type' => 'app.bsky.feed.post', text => 'Hello world! I posted this via the API.', createdAt => time }
 );
@@ -56,7 +56,7 @@ Honestly, to keep to the layout of the underlying protocol, almost everything is
 Creates an AT client and initiates an authentication session.
 
 ```perl
-my $client = At->new( host => 'https://bsky.social' );
+my $self = At->new( host => 'https://bsky.social' );
 ```
 
 Expected parameters include:
@@ -65,25 +65,6 @@ Expected parameters include:
 
     Host for the account. If you're using the 'official' Bluesky, this would be 'https://bsky.social' but you'll probably
     want `At::Bluesky->new(...)` because that client comes with all the bits that aren't part of the core protocol.
-
-## `repo( [...] )`
-
-```perl
-my $repo = $at->repo; # Grab default
-my $repo = $at->repo( did => 'did:plc:ju7kqxvmz8a8k5bapznf1lto2gkki6miw3' ); # You have permissions?
-```
-
-Returns an AT repository. Without arguments, this returns the repository returned by AT in the session data.
-
-## `server( )`
-
-Returns an AT service.
-
-## `admin( )`
-
-# Admin methods
-
-Administration methods require an authenticated session.
 
 ## `disableAccountInvites( ... )`
 
@@ -123,7 +104,7 @@ in repositories.
 Create a new record.
 
 ```perl
-$at->repo->createRecord(
+$at->createRecord(
     collection => 'app.bsky.feed.post',
     record     => { '$type' => 'app.bsky.feed.post', text => "Hello world! I posted this via the API.", createdAt => gmtime->datetime . 'Z' }
 );
@@ -146,7 +127,7 @@ Server methods may require an authorized session.
 ## `createSession( ... )`
 
 ```
-$at->server->createSession( 'sanko', '1111-2222-3333-4444' );
+$at->createSession( 'sanko', '1111-2222-3333-4444' );
 ```
 
 Create an authentication session.
@@ -166,7 +147,7 @@ On success, the access and refresh JSON web tokens, the account's handle, DID an
 Get a document describing the service's accounts configuration.
 
 ```
-$at->server->describeServer( );
+$at->describeServer( );
 ```
 
 This method does not require an authenticated session.
@@ -177,7 +158,7 @@ the TOS and privacy policy.
 ## `listAppPasswords( )`
 
 ```
-$at->server->listAppPasswords( );
+$at->listAppPasswords( );
 ```
 
 List all App Passwords.
@@ -187,7 +168,7 @@ Returns a list of passwords as new `At::Lexicon::com::atproto::server::listAppPa
 ## `getSession( )`
 
 ```
-$at->server->getSession( );
+$at->getSession( );
 ```
 
 Get information about the current session.
@@ -197,7 +178,7 @@ Returns the handle, DID, and (optionally) other data.
 ## `getAccountInviteCodes( )`
 
 ```
-$at->server->getAccountInviteCodes( );
+$at->getAccountInviteCodes( );
 ```
 
 Get all invite codes for a given account.
@@ -207,7 +188,7 @@ Returns codes as a list of new `At::Lexicon::com::atproto::server::inviteCode` o
 ## `getAccountInviteCodes( [...] )`
 
 ```
-$at->server->getAccountInviteCodes( );
+$at->getAccountInviteCodes( );
 ```
 
 Get all invite codes for a given account.
@@ -228,7 +209,7 @@ error if the session was authorized with an app password.
 ## `updateEmail( ..., [...] )`
 
 ```
-$at->server->updateEmail( 'smith...@gmail.com' );
+$at->updateEmail( 'smith...@gmail.com' );
 ```
 
 Update an account's email.
@@ -243,7 +224,7 @@ Expected parameters include:
 ## `requestEmailUpdate( ... )`
 
 ```
-$at->server->requestEmailUpdate( 1 );
+$at->requestEmailUpdate( 1 );
 ```
 
 Request a token in order to update email.
@@ -257,7 +238,7 @@ Expected parameters include:
 ## `revokeAppPassword( ... )`
 
 ```
-$at->server->revokeAppPassword( 'Demo App [beta]' );
+$at->revokeAppPassword( 'Demo App [beta]' );
 ```
 
 Revoke an App Password by name.
@@ -269,7 +250,7 @@ Expected parameters include:
 ## `resetPassword( ... )`
 
 ```
-$at->server->resetPassword( 'fdsjlkJIofdsaf89w3jqirfu2q8docwe', '****************' );
+$at->resetPassword( 'fdsjlkJIofdsaf89w3jqirfu2q8docwe', '****************' );
 ```
 
 Reset a user account password using a token.
@@ -282,7 +263,7 @@ Expected parameters include:
 ## `resetPassword( ... )`
 
 ```
-$at->server->resetPassword( 'fdsjlkJIofdsaf89w3jqirfu2q8docwe', '****************' );
+$at->resetPassword( 'fdsjlkJIofdsaf89w3jqirfu2q8docwe', '****************' );
 ```
 
 Reset a user account password using a token.
@@ -295,7 +276,7 @@ Expected parameters include:
 ## `reserveSigningKey( [...] )`
 
 ```
-$at->server->reserveSigningKey( 'did:...' );
+$at->reserveSigningKey( 'did:...' );
 ```
 
 Reserve a repo signing key for account creation.
@@ -311,7 +292,7 @@ On success, a public signing key in the form of a did:key is returned.
 ## `requestPasswordReset( [...] )`
 
 ```
-$at->server->requestPasswordReset( 'smith...@gmail.com' );
+$at->requestPasswordReset( 'smith...@gmail.com' );
 ```
 
 Initiate a user account password reset via email.
@@ -323,7 +304,7 @@ Expected parameters include:
 ## `requestEmailConfirmation( )`
 
 ```
-$at->server->requestEmailConfirmation( );
+$at->requestEmailConfirmation( );
 ```
 
 Request an email with a code to confirm ownership of email.
@@ -331,7 +312,7 @@ Request an email with a code to confirm ownership of email.
 ## `requestAccountDelete( )`
 
 ```
-$at->server->requestAccountDelete( );
+$at->requestAccountDelete( );
 ```
 
 Initiate a user account deletion via email.
@@ -339,7 +320,7 @@ Initiate a user account deletion via email.
 ## `deleteSession( )`
 
 ```
-$at->server->deleteSession( );
+$at->deleteSession( );
 ```
 
 Initiate a user account deletion via email.
@@ -347,7 +328,7 @@ Initiate a user account deletion via email.
 ## `deleteAccount( )`
 
 ```
-$at->server->deleteAccount( );
+$at->deleteAccount( );
 ```
 
 Delete an actor's account with a token and password.
@@ -361,7 +342,7 @@ Expected parameters include:
 ## `createInviteCodes( ..., [...] )`
 
 ```
-$at->server->createInviteCodes( 1, 1 );
+$at->createInviteCodes( 1, 1 );
 ```
 
 Create invite codes.
@@ -385,7 +366,7 @@ On success, returns a list of new `At::Lexicon::com::atproto::server::createInvi
 ## `createInviteCode( ..., [...] )`
 
 ```
-$at->server->createInviteCode( 1 );
+$at->createInviteCode( 1 );
 ```
 
 Create an invite code.
@@ -405,7 +386,7 @@ On success, a new invite code is returned.
 ## `createAppPassword( ..., [...] )`
 
 ```
-$at->server->createAppPassword( 'AT Client [release]' );
+$at->createAppPassword( 'AT Client [release]' );
 ```
 
 Create an App Password.
@@ -419,7 +400,7 @@ On success, a new `At::Lexicon::com::atproto::server::createAppPassword::appPass
 ## `createAccount( ..., [...] )`
 
 ```
-$at->server->createAccount( 'jsmith....', '*********' );
+$at->createAccount( 'jsmith....', '*********' );
 ```
 
 Create an account.
@@ -439,7 +420,7 @@ On success, JSON web access and refresh tokens, the handle, did, and (optionally
 ## `confirmEmail( ... )`
 
 ```
-$at->server->confirmEmail( 'jsmith...@gmail.com', 'idkidkidkidkdifkasjkdfsaojfd' );
+$at->confirmEmail( 'jsmith...@gmail.com', 'idkidkidkidkdifkasjkdfsaojfd' );
 ```
 
 Confirm an email using a token from `requestEmailConfirmation( )`,

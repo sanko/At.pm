@@ -150,10 +150,14 @@ package At::Lexicon::app::bsky::actor 0.02 {
     }
 
     class At::Lexicon::app::bsky::embed::external::external {
-        field $uri : param;             # URI, required
-        field $title : param;           # string, required
-        field $description : param;     # string, required
-        field $thumb : param //= ();    # blob, 1000000 bytes max
+        field $type : param($type) //= ();    # record field
+        field $uri : param;                   # URI, required
+        field $title : param;                 # string, required
+        field $description : param;           # string, required
+        field $thumb : param //= ();          # blob, 1000000 bytes max
+
+        # being returned by bsky for https://justingarrison.com/blog/2023-12-30-amazons-silent-sacking/ but not in lexicon as of Dec. 29th, 2023
+        field $url : param //= ();            # URI
         ADJUST {
             $uri   = URI->new($uri) unless builtin::blessed $uri;
             $thumb = path($thumb)->slurp_utf8 if defined $thumb && -f $thumb;
@@ -167,7 +171,12 @@ package At::Lexicon::app::bsky::actor 0.02 {
         method thumb       {$thumb}
 
         method _raw() {
-            +{ uri => $uri->as_string, title => $title, description => $description, defined $thumb ? ( thumb => $thumb ) : () };
+            +{  defined $type ? ( '$type' => $type ) : (),
+                uri         => $uri->as_string,
+                title       => $title,
+                description => $description,
+                defined $thumb ? ( thumb => $thumb ) : ()
+            };
         }
     }
 

@@ -6,6 +6,10 @@ requires 'Net::SSLeay',     1.49;
 requires 'IO::Socket::SSL', 1.42;
 requires 'URI';
 recommends 'Mojo::UserAgent';
+feature 'websockets', 'Websocket based streaming services' => sub {
+    requires 'Mojo::UserAgent';
+    requires 'CBOR::Free';
+};
 on 'test' => sub {
     requires 'Test2::V0';    # core as of 5.39.x
 };
