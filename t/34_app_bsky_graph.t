@@ -37,5 +37,14 @@ isa_ok(
     ['At::Lexicon::app::bsky::graph::listItemView'],
     '::listItemView'
 );
+subtest 'live' => sub {
+    my $bsky = At::Bluesky->new( identifier => 'atperl.bsky.social', password => 'ck2f-bqxl-h54l-xm3l' );
+    subtest 'getSuggestedFeeds' => sub {
+        ok my $feeds = $bsky->getSuggestedFeeds(), '$bsky->getSuggestedFeeds()';
+        my $feed = $feeds->{feeds}->[0];
+        isa_ok $feed,          ['At::Lexicon::app::bsky::feed::generatorView'], '...contains list of feeds';
+        isa_ok $feed->creator, ['At::Lexicon::app::bsky::actor::profileView'],  '......feeds contain creators';
+    };
+};
 #
 done_testing;

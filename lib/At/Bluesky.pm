@@ -228,23 +228,42 @@ package At::Bluesky {
             $res;
         }
 
-        #~ method getFeedGenerator ( $uri, $cid //= (), $limit //= (), $cursor //= () ) {
-        #~ $self->http->session // Carp::confess 'requires an authenticated client';
-        #~ Carp::confess 'limit is too low'  if defined $limit && $limit < 1;
-        #~ Carp::confess 'limit is too high' if defined $limit && $limit > 100;
-        #~ my $res = $self->http->get(
-        #~ sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.feed.getFeed' ),
-        #~ {   content => +{
-        #~ feed => $uri,
-        #~ defined $cid ? ( cid => $cid ) : (), defined $limit ? ( limit => $limit ) : (), defined $cursor ? ( cursor => $cursor ) : ()
-        #~ }
-        #~ }
-        #~ );
-        #~ use Data::Dump;
-        #~ ddx $res;
-        #~ $res->{likes} = [ map { At::Lexicon::app::bsky::feed::getLikes::like->new(%$_) } @{ $res->{likes} } ] if defined $res->{likes};
-        #~ $res;
-        #~ }
+        method getListFeed ( $list, $limit //= (), $cursor //= () ) {
+            $self->http->session // Carp::confess 'requires an authenticated client';
+            Carp::confess 'limit is too low'  if defined $limit && $limit < 1;
+            Carp::confess 'limit is too high' if defined $limit && $limit > 100;
+            my $res = $self->http->get( sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.feed.getListFeed' ),
+                { content => +{ list => $list, defined $limit ? ( limit => $limit ) : (), defined $cursor ? ( cursor => $cursor ) : () } } );
+            $res->{feed} = [ map { At::Lexicon::app::bsky::feed::feedViewPost->new(%$_) } @{ $res->{feed} } ] if defined $res->{feed};
+            $res;
+        }
+
+        method getFeedSkeleton ( $feed, $limit //= (), $cursor //= () ) {
+            $self->http->session // Carp::confess 'requires an authenticated client';
+            Carp::confess 'limit is too low'  if defined $limit && $limit < 1;
+            Carp::confess 'limit is too high' if defined $limit && $limit > 100;
+            my $res = $self->http->get( sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.feed.getFeedSkeleton' ),
+                { content => +{ feed => $feed, defined $limit ? ( limit => $limit ) : (), defined $cursor ? ( cursor => $cursor ) : () } } );
+            $res->{feed} = [ map { At::Lexicon::app::bsky::feed::skeletonFeedPost->new(%$_) } @{ $res->{feed} } ] if defined $res->{feed};
+            $res;
+        }
+
+        method getFeedGenerator ($feed) {
+            $self->http->session // Carp::confess 'requires an authenticated client';
+            my $res = $self->http->get( sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.feed.getFeedGenerator' ), { content => +{ feed => $feed } } );
+            $res->{view} = At::Lexicon::app::bsky::feed::generatorView->new( %{ $res->{view} } ) if defined $res->{view};
+            $res;
+        }
+
+        method getFeed ( $feed, $cursor //= () ) {
+            $self->http->session // Carp::confess 'requires an authenticated client';
+            my $res = $self->http->get(
+                sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.feed.getFeed' ),
+                { content => +{ feed => $feed, defined $cursor ? ( cursor => $cursor ) : () } }
+            );
+            $res->{feed} = [ map { At::Lexicon::app::bsky::feed::feedViewPost->new(%$_) } @{ $res->{feed} } ] if defined $res->{feed};
+            $res;
+        }
     }
 
     #~ class At::Lexicon::Bluesky::Graph
@@ -561,7 +580,7 @@ On success, returns a true value.
 
 =head1 Feed Methods
 
-
+Feeds are lists or collections of content. A timeline of posts, etc.
 
 =head2 C<getSuggestedFeeds( [...] )>
 
@@ -819,12 +838,87 @@ The number of likes to return. Min. is 1, max is 100, 50 is the default.
 On success, returns the original URI, a list of likes as C<At::Lexicon::app::bsky::feed::getLikes::like> objects and
 (optionally) a cursor, and the original cid.
 
+=head2 C<getListFeed( ..., [...] )>
 
+    $bsky->getListFeed( 'at://did:plc:kyttpb6um57f4c2wep25lqhq/app.bsky.graph.list/3k4diugcw3k2p' );
 
+Get a view of a recent posts from actors in a list.
 
+Expected parameters include:
 
+=over
 
+=item C<list> - required
 
+=item C<limit>
+
+The number of results to return. Min. is 1, max is 100, 50 is the default.
+
+=item C<cursor>
+
+=back
+
+On success, returns feed containing a list of C<At::Lexicon::app::bsky::feed::feedViewPost> objects and (optionally) a
+cursor.
+
+=head2 C<getFeedSkeleton( ..., [...] )>
+
+    $bsky->getFeedSkeleton( 'at://did:plc:kyttpb6um57f4c2wep25lqhq/app.bsky.graph.list/3k4diugcw3k2p' );
+
+Get a skeleton of a feed provided by a feed generator.
+
+Expected parameters include:
+
+=over
+
+=item C<feed> - required
+
+=item C<limit>
+
+The number of results to return. Min. is 1, max is 100, 50 is the default.
+
+=item C<cursor>
+
+=back
+
+On success, returns a feed containing a list of C<At::Lexicon::app::bsky::feed::skeletonFeedPost> objects and
+(optionally) a cursor.
+
+=head2 C<getFeedGenerator( ... )>
+
+    $bsky->getFeedGenerator( 'at://did:plc:kyttpb6um57f4c2wep25lqhq/app.bsky.feed.generator/aaalfodybabzy' );
+
+Get information about a feed generator.
+
+Expected parameters include:
+
+=over
+
+=item C<feed> - required
+
+=back
+
+On success, returns a C<At::Lexicon::app::bsky::feed::generatorView> object and booleans indicating the feed's online
+status and validity.
+
+=head2 C<getFeed( ..., [...] )>
+
+    $bsky->getFeed( 'at://did:plc:kyttpb6um57f4c2wep25lqhq/app.bsky.graph.list/3k4diugcw3k2p' );
+
+Get a hydrated feed from an actor's selected feed generator.
+
+Expected parameters include:
+
+=over
+
+=item C<feed> - required
+
+=item C<cursor>
+
+=back
+
+On success, returns feed containing a list of C<At::Lexicon::app::bsky::feed::feedViewPost> objects and (optionally) a
+cursor.
 
 
 

@@ -88,13 +88,22 @@ subtest 'live' => sub {
             '$bsky->getLikes("at://did:plc:ewvi...")';
         isa_ok $results->{likes}->[0], ['At::Lexicon::app::bsky::feed::getLikes::like'], '...contains list of ::feed::getLikes::like objects';
     };
-
-    #~ subtest 'getFeedGenerator' => sub {
-    #~ ok my $results = $bsky->getFeedGenerator('at://did:web:ewvi7nxzyoun6zhxrhs64oiz/app.bsky.feed.generator'),
-    #~ '$bsky->getFeedGenerator("at://did:plc:ewvi...")';
-    #~ my $post = $results->{repostedBy}->[0];
-    #~ isa_ok $post, ['At::Lexicon::app::bsky::actor::profileView'], '...contains list of profileView objects';
-    #~ };
+    subtest 'getListFeed' => sub {      # TODO: I should create a new list for this
+        ok my $results = $bsky->getListFeed('at://did:plc:kyttpb6um57f4c2wep25lqhq/app.bsky.graph.list/3k4diugcw3k2p'),
+            '$bsky->getListFeed("at://did:plc:kytt...")';
+        isa_ok $results->{feed}->[0], ['At::Lexicon::app::bsky::feed::feedViewPost'], '...contains list of ::feed::feedViewPost objects';
+    };
+    can_ok $bsky, 'getFeedSkeleton';    # TODO: test this
+    subtest 'getFeedGenerator' => sub {
+        ok my $results = $bsky->getFeedGenerator('at://did:plc:kyttpb6um57f4c2wep25lqhq/app.bsky.feed.generator/aaalfodybabzy'),
+            '$bsky->getFeedGenerator("at://did:plc:kytt...")';
+        isa_ok $results->{view}, ['At::Lexicon::app::bsky::feed::generatorView'], '...returns a ::feed::generatorView object';
+    };
+    subtest 'getFeed' => sub {
+        ok my $results = $bsky->getFeed('at://did:plc:kyttpb6um57f4c2wep25lqhq/app.bsky.feed.generator/aaalfodybabzy'),
+            '$bsky->getFeed("at://did:plc:kytt...")';
+        isa_ok $results->{feed}->[0], ['At::Lexicon::app::bsky::feed::feedViewPost'], '...contains list of ::feed::feedViewPost objects';
+    };
 };
 #
 done_testing;
