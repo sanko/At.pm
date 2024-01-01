@@ -12,6 +12,7 @@ package At::Bluesky {
     use At::Lexicon::app::bsky::richtext;
     use At::Lexicon::app::bsky::notification;
     use At::Lexicon::app::bsky::feed;
+    use At::Lexicon::app::bsky::unspecced;
     #
     class At::Bluesky : isa(At) {
 
@@ -409,7 +410,7 @@ package At::Bluesky {
             $seenAt = At::Protocol::Timestamp->new( timestamp => $seenAt ) if defined $seenAt && builtin::blessed $seenAt;
             my $res = $self->http->get(
                 sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.notification.getUnreadCount' ),
-                { content => +{ seenAt => defined $seenAt ? $seenAt->_raw : undef } }
+                { content => +{ defined $seenAt ? ( seenAt => $seenAt->_raw ) : () } }
             );
             $res;
         }
@@ -427,6 +428,57 @@ package At::Bluesky {
             my $res = $self->http->post( sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.notification.registerPush' ),
                 { content => +{ appId => $appId, platform => $platform, serviceDid => $serviceDid, token => $token } } );
             $res->{success};
+        }
+    }
+
+    #~ class At::Lexicon::Bluesky::Unspecced
+    {
+
+        method getPopularFeedGenerators ( $query //= (), $limit //= (), $cursor //= () ) {
+            $self->http->session // Carp::confess 'requires an authenticated client';
+            my $res = $self->http->get(
+                sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.unspecced.getPopularFeedGenerators' ),
+                {   content => +{
+                        defined $query  ? ( query  => $query )  : (),
+                        defined $limit  ? ( limit  => $limit )  : (),
+                        defined $cursor ? ( cursor => $cursor ) : ()
+                    }
+                }
+            );
+            $res->{feeds} = [ map { At::Lexicon::app::bsky::feed::generatorView->new(%$_) } @{ $res->{feeds} } ] if defined $res->{feeds};
+            $res;
+        }
+
+        method searchActorsSkeleton ( $query //= (), $typeahead //= (), $limit //= (), $cursor //= () ) {
+            $self->http->session // Carp::confess 'requires an authenticated client';
+            my $res = $self->http->get(
+                sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.unspecced.searchActorsSkeleton' ),
+                {   content => +{
+                        defined $query     ? ( q         => $query )     : (),
+                        defined $typeahead ? ( typeahead => $typeahead ) : (),
+                        defined $limit     ? ( limit     => $limit )     : (),
+                        defined $cursor    ? ( cursor    => $cursor )    : ()
+                    }
+                }
+            );
+            $res->{actors} = [ map { At::Lexicon::app::bsky::unspecced::skeletonSearchActor->new(%$_) } @{ $res->{actors} } ]
+                if defined $res->{actors};
+            $res;
+        }
+
+        method searchPostsSkeleton ( $query //= (), $limit //= (), $cursor //= () ) {
+            $self->http->session // Carp::confess 'requires an authenticated client';
+            my $res = $self->http->get(
+                sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.unspecced.searchPostsSkeleton' ),
+                {   content => +{
+                        defined $query  ? ( q      => $query )  : (),
+                        defined $limit  ? ( limit  => $limit )  : (),
+                        defined $cursor ? ( cursor => $cursor ) : ()
+                    }
+                }
+            );
+            $res->{posts} = [ map { At::Lexicon::app::bsky::unspecced::skeletonSearchPost->new(%$_) } @{ $res->{posts} } ] if defined $res->{posts};
+            $res;
         }
     }
 };
@@ -513,11 +565,11 @@ Expected parameters include:
 
 =over
 
-=item C<limit> - optional
+=item C<limit>
 
 Maximum of 100, minimum of 1, and 50 is the default.
 
-=item C<cursor> - optional
+=item C<cursor>
 
 =back
 
@@ -540,7 +592,7 @@ Expected parameters include:
 
 Search query prefix; not a full query string.
 
-=item C<limit> - optional
+=item C<limit>
 
 Maximum of 100, minimum of 1, and 10 is the default.
 
@@ -566,11 +618,11 @@ Expected parameters include:
 
 Search query string. Syntax, phrase, boolean, and faceting is unspecified, but Lucene query syntax is recommended.
 
-=item C<limit> - optional
+=item C<limit>
 
 Maximum of 100, minimum of 1, and 25 is the default.
 
-=item C<cursor> - optional
+=item C<cursor>
 
 =back
 
@@ -1141,11 +1193,11 @@ Expected parameters include:
 
 =item C<actor>
 
-=item C<limit> - optional
+=item C<limit>
 
 Maximum of 100, minimum of 1, and 50 is the default.
 
-=item C<cursor> - optional
+=item C<cursor>
 
 =back
 
@@ -1164,11 +1216,11 @@ Expected parameters include:
 
 =item C<actor>
 
-=item C<limit> - optional
+=item C<limit>
 
 Maximum of 100, minimum of 1, and 50 is the default.
 
-=item C<cursor> - optional
+=item C<cursor>
 
 =back
 
@@ -1187,11 +1239,11 @@ Expected parameters include:
 
 =item C<actor>
 
-=item C<limit> - optional
+=item C<limit>
 
 Maximum of 100, minimum of 1, and 50 is the default.
 
-=item C<cursor> - optional
+=item C<cursor>
 
 =back
 
@@ -1211,11 +1263,11 @@ Expected parameters include:
 
 Full AT URI.
 
-=item C<limit> - optional
+=item C<limit>
 
 Maximum of 100, minimum of 1, and 50 is the default.
 
-=item C<cursor> - optional
+=item C<cursor>
 
 =back
 
@@ -1248,11 +1300,11 @@ Expected parameters include:
 
 =over
 
-=item C<limit> - optional
+=item C<limit>
 
 Maximum of 100, minimum of 1, and 50 is the default.
 
-=item C<cursor> - optional
+=item C<cursor>
 
 =back
 
@@ -1268,11 +1320,11 @@ Expected parameters include:
 
 =over
 
-=item C<limit> - optional
+=item C<limit>
 
 Maximum of 100, minimum of 1, and 50 is the default.
 
-=item C<cursor> - optional
+=item C<cursor>
 
 =back
 
@@ -1288,11 +1340,11 @@ Expected parameters include:
 
 =over
 
-=item C<limit> - optional
+=item C<limit>
 
 Maximum of 100, minimum of 1, and 50 is the default.
 
-=item C<cursor> - optional
+=item C<cursor>
 
 =back
 
@@ -1308,11 +1360,11 @@ Expected parameters include:
 
 =over
 
-=item C<limit> - optional
+=item C<limit>
 
 Maximum of 100, minimum of 1, and 50 is the default.
 
-=item C<cursor> - optional
+=item C<cursor>
 
 =back
 
@@ -1465,14 +1517,92 @@ Known values include 'ios', 'android', and 'web'.
 
 See L<https://github.com/bluesky-social/atproto/discussions/1914>.
 
+=head1 Unspecced Methods
 
+These methods have not been placed in their final locations in the AT Protocol extensions.
 
+=head2 C<getPopularFeedGenerators( [...] )>
 
+    $bsky->getPopularFeedGenerators( );
 
+An unspecced view of globally popular feed generators.
 
+Expected parameters include:
 
+=over
 
+=item C<query>
 
+=item C<limit>
+
+Maximum of 100, minimum of 1, and 50 is the default.
+
+=item C<cursor>
+
+=back
+
+On success, returns a list of feeds as C<At::Lexicon::app::bsky::feed::generatorView> objects and, optionally, a
+cursor.
+
+=head2 C<searchActorsSkeleton( ..., [...] )>
+
+    $bsky->searchActorsSkeleton( 'jake' );
+
+Backend Actors (profile) search, returns only skeleton.
+
+Expected parameters include:
+
+=over
+
+=item C<query> - required
+
+Search query string; syntax, phrase, boolean, and faceting is unspecified, but Lucene query syntax is recommended. For
+typeahead search, only simple term match is supported, not full syntax.
+
+=item C<typeahead>
+
+If true, acts as fast/simple 'typeahead' query.
+
+=item C<limit>
+
+Maximum of 100, minimum of 1, and 25 is the default.
+
+=item C<cursor>
+
+Optional pagination mechanism; may not necessarily allow scrolling through entire result set.
+
+=back
+
+On success, returns a list of actors as C<At::Lexicon::app::bsky::unspecced::skeletonSearchActor> objects and,
+optionally, an approximate count of all search hits and a cursor.
+
+=head2 C<searchPostsSkeleton( ..., [...] )>
+
+    $bsky->searchPostsSkeleton( 'for sure' );
+
+Backend Posts search, returns only skeleton.
+
+Expected parameters include:
+
+=over
+
+=item C<query> - required
+
+Search query string; syntax, phrase, boolean, and faceting is unspecified, but Lucene query syntax is recommended. For
+typeahead search, only simple term match is supported, not full syntax.
+
+=item C<limit>
+
+Maximum of 100, minimum of 1, and 25 is the default.
+
+=item C<cursor>
+
+Optional pagination mechanism; may not necessarily allow scrolling through entire result set.
+
+=back
+
+On success, returns a list of posts as C<At::Lexicon::app::bsky::unspecced::skeletonSearchPost> objects and,
+optionally, an approximate count of all search hits and a cursor.
 
 
 
@@ -1533,7 +1663,7 @@ Sanko Robinson E<lt>sanko@cpan.orgE<gt>
 
 =begin stopwords
 
-Bluesky ios cid reposters reposts booleans online
+Bluesky ios cid reposters reposts booleans online unspecced typeahead
 
 =end stopwords
 
