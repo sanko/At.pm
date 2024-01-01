@@ -419,14 +419,14 @@ package At::Bluesky {
             $seenAt = At::Protocol::Timestamp->new( timestamp => $seenAt ) unless builtin::blessed $seenAt;
             my $res = $self->http->post( sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.notification.updateSeen' ),
                 { content => +{ seenAt => $seenAt->_raw } } );
-            $res;
+            $res->{success};
         }
 
         method registerPush ( $appId, $platform, $serviceDid, $token ) {
             $self->http->session // Carp::confess 'requires an authenticated client';
             my $res = $self->http->post( sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.notification.registerPush' ),
                 { content => +{ appId => $appId, platform => $platform, serviceDid => $serviceDid, token => $token } } );
-            $res;
+            $res->{success};
         }
     }
 };
@@ -1463,7 +1463,7 @@ Known values include 'ios', 'android', and 'web'.
 
 =back
 
-
+See L<https://github.com/bluesky-social/atproto/discussions/1914>.
 
 
 

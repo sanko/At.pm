@@ -40,7 +40,7 @@ package At::Lexicon::app::bsky::notification 0.02 {
         method isRead        {$isRead}
 
         method _raw() {
-            {   indexedAt     => $indexedAt->as_string,
+            +{  indexedAt     => $indexedAt->as_string,
                 record        => $record,
                 uri           => $uri->as_string,
                 reasonSubject => $reasonSubject->as_string,
@@ -49,7 +49,7 @@ package At::Lexicon::app::bsky::notification 0.02 {
                 cid           => $cid->as_string,
                 author        => $author->_raw,
                 isRead        => \!!$isRead,
-            }
+            };
         }
     }
 };

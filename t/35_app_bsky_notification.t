@@ -38,5 +38,28 @@ subtest 'notificaton' => sub {
     );
     isa_ok( $notification, ['At::Lexicon::app::bsky::notification'], '::notificaton' );
 };
+subtest 'live' => sub {
+    my $bsky = At::Bluesky->new( identifier => 'atperl.bsky.social', password => 'ck2f-bqxl-h54l-xm3l' );
+    my $count;
+    subtest 'getUnreadCount' => sub {
+        ok my $res = $bsky->getUnreadCount(), '$bsky->getUnreadCount()';
+        $count = $res->{count};
+        diag $count == 1 ? '1 unseen notification' : $count . ' unseen notificatons';
+    };
+    subtest 'listNotifications' => sub {
+    SKIP: {
+            skip 'no unread notifications' unless $count;
+            ok my $res = $bsky->listNotifications(), '$bsky->listNotifications()';
+            isa_ok $res->{notifications}->[0], ['At::Lexicon::app::bsky::notification'], '...returns a list of ::bsky::notification objects';
+        }
+    };
+    subtest 'updateSeen' => sub {
+        my $lastyear = time - 31536000;
+        ok $bsky->updateSeen($lastyear), '$bsky->updateSeen( ' . $lastyear . ' )';
+    };
+
+    # See https://github.com/bluesky-social/atproto/discussions/1914
+    can_ok $bsky, 'registerPush';
+};
 #
 done_testing;
