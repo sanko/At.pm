@@ -448,15 +448,28 @@ package At 0.02 {
             }
 
             method get ( $url, $req = () ) {
-                my $res = $agent->get( $url . ( defined $req->{content} ? '?' . _build_query_string( $req->{content} ) : '' ) );
-                $res->{content} = decode_json $res->{content} if $res->{content};
-                return $res->{content};
+                my $res = $agent->get(
+                    $url . ( defined $req->{content} && keys %{ $req->{content} } ? '?' . _build_query_string( $req->{content} ) : '' ) );
+
+                #~ use Data::Dump;
+                #~ warn
+                #~ $url . ( defined $req->{content} && keys %{ $req->{content}}
+                #~ ? '?' . _build_query_string( $req->{content} ) : '' ) ;
+                #~ ddx $res;
+                return $res->{content} = decode_json $res->{content} if $res->{content};
+                return $res;
             }
 
             method post ( $url, $req = () ) {
                 my $res = $agent->post( $url, defined $req->{content} ? { content => encode_json $req->{content} } : () );
-                $res->{content} = decode_json $res->{content} if $res->{content};
-                return $res->{content};
+
+                #~ use Data::Dump;
+                #~ warn
+                #~ $url . ( defined $req->{content} && keys %{ $req->{content}}
+                #~ ? '?' . _build_query_string( $req->{content} ) : '' ) ;
+                #~ ddx $res;
+                return $res->{content} = decode_json $res->{content} if $res->{content};
+                return $res;
             }
             method websocket ( $url, $req = () ) {...}
 
@@ -482,11 +495,7 @@ package At 0.02 {
             method get ( $url, $req = () ) {
                 my $res = $agent->get( $url, defined $auth ? { Authorization => $auth } : (),
                     defined $req->{content} ? ( form => $req->{content} ) : () );
-                #~ use Data::Dump;
-                #~ ddx $res;
                 $res = $res->result;
-                #~ warn $url;
-                #~ ddx $res;
 
                 # todo: error handling
                 if    ( $res->is_success )  { return $res->content ? $res->json : () }
@@ -496,6 +505,7 @@ package At 0.02 {
             }
 
             method post ( $url, $req = () ) {
+
                 #~ warn $url;
                 my $res = $agent->post( $url, defined $auth ? { Authorization => $auth } : (),
                     defined $req->{content} ? ( json => $req->{content} ) : () )->result;
@@ -511,6 +521,7 @@ package At 0.02 {
                 require CBOR::Free::SequenceDecoder;
                 $agent->websocket(
                     $url => { 'Sec-WebSocket-Extensions' => 'permessage-deflate' } => sub ( $ua, $tx ) {
+
                         #~ use Data::Dump;
                         #~ ddx $tx;
                         say 'WebSocket handshake failed!' and return unless $tx->is_websocket;
@@ -525,8 +536,10 @@ package At 0.02 {
                             message => sub ( $tx, $msg ) {
                                 my $head = $decoder->give($msg);
                                 my $body = $decoder->get;
+
                                 #~ ddx $$head;
                                 $$body->{blocks} = length $$body->{blocks} if defined $$body->{blocks};
+
                                 #~ use Data::Dumper;
                                 #~ say Dumper $$body;
                                 $cb->($$body);

@@ -20,7 +20,8 @@ package At::Lexicon::app::bsky::graph 0.02 {
 
             # modlist: A list of actors to apply an aggregate moderation action (mute/block) on.
             # curatelist: A list of actors used for curation purposes such as list feeds or interaction gating.
-            Carp::croak 'unknown purpose: ' . $purpose unless $purpose eq 'modlist' || $purpose eq 'curatelist';
+            Carp::croak 'unknown purpose: ' . $purpose
+                unless $purpose eq 'app.bsky.graph.defs#modlist' || $purpose eq 'app.bsky.graph.defs#curatelist';
             $indexedAt = At::Protocol::Timestamp->new( timestamp => $indexedAt )       if defined $indexedAt && !builtin::blessed $indexedAt;
             $viewer    = At::Lexicon::app::bsky::graph::listViewerState->new(%$viewer) if defined $viewer    && !builtin::blessed $viewer;
             Carp::cluck q[name is too long; expected 64 characters or fewer] if length $name > 64;
@@ -37,19 +38,19 @@ package At::Lexicon::app::bsky::graph 0.02 {
         method name      {$name}
 
         method _raw() {
-            {   uri       => $uri->as_string,
+            +{  uri       => $uri->as_string,
                 purpose   => $purpose->raw,
                 indexedAt => $indexedAt->as_string,
                 avatar    => $avatar,
                 viewer    => $viewer->raw,
                 cid       => $cid->as_string,
                 name      => $name,
-            }
+            };
         }
     }
 
     class At::Lexicon::app::bsky::graph::listView {
-        field $type : param($type);               # record field
+        field $type : param($type) //= ();        # record field
         field $viewer : param = ();               # #listViewerState
         field $uri : param;                       # at-uri, required
         field $indexedAt : param;                 # datetime, required
@@ -88,7 +89,7 @@ package At::Lexicon::app::bsky::graph 0.02 {
         method purpose           {$purpose}
 
         method _raw() {
-            {   '$type'           => $type,
+            +{  defined $type ? ( '$type' => $type ) : (),
                 viewer            => defined $viewer ? $viewer->_raw : undef,
                 uri               => $uri->as_string,
                 indexedAt         => $indexedAt->_raw,
@@ -99,7 +100,7 @@ package At::Lexicon::app::bsky::graph 0.02 {
                 creator           => $creator->_raw,
                 descriptionFacets => defined $descriptionFacets ? [ map { $_->_raw } @$descriptionFacets ] : undef,
                 purpose           => $purpose
-            }
+            };
         }
     }
 
@@ -116,7 +117,7 @@ package At::Lexicon::app::bsky::graph 0.02 {
         method uri     {$uri}
 
         method _raw() {
-            { subject => $subject->_raw, uri => $uri->as_string }
+            +{ subject => $subject->_raw, uri => $uri->as_string };
         }
     }
 
@@ -132,7 +133,7 @@ package At::Lexicon::app::bsky::graph 0.02 {
         method muted   {$muted}
 
         method _raw() {
-            { blocked => defined $blocked ? $blocked->as_string : undef, muted => \!!$muted }
+            +{ blocked => defined $blocked ? $blocked->as_string : undef, muted => \!!$muted };
         }
     }
 
@@ -150,7 +151,7 @@ package At::Lexicon::app::bsky::graph 0.02 {
         method createdAt {$createdAt}
 
         method _raw() {
-            { subject => $subject->_raw, createdAt => $createdAt->_raw }
+            +{ subject => $subject->_raw, createdAt => $createdAt->_raw };
         }
     }
 
@@ -168,7 +169,7 @@ package At::Lexicon::app::bsky::graph 0.02 {
         method subject   {$subject}
 
         method _raw() {
-            { createdAt => $createdAt->_raw, subject => $subject->_raw }
+            +{ createdAt => $createdAt->_raw, subject => $subject->_raw };
         }
     }
 
@@ -205,14 +206,14 @@ package At::Lexicon::app::bsky::graph 0.02 {
         method avatar            {$avatar}
 
         method _raw() {
-            {   createdAt         => $createdAt->_raw,
+            +{  createdAt         => $createdAt->_raw,
                 descriptionFacets => defined $descriptionFacets ? [ map { $_->_raw } @$descriptionFacets ] : undef,
                 labels            => $labels->_raw,
                 purpose           => $purpose->_raw,
                 name              => $name,
                 description       => defined $description ? $description : undef,
                 avatar            => defined $avatar      ? $avatar      : undef
-            }
+            };
         }
     }
 
@@ -233,7 +234,7 @@ package At::Lexicon::app::bsky::graph 0.02 {
         method list      {$list}
 
         method _raw() {
-            { createdAt => $createdAt->_raw, subject => $subject->_raw, list => $list->as_string }
+            +{ createdAt => $createdAt->_raw, subject => $subject->_raw, list => $list->as_string };
         }
     }
 
@@ -251,7 +252,7 @@ package At::Lexicon::app::bsky::graph 0.02 {
         method createdAt {$createdAt}
 
         method _raw() {
-            { subject => $subject->_raw, createdAt => $createdAt->_raw }
+            +{ subject => $subject->_raw, createdAt => $createdAt->_raw };
         }
     }
 };

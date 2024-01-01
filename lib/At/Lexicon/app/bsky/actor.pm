@@ -135,12 +135,11 @@ package At::Lexicon::app::bsky::actor 0.02 {
         field $following : param      //= ();    # at-uri
         field $followedBy : param     //= ();    # at-uri
         ADJUST {
-            $muted       = !!$muted if defined $muted && builtin::blessed $muted;
-            $mutedByList = At::Lexicon::app::bsky::graph::listViewBasic->new( list => $mutedByList )
-                if defined $mutedByList && !builtin::blessed $mutedByList;
-            $blockedBy      = !!$blockedBy        if defined $blockedBy && builtin::blessed $blockedBy;
-            $blocking       = URI->new($blocking) if defined $blocking  && !builtin::blessed $blocking;
-            $blockingByList = At::Lexicon::app::bsky::graph::listViewBasic->new( list => $blockingByList )
+            $muted       = !!$muted                                                         if defined $muted       && builtin::blessed $muted;
+            $mutedByList = At::Lexicon::app::bsky::graph::listViewBasic->new(%$mutedByList) if defined $mutedByList && !builtin::blessed $mutedByList;
+            $blockedBy   = !!$blockedBy                                                     if defined $blockedBy   && builtin::blessed $blockedBy;
+            $blocking    = URI->new($blocking)                                              if defined $blocking    && !builtin::blessed $blocking;
+            $blockingByList = At::Lexicon::app::bsky::graph::listViewBasic->new(%$blockingByList)
                 if defined $blockingByList && !builtin::blessed $blockingByList;
             $following  = URI->new($following)  if defined $following  && !builtin::blessed $following;
             $followedBy = URI->new($followedBy) if defined $followedBy && !builtin::blessed $followedBy;
