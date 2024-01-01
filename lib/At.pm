@@ -5,6 +5,7 @@ package At 0.02 {
     use experimental 'try';
     #
     use At::Lexicon::com::atproto::label;
+    use At::Lexicon::com::atproto::admin;
 
     #~ |---------------------------------------|
     #~ |------3-33-----------------------------|

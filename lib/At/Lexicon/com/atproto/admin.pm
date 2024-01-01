@@ -8,348 +8,230 @@ package At::Lexicon::com::atproto::admin 0.02 {
     #
     class At::Lexicon::com::atproto::admin::statusAttr 1 {
         field $applied : param;
-        field $ref : param = ();
-    };
+        field $ref : param //= ();
 
-    class At::Lexicon::com::atproto::admin::actionView 1 {
-        use At::Lexicon::com::atproto::repo::strongRef;
-        use Carp;
-        field $id : param;
-        field $action : param;
-        field $durationInHours : param = ();
-        field $subject : param;
-        field $subjectBlobCids : param;
-        field $createLabelVals : param   = ();
-        field $negativeLabelVals : param = ();
-        field $reason : param;
-        field $createdBy : param;
-        field $createdAt : param;
-        field $reversal : param = ();
-        field $resolvedReportIds : param;
-        ADJUST {
-            $action = At::Lexicon::com::atproto::admin::actionType->new( action => $action ) unless builtin::blessed $action;
-            if ( !builtin::blessed $subject ) {
-                try { $subject = At::Lexicon::com::atproto::admin::repoRef->new(%$subject) }
-                catch ($e) {
-                    try { $subject = At::Lexicon::com::atproto::repo::strongRef->new(%$subject) }
-                    catch ($e) {
-                        Carp::cluck 'subject must be of type com.atproto.admin.repoRef or com.atproto.repo.strongRef'
-                    }
-                }
-            }
-            $createdBy         = At::Protocol::DID->new( uri => $createdBy )                       unless builtin::blessed $createdBy;
-            $createdAt         = At::Protocol::Timestamp->new( timestamp => $createdAt )           unless builtin::blessed $createdAt;
-            $reversal          = At::Lexicon::com::atproto::admin::actionReversal->new(%$reversal) unless builtin::blessed $reversal;
-            $resolvedReportIds = []                                                                unless defined $resolvedReportIds;
+        # perlclass does not have :reader yet
+        method applied {$applied}
+        method ref     {$ref}
+
+        method _raw() {
+            +{ applied => \!!$applied, defined $ref ? ( ref => $ref ) : () };
         }
     };
 
-    class At::Lexicon::com::atproto::admin::actionViewDetail 1 {
-        use Carp;
-        field $id : param;
-        field $action : param;
-        field $durationInHours : param = ();
-        field $subject : param;
-        field $subjectBlobs : param;
-        field $createLabelVals : param   = ();
-        field $negativeLabelVals : param = ();
-        field $reason : param;
-        field $createdBy : param;
-        field $createdAt : param;
-        field $reversal : param = ();
-        field $resolvedReports : param;
+    class At::Lexicon::com::atproto::admin::modEventView 1 {
+        field $id : param;                      # int, required
+        field $event : param;                   # union, required
+        field $subject : param;                 # union, required
+        field $subjectBlobCids : param;         # array, required
+        field $createdBy : param;               # DID, required
+        field $createdAt : param;               # Datetime, required
+        field $creatorHandle : param //= ();    # string, required
+        field $subjectHandle : param //= ();    # string, required
         ADJUST {
-            $action = At::Lexicon::com::atproto::admin::actionType->new( action => $action ) unless builtin::blessed $action;
-            if ( !builtin::blessed $subject ) {
-                try { $subject = At::Lexicon::com::atproto::admin::repoView->new(%$subject) }
-                catch ($e) {
-                    try {
-                        $subject = At::Lexicon::com::atproto::repo::repoViewNotFound->new(%$subject)
-                    }
-                    catch ($e) {
-                        try {
-                            $subject = At::Lexicon::com::atproto::repo::recordView->new(%$subject)
-                        }
-                        catch ($e) {
-                            try {
-                                $subject = At::Lexicon::com::atproto::repo::recordViewNotFound->new(%$subject)
-                            }
-                            catch ($e) {
-                                Carp::cluck
-                                    'subject must be of type com.atproto.admin.repoView, com.atproto.admin.repoViewNotFound, or com.atproto.admin.recordView, or com.atproto.repo.recordViewNotFound'
-                            }
-                        }
-                    }
-                }
-            }
-            $subjectBlobs    = At::Lexicon::com::atproto::admin::blobView->new(%$subjectBlobs)   unless builtin::blessed $subjectBlobs;
-            $createdBy       = At::Protocol::DID->new( uri => $createdBy )                       unless builtin::blessed $createdBy;
-            $createdAt       = At::Protocol::Timestamp->new( timestamp => $createdAt )           unless builtin::blessed $createdAt;
-            $reversal        = At::Lexicon::com::atproto::admin::actionReversal->new(%$reversal) unless builtin::blessed $reversal;
-            $resolvedReports = [ map { builtin::blessed $_ ? $_ : At::Lexicon::com::atproto::admin::reportView->new(%$_) } @$resolvedReports ];
-        }
-    }
-
-    class At::Lexicon::com::atproto::admin::actionViewCurrent 1 {
-        field $id : param;
-        field $action : param;
-        field $durationInHours : param = ();
-        ADJUST {
-            $action = At::Lexicon::com::atproto::admin::actionType->new( action => $action ) unless builtin::blessed $action;
-        }
-    }
-
-    class At::Lexicon::com::atproto::admin::actionReversal 1 {
-        field $reason : param;
-        field $createdBy : param;
-        field $createdAt : param;
-        ADJUST {
+            $event     = At::_topkg( $event->{'$type'} )->new(%$event)     if !builtin::blessed $event   && defined $event->{'$type'};
+            $subject   = At::_topkg( $subject->{'$type'} )->new(%$subject) if !builtin::blessed $subject && defined $subject->{'$type'};
+            $createdBy = At::Protocol::DID->new( uri => $createdBy )             unless builtin::blessed $createdBy;
             $createdAt = At::Protocol::Timestamp->new( timestamp => $createdAt ) unless builtin::blessed $createdAt;
         }
-    }
 
-    class At::Lexicon::com::atproto::admin::actionType 1 {
-        field $action : param;
-        ADJUST {
-            use Carp;
-            Carp::croak 'known values are #takedown, #flag, #acknowledge, and #escalate'
-                unless grep { '#' . $_ eq $action }
-                qw[takedown flag acknowledge escalate]
+        # perlclass does not have :reader yet
+        method id              {$id}
+        method event           {$event}
+        method subject         {$subject}
+        method subjectBlobCids {$subjectBlobCids}
+        method createdBy       {$createdBy}
+        method createdAt       {$createdAt}
+        method creatorHandle   {$creatorHandle}
+        method subjectHandle   {$creatorHandle}
+
+        method _raw() {
+            +{  id              => $id,
+                event           => $event->_raw,
+                subject         => $subject->_raw,
+                subjectBlobCids => $subjectBlobCids,
+                createdBy       => $createdBy->_raw,
+                createdAt       => $createdAt->_raw,
+                defined $creatorHandle ? ( creatorHandle => $creatorHandle ) : (), defined $subjectHandle ? ( subjectHandle => $subjectHandle ) : ()
+            };
         }
-    }
+    };
+
+    class At::Lexicon::com::atproto::admin::modEventViewDetail 1 {
+        field $id : param;              # int, required
+        field $event : param;           # union, required
+        field $subject : param;         # union, required
+        field $subjectBlobs : param;    # array, required
+        field $createdBy : param;       # DID, required
+        field $createdAt : param;       # Datetime, required
+        ADJUST {
+            $event        = At::_topkg( $event->{'$type'} )->new(%$event)     if !builtin::blessed $event   && defined $event->{'$type'};
+            $subject      = At::_topkg( $subject->{'$type'} )->new(%$subject) if !builtin::blessed $subject && defined $subject->{'$type'};
+            $subjectBlobs = [ map { $_ = At::Lexicon::com::atproto::admin::blobView->new(%$_) unless builtin::blessed $_ } @$subjectBlobs ];
+            $createdBy    = At::Protocol::DID->new( uri => $createdBy )             unless builtin::blessed $createdBy;
+            $createdAt    = At::Protocol::Timestamp->new( timestamp => $createdAt ) unless builtin::blessed $createdAt;
+        }
+
+        # perlclass does not have :reader yet
+        method id           {$id}
+        method event        {$event}
+        method subject      {$subject}
+        method subjectBlobs {$subjectBlobs}
+        method createdBy    {$createdBy}
+        method createdAt    {$createdAt}
+
+        method _raw() {
+            +{  id          => $id,
+                event       => $event->_raw,
+                subject     => $subject->_raw,
+                subjectBlob => [ map { $_->_raw } @$subjectBlobs ],
+                createdBy   => $createdBy->_raw,
+                createdAt   => $createdAt->_raw
+            };
+        }
+    };
 
     class At::Lexicon::com::atproto::admin::reportView 1 {
-        field $id : param;
-        field $reasonType : param;
-        field $reason : param            = ();
-        field $subjectRepoHandle : param = ();
-        field $subject : param;
-        field $reportedBy : param;
-        field $createdAt : param;
-        field $resolvedByActionIds : param;
+        field $id : param;                          # int, required
+        field $reasonType : param;                  # ::com::atproto::moderation::reasonType, required
+        field $comment : param           //= ();    # string, required
+        field $subjectRepoHandle : param //= ();    # string
+        field $subject : param;                     # union, required
+        field $reportedBy : param;                  # DID, required
+        field $createdAt : param;                   # Datetime, required
+        field $resolvedByActionIds : param;         # array, required
         ADJUST {
             $reasonType = At::Lexicon::com::atproto::moderation::reasonType->new(%$reasonType) unless builtin::blessed $reasonType;
-            if ( !builtin::blessed $subject ) {
-                try { $subject = At::Lexicon::com::atproto::admin::repoRef->new(%$subject) }
-                catch ($e) {
-                    try { $subject = At::Lexicon::com::atproto::repo::strongRef->new(%$subject) }
-                    catch ($e) {
-                        Carp::cluck 'subject must be of type com.atproto.admin.repoRef or com.atproto.repo.strongRef'
-                    }
-                }
-            }
-            $createdAt = At::Protocol::Timestamp->new( timestamp => $createdAt ) unless builtin::blessed $createdAt;
+            $subject    = At::_topkg( $subject->{'$type'} )->new(%$subject) if !builtin::blessed $subject && defined $subject->{'$type'};
+            $reportedBy = At::Protocol::DID->new( uri => $reportedBy )            unless builtin::blessed $reportedBy;
+            $createdAt  = At::Protocol::Timestamp->new( timestamp => $createdAt ) unless builtin::blessed $createdAt;
         }
-    }
+
+        # perlclass does not have :reader yet
+        method id                  {$id}
+        method reasonType          {$reasonType}
+        method comment             {$comment}
+        method subjectRepoHandle   {$subjectRepoHandle}
+        method subject             {$subject}
+        method reportedBy          {$reportedBy}
+        method createdAt           {$createdAt}
+        method resolvedByActionIds {$resolvedByActionIds}
+
+        method _raw() {
+            +{  id         => $id,
+                reasonType => $reasonType->_raw,
+                comment    => $comment,
+                defined $subjectRepoHandle ? ( subjectRepoHandle => $subjectRepoHandle ) : (),
+                subject             => $subject->_raw,
+                reportedBy          => $reportedBy->_raw,
+                createdAt           => $createdAt->_raw,
+                resolvedByActionIds => $resolvedByActionIds
+            };
+        }
+    };
+
+    class At::Lexicon::com::atproto::admin::subjectStatusView 1 {
+        field $id : param;                          # int, required
+        field $subject : param;                     # union, required
+        field $subjectBlobCids : param   //= ();    # array
+        field $subjectRepoHandle : param //= ();    # string
+        field $updatedAt : param;                   # datetime, required
+        field $createdAt : param;                   # datetime, required
+        field $reviewState : param;                 # ::subjectReviewState, required
+        field $comment : param        //= ();       # string
+        field $muteUntil : param      //= ();       # datetime
+        field $lastReviewedBy : param //= ();       # DID
+        field $lastReviewedAt : param //= ();       # datetime
+        field $lastReportedAt : param //= ();       # datetime
+        field $takendown : param      //= ();       # bool
+        field $suspendUntil : param   //= ();       # datetime
+        ADJUST {
+            $subject        = At::_topkg( $subject->{'$type'} )->new(%$subject) if !builtin::blessed $subject && defined $subject->{'$type'};
+            $updatedAt      = At::Protocol::Timestamp->new( timestamp => $updatedAt ) unless builtin::blessed $updatedAt;
+            $createdAt      = At::Protocol::Timestamp->new( timestamp => $createdAt ) unless builtin::blessed $createdAt;
+            $reviewState    = At::Lexicon::com::atproto::admin::subjectReviewState->new(%$reviewState) unless builtin::blessed $reviewState;
+            $muteUntil      = At::Protocol::Timestamp->new( timestamp => $muteUntil ) if defined $muteUntil      && !builtin::blessed $muteUntil;
+            $lastReviewedBy = At::Protocol::DID->new( uri => $lastReviewedBy )        if defined $lastReviewedBy && !builtin::blessed $lastReviewedBy;
+            $lastReviewedAt = At::Protocol::Timestamp->new( timestamp => $lastReviewedAt )
+                if defined $lastReviewedAt && !builtin::blessed $lastReviewedAt;
+            $lastReportedAt = At::Protocol::Timestamp->new( timestamp => $lastReportedAt )
+                if defined $lastReportedAt && !builtin::blessed $lastReportedAt;
+            $suspendUntil = At::Protocol::Timestamp->new( timestamp => $suspendUntil ) if defined $suspendUntil && !builtin::blessed $suspendUntil;
+        }
+
+        # perlclass does not have :reader yet
+        method id                {$id}
+        method subject           {$subject}
+        method subjectBlobCids   {$subjectBlobCids}
+        method subjectRepoHandle {$subjectRepoHandle}
+        method createdAt         {$createdAt}
+        method reviewState       {$reviewState}
+        method comment           {$comment}
+        method muteUntil         {$muteUntil}
+        method lastReviewedBy    {$lastReviewedBy}
+        method lastReviewedAt    {$lastReviewedAt}
+        method lastReportedAt    {$lastReportedAt}
+        method takendown         {$takendown}
+        method suspendUntil      {$suspendUntil}
+
+        method _raw() {
+            +{  id      => $id,
+                subject => $subject->_raw,
+                defined $subjectBlobCids   ? ( subjectBlobCids   => $subjectBlobCids )   : (),
+                defined $subjectRepoHandle ? ( subjectRepoHandle => $subjectRepoHandle ) : (),
+                updatedAt   => $updatedAt->_raw,
+                createdAt   => $createdAt->_raw,
+                reviewState => $reviewState->_raw,
+                defined $comment        ? ( comment        => $comment ) : (), defined $muteUntil ? ( muteUntil => $muteUntil->_raw ) : (),
+                defined $lastReviewedBy ? ( lastReviewedBy => $lastReviewedBy->_raw ) : (),
+                defined $lastReviewedAt ? ( lastReviewedAt => $lastReviewedAt->_raw ) : (),
+                defined $lastReportedAt ? ( lastReportedAt => $lastReportedAt->_raw ) : (), defined $takendown ? ( takendown => \!!$takendown ) : (),
+                defined $suspendUntil   ? ( suspendUntil   => $suspendUntil->_raw )   : ()
+            };
+        }
+    };
 
     class At::Lexicon::com::atproto::admin::reportViewDetail 1 {
-        field $id : param;
-        field $reasonType : param;
-        field $reason : param = ();
-        field $subject : param;
-        field $reportedBy : param;
-        field $createdAt : param;
-        field $resolvedByActionIds : param;
+        field $id : param;                      # int, required
+        field $reasonType : param;              # ::reasonType, required
+        field $comment : param //= ();          # string
+        field $subject : param;                 # union, required
+        field $subjectStatus : param //= ();    # ::com::atproto::admin::subjectStatusView
+        field $reportedBy : param;              # DID, required
+        field $createdAt : param;               # datetime, required
+        field $resolvedByActions : param;       # array, required
         ADJUST {
-            $reasonType = At::Lexicon::com::atproto::moderation::reasonType->new(%$reasonType) unless builtin::blessed $reasonType;
-            if ( !builtin::blessed $subject ) {
-                try { $subject = At::Lexicon::com::atproto::admin::repoView->new(%$subject) }
-                catch ($e) {
-                    try {
-                        $subject = At::Lexicon::com::atproto::repo::repoViewNotFound->new(%$subject)
-                    }
-                    catch ($e) {
-                        try {
-                            $subject = At::Lexicon::com::atproto::repo::recordView->new(%$subject)
-                        }
-                        catch ($e) {
-                            try {
-                                $subject = At::Lexicon::com::atproto::repo::recordViewNotFound->new(%$subject)
-                            }
-                            catch ($e) {
-                                Carp::cluck
-                                    'subject must be of type com.atproto.admin.repoView, com.atproto.admin.repoViewNotFound, or com.atproto.admin.recordView, or com.atproto.repo.recordViewNotFound'
-                            }
-                        }
-                    }
-                }
-            }
-            $createdAt = At::Protocol::Timestamp->new( timestamp => $createdAt ) unless builtin::blessed $createdAt;
+            $reasonType    = At::Lexicon::com::atproto::moderation::reasonType->new(%$reasonType) unless builtin::blessed $reasonType;
+            $subject       = At::_topkg( $subject->{'$type'} )->new(%$subject) if !builtin::blessed $subject && defined $subject->{'$type'};
+            $subjectStatus = At::Lexicon::com::atproto::subjectStatusView->new(%$subjectStatus)
+                if defined $subjectStatus && !builtin::blessed $subjectStatus;
+            $reportedBy        = At::Protocol::DID->new( uri => $reportedBy )                             unless !builtin::blessed $reportedBy;
+            $createdAt         = At::Protocol::Timestamp->new( timestamp => $createdAt )                  unless builtin::blessed $createdAt;
+            $resolvedByActions = At::Lexicon::com::atproto::admin::modEventView->new(%$resolvedByActions) unless builtin::blessed $resolvedByActions;
         }
-    }
 
-    class At::Lexicon::com::atproto::admin::repoView 1 {
-        field $did : param;
-        field $handle : param;
-        field $email : param = ();
-        field $relatedRecords : param;
-        field $indexAt : param;
-        field $moderation : param;
-        field $invitedBy : param;
-        field $invitesDisabled : param;
-        field $inviteNote : param;
-        ADJUST {
-            $indexAt    = At::Protocol::Timestamp->new( timestamp => $indexAt )           unless builtin::blessed $indexAt;
-            $moderation = At::Lexicon::com::atproto::admin::moderation->new(%$moderation) unless builtin::blessed $moderation;
-            $invitedBy  = At::Lexicon::com::atproto::server::inviteCode->new(%$invitedBy) unless builtin::blessed $invitedBy;
+        # perlclass does not have :reader yet
+        method id                {$id}
+        method reasonType        {$reasonType}
+        method comment           {$comment}
+        method subject           {$subject}
+        method subjectStatus     {$subjectStatus}
+        method reportedBy        {$reportedBy}
+        method createdAt         {$createdAt}
+        method resolvedByActions {$resolvedByActions}
+
+        method _raw() {
+            +{  id         => $id,
+                reasonType => $reasonType,
+                defined $comment ? ( comment => $comment ) : (),
+                subject => $subject->_raw,
+                defined $subjectStatus ? ( subjectStatus => $subjectStatus->_raw ) : (),
+                reportedBy        => $reportedBy->_raw,
+                createdAt         => $createdAt->_raw,
+                resolvedByActions => [ map { $_->_raw } @$resolvedByActions ]
+            };
         }
-    }
-
-    class At::Lexicon::com::atproto::admin::repoViewDetail 1 {
-        field $did : param;
-        field $handle : param;
-        field $email : param = ();
-        field $relatedRecords : param;
-        field $indexedAt : param;
-        field $moderation : param;
-        field $labels : param           = [];
-        field $invitedBy : param        = ();
-        field $invites : param          = [];
-        field $invitesDisabled : param  = ();
-        field $inviteNote : param       = ();
-        field $emailConfirmedAt : param = ();
-        ADJUST {
-            $indexedAt        = At::Protocol::Timestamp->new( timestamp => $indexedAt )               unless builtin::blessed $indexedAt;
-            $moderation       = At::Lexicon::com::atproto::admin::moderationDetail->new(%$moderation) unless builtin::blessed $moderation;
-            $labels           = [ map { $_ = At::Lexicon::com::atproto::label->new(%$_) unless builtin::blessed $_; } @$labels ];
-            $invitedBy        = At::Lexicon::com::atproto::server::inviteCode->new(%$invitedBy) unless builtin::blessed $invitedBy;
-            $invites          = [ map { $_ = At::Lexicon::com::atproto::server::inviteCode->new(%$_) unless builtin::blessed $_; } @$invites ];
-            $emailConfirmedAt = At::Protocol::Timestamp->new( timestamp => $emailConfirmedAt )
-                if defined $emailConfirmedAt && !builtin::blessed $emailConfirmedAt;
-        }
-    }
-
-    class At::Lexicon::com::atproto::admin::accountView 1 {
-        field $did : param;
-        field $handle : param;
-        field $email : param = ();
-        field $indexAt : param;
-        field $invitedBy : param        = ();
-        field $invites : param          = [];
-        field $invitesDisabled : param  = ();
-        field $emailConfirmedAt : param = ();
-        field $inviteNote : param       = ();
-        ADJUST {
-            $invitedBy        = At::Lexicon::com::atproto::server::inviteCode->new(%$invitedBy) unless builtin::blessed $invitedBy;
-            $invites          = [ map { $_ = At::Lexicon::com::atproto::server::inviteCode->new(%$_) unless builtin::blessed $_; } @$invites ];
-            $indexAt          = At::Protocol::Timestamp->new( timestamp => $indexAt )          unless builtin::blessed $indexAt;
-            $emailConfirmedAt = At::Protocol::Timestamp->new( timestamp => $emailConfirmedAt ) unless builtin::blessed $emailConfirmedAt;
-        }
-    }
-
-    class At::Lexicon::com::atproto::admin::repoViewNotFound 1 {
-        field $did : param;
-    }
-
-    class At::Lexicon::com::atproto::admin::repoRef 1 {
-        field $did : param;
-    }
-
-    class At::Lexicon::com::atproto::admin::repoBlobRef 1 {
-        field $did : param;
-        field $cid : param;
-        field $recordUri : param = ();
-        ADJUST {
-            use URI;
-            $recordUri = URI->new($recordUri) if defined $recordUri && !builtin::blessed $recordUri;
-        }
-    }
-
-    class At::Lexicon::com::atproto::admin::recordView 1 {
-        field $uri : param;
-        field $cid : param;
-        field $value : param;
-        field $blobCids : param;
-        field $indexAt : param;
-        field $moderation : param;
-        field $repo : param;
-        ADJUST {
-            use URI;
-            $uri        = URI->new($uri)                                                  unless builtin::blessed $uri;
-            $indexAt    = At::Protocol::Timestamp->new( timestamp => $indexAt )           unless builtin::blessed $indexAt;
-            $moderation = At::Lexicon::com::atproto::admin::moderation->new(%$moderation) unless builtin::blessed $moderation;
-            $repo       = At::Lexicon::com::atproto::admin::repoView->new(%$repo)         unless builtin::blessed $repo;
-        }
-    }
-
-    class At::Lexicon::com::atproto::admin::recordViewDetail 1 {
-        field $uri : param;
-        field $cid : param;
-        field $value : param;
-        field $blobs : param;
-        field $labels : param = [];
-        field $indexAt : param;
-        field $moderation : param;
-        field $repo : param;
-        ADJUST {
-            use URI;
-            $uri        = URI->new($uri) unless builtin::blessed $uri;
-            $blobs      = [ map { $_ = At::Lexicon::com::atproto::admin::blobView->new(%$_) unless builtin::blessed $_; } @$blobs ];
-            $labels     = [ map { $_ = At::Lexicon::com::atproto::label->new(%$_)           unless builtin::blessed $_; } @$labels ];
-            $indexAt    = At::Protocol::Timestamp->new( timestamp => $indexAt )                 unless builtin::blessed $indexAt;
-            $moderation = At::Lexicon::com::atproto::admin::moderationDetail->new(%$moderation) unless builtin::blessed $moderation;
-            $repo       = At::Lexicon::com::atproto::admin::repoView->new(%$repo)               unless builtin::blessed $repo;
-        }
-    }
-
-    class At::Lexicon::com::atproto::admin::recordViewNotFound 1 {
-        field $uri : param;
-        ADJUST {
-            use URI;
-            $uri = URI->new($uri) unless builtin::blessed $uri;
-        }
-    }
-
-    class At::Lexicon::com::atproto::admin::moderation 1 {
-        field $currentAction : param = [];
-        ADJUST {
-            $currentAction = At::Lexicon::com::atproto::admin::actionViewCurrent->new(%$currentAction) unless builtin::blessed $currentAction;
-        }
-    }
-
-    class At::Lexicon::com::atproto::admin::moderationDetail 1 {
-        field $currentAction : param = [];
-        field $actions : param;
-        field $reports : param;
-        ADJUST {
-            $currentAction = At::Lexicon::com::atproto::admin::actionViewCurrent->new(%$currentAction) unless builtin::blessed $currentAction;
-            $actions       = [ map { builtin::blessed $_ ? $_ : At::Lexicon::com::atproto::admin::actionView->new(%$_) } @$actions ];
-            $reports       = [ map { builtin::blessed $_ ? $_ : At::Lexicon::com::atproto::admin::reportView->new(%$_) } @$reports ];
-        }
-    }
-
-    class At::Lexicon::com::atproto::admin::blobView 1 {
-        field $cid : param;
-        field $memeType : param;
-        field $size : param;
-        field $createdAt : param;
-        field $details : param    = ();
-        field $moderation : param = ();
-        ADJUST {
-            $createdAt = At::Protocol::Timestamp->new( timestamp => $createdAt ) unless builtin::blessed $createdAt;
-            if ( !builtin::blessed $details ) {
-                try { $details = At::Lexicon::com::atproto::admin::imageDetails->new(%$details) }
-                catch ($e) {
-                    try { $details = At::Lexicon::com::atproto::repo::videoDetails->new(%$details) }
-                    catch ($e) {
-                        Carp::cluck 'details must be of type com.atproto.admin.imageDetails or com.atproto.admin.videoDetails'
-                    }
-                }
-            }
-            $moderation = At::Lexicon::com::atproto::admin::moderation->new(%$moderation) unless builtin::blessed $moderation
-        }
-    }
-
-    class At::Lexicon::com::atproto::admin::imageDetails 1 {
-        field $width : param;
-        field $height : param;
-    }
-
-    class At::Lexicon::com::atproto::admin::videoDetails 1 {
-        field $width : param;
-        field $height : param;
-        field $length : param;
-    }
+    };
 }
 1;
 __END__
