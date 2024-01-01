@@ -99,11 +99,17 @@ subtest 'live' => sub {
             '$bsky->getFeedGenerator("at://did:plc:kytt...")';
         isa_ok $results->{view}, ['At::Lexicon::app::bsky::feed::generatorView'], '...returns a ::feed::generatorView object';
     };
+    subtest 'getFeedGenerators' => sub {
+        ok my $results = $bsky->getFeedGenerators('at://did:plc:kyttpb6um57f4c2wep25lqhq/app.bsky.feed.generator/aaalfodybabzy'),
+            '$bsky->getFeedGenerators("at://did:plc:kytt...")';
+        isa_ok $results->{feeds}->[0], ['At::Lexicon::app::bsky::feed::generatorView'], '...returns a list of ::feed::generatorView objects';
+    };
     subtest 'getFeed' => sub {
         ok my $results = $bsky->getFeed('at://did:plc:kyttpb6um57f4c2wep25lqhq/app.bsky.feed.generator/aaalfodybabzy'),
             '$bsky->getFeed("at://did:plc:kytt...")';
         isa_ok $results->{feed}->[0], ['At::Lexicon::app::bsky::feed::feedViewPost'], '...contains list of ::feed::feedViewPost objects';
     };
+    can_ok $bsky, 'describeFeedGenerator';    # TODO: test this
 };
 #
 done_testing;

@@ -255,6 +255,14 @@ package At::Bluesky {
             $res;
         }
 
+        method getFeedGenerators (@feeds) {
+            $self->http->session // Carp::confess 'requires an authenticated client';
+            my $res
+                = $self->http->get( sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.feed.getFeedGenerators' ), { content => +{ feeds => \@feeds } } );
+            $res->{feeds} = [ map { At::Lexicon::app::bsky::feed::generatorView->new(%$_) } @{ $res->{feeds} } ] if defined $res->{feeds};
+            $res;
+        }
+
         method getFeed ( $feed, $cursor //= () ) {
             $self->http->session // Carp::confess 'requires an authenticated client';
             my $res = $self->http->get(
@@ -262,6 +270,16 @@ package At::Bluesky {
                 { content => +{ feed => $feed, defined $cursor ? ( cursor => $cursor ) : () } }
             );
             $res->{feed} = [ map { At::Lexicon::app::bsky::feed::feedViewPost->new(%$_) } @{ $res->{feed} } ] if defined $res->{feed};
+            $res;
+        }
+
+        method describeFeedGenerator () {
+            $self->http->session // Carp::confess 'requires an authenticated client';
+            my $res = $self->http->get( sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.feed.describeFeedGenerator' ) );
+            $res->{did}   = At::Protocol::DID->new( uri => $res->{did} ) if defined $res->{did};
+            $res->{feeds} = [ map { At::Lexicon::app::bsky::feed::describeFeedGenerator::feed->new(%$_) } @{ $res->{feeds} } ]
+                if defined $res->{feeds};
+            $res->{links} = At::Lexicon::app::bsky::feed::describeFeedGenerator::links->new( %{ $res->{links} } ) if defined $res->{links};
             $res;
         }
     }
@@ -901,6 +919,22 @@ Expected parameters include:
 On success, returns a C<At::Lexicon::app::bsky::feed::generatorView> object and booleans indicating the feed's online
 status and validity.
 
+=head2 C<getFeedGenerators( ... )>
+
+    $bsky->getFeedGenerators( 'at://did:plc:kyttpb6um57f4c2wep25lqhq/app.bsky.feed.generator/aaalfodybabzy', 'at://did:plc:eaf...' );
+
+Get information about a list of feed generators.
+
+Expected parameters include:
+
+=over
+
+=item C<feeds> - required
+
+=back
+
+On success, returns a list of feeds as new C<At::Lexicon::app::bsky::feed::generatorView> objects.
+
 =head2 C<getFeed( ..., [...] )>
 
     $bsky->getFeed( 'at://did:plc:kyttpb6um57f4c2wep25lqhq/app.bsky.graph.list/3k4diugcw3k2p' );
@@ -1507,7 +1541,7 @@ Sanko Robinson E<lt>sanko@cpan.orgE<gt>
 
 =begin stopwords
 
-Bluesky ios cid reposters reposts
+Bluesky ios cid reposters reposts booleans online
 
 =end stopwords
 
