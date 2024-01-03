@@ -6,6 +6,7 @@ package At 0.02 {
     #
     use At::Lexicon::com::atproto::label;
     use At::Lexicon::com::atproto::admin;
+    use At::Lexicon::com::atproto::moderation;
 
     #~ |---------------------------------------|
     #~ |------3-33-----------------------------|
@@ -583,8 +584,6 @@ package At 0.02 {
         {
 
             method resolveHandle ($handle) {
-
-                #~ $self->http->session // Carp::confess 'requires an authenticated client';
                 my $res = $self->http->get( sprintf( '%s/xrpc/%s', $self->host, 'com.atproto.identity.resolveHandle' ),
                     { content => +{ handle => $handle } } );
                 $res->{did} = At::Protocol::DID->new( uri => $res->{did} ) if defined $res->{did};
@@ -597,6 +596,26 @@ package At 0.02 {
                 my $res = $self->http->post( sprintf( '%s/xrpc/%s', $self->host, 'com.atproto.identity.updateHandle' ),
                     { content => +{ handle => $handle } } );
                 $res->{success};
+            }
+        }
+
+        #~ class At::Lexicon::AtProto::Moderation
+        {
+
+            method createReport ( $reasonType, $subject, $reason //= () ) {
+                $self->http->session // Carp::confess 'requires an authenticated client';
+                $reasonType = At::Lexicon::com::atproto::moderation::reasonType->new( '$type' => $reasonType->{'$type'} )
+                    if !builtin::blessed $reasonType && defined $reasonType->{'$type'};
+                $subject = At::_topkg( $subject->{'$type'} )->new(%$subject) if !builtin::blessed $subject && defined $subject->{'$type'};
+                my $res = $self->http->post( sprintf( '%s/xrpc/%s', $self->host, 'com.atproto.moderation.createReport' ),
+                    { content => +{ reasonType => $reasonType->_raw, subject => $subject->_raw, defined $reason ? ( reason => $reason ) : () } } );
+                $res->{reasonType} = At::Lexicon::com::atproto::moderation::reasonType->new( '$type' => $res->{reasonType}{'$type'} )
+                    if defined $res->{reasonType} && defined $res->{reasonType}{'$type'};
+                $res->{subject} = At::_topkg( $res->{subject}{'$type'} )->new( %{ $res->{subject} } )
+                    if defined $res->{subject} && defined $res->{subject}{'$type'};
+                $res->{reportedBy} = At::Protocol::DID->new( uri => $res->{reportedBy} )            if defined $res->{reportedBy};
+                $res->{createdAt}  = At::Protocol::Timestamp->new( timestamp => $res->{createdAt} ) if defined $res->{createdAt};
+                $res;
             }
         }
 
@@ -1206,7 +1225,7 @@ Expected parameters include:
 
 =item C<types>
 
-The types of events (fully qualified string in the format of com.atproto.admin#modEvent<name>) to filter by. If not
+The types of events (fully qualified string in the format of C<com.atproto.admin#modEvent...>) to filter by. If not
 specified, all events are returned.
 
 =item C<createdBy>
@@ -1442,12 +1461,34 @@ Expected parameters include:
 
 Returns a true value on success.
 
+=head1 Moderation Methods
 
+These methods allow you to help moderate the content on the network.
 
+=head2 C<createReport( ..., [...] )>
 
+    $at->createReport( { '$type' => 'com.atproto.moderation.defs#reasonSpam' }, { '$type' => 'com.atproto.repo.strongRef', uri => ..., cid => ... } );
 
+Report a repo or a record.
 
+Expected parameters include:
 
+=over
+
+=item C<reasonType> - required
+
+An C<At::Lexicon::com::atproto::moderation::reasonType> object.
+
+=item C<subject> - required
+
+An C<At::Lexicon::com::atproto::admin::repoRef> or C<At::Lexicon::com::atproto::repo::strongRef> object.
+
+=item C<reason>
+
+=back
+
+On success, an id, the original reason type, subject, and reason, are returned as well as the DID of the user making
+the report and a timestamp.
 
 =head1 Server Methods
 

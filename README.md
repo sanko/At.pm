@@ -297,7 +297,7 @@ Expected parameters include:
 
 - `types`
 
-    The types of events (fully qualified string in the format of com.atproto.admin#modEvent&lt;name>) to filter by. If not
+    The types of events (fully qualified string in the format of `com.atproto.admin#modEvent...`) to filter by. If not
     specified, all events are returned.
 
 - `createdBy`
@@ -503,6 +503,33 @@ Expected parameters include:
 - `handle` - required
 
 Returns a true value on success.
+
+# Moderation Methods
+
+These methods allow you to help moderate the content on the network.
+
+## `createReport( ..., [...] )`
+
+```perl
+$at->createReport( { '$type' => 'com.atproto.moderation.defs#reasonSpam' }, { '$type' => 'com.atproto.repo.strongRef', uri => ..., cid => ... } );
+```
+
+Report a repo or a record.
+
+Expected parameters include:
+
+- `reasonType` - required
+
+    An `At::Lexicon::com::atproto::moderation::reasonType` object.
+
+- `subject` - required
+
+    An `At::Lexicon::com::atproto::admin::repoRef` or `At::Lexicon::com::atproto::repo::strongRef` object.
+
+- `reason`
+
+On success, an id, the original reason type, subject, and reason, are returned as well as the DID of the user making
+the report and a timestamp.
 
 # Server Methods
 

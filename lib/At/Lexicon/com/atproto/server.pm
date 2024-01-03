@@ -137,8 +137,6 @@ At::Lexicon::com::atproto::server - Server Related Classes
 
 L<https://atproto.com/>
 
-L<https://github.com/bluesky-social/atproto/blob/main/lexicons/com/atproto/repo/strongRef.json>
-
 =head1 LICENSE
 
 Copyright (C) Sanko Robinson.
