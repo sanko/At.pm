@@ -94,6 +94,242 @@ Expected parameters include:
 
     List of account DIDs.
 
+# Sync Methods
+
+Keeping a mirror in sync is easy with these methods.
+
+## `getBlocks( ... )`
+
+```
+$at->getBlocks( 'did...' );
+```
+
+Get blocks from a given repo.
+
+Expected parameters include
+
+- `did` - required
+
+    The DID of the repo.
+
+- `cids` - required
+
+## `getLatestCommit( ... )`
+
+```
+$at->getLatestCommit( 'did...' );
+```
+
+Get the current commit CID & revision of the repo.
+
+Expected parameters include:
+
+- `did` - required
+
+    The DID of the repo.
+
+Returns the revision and cid on success.
+
+## `getRecord( ..., [...] )`
+
+```
+$at->getRecord( 'did...', ... );
+```
+
+Get blocks needed for existence or non-existence of record.
+
+Expected parameters include:
+
+- `did` - required
+
+    The DID of the repo.
+
+- `collection` - required
+
+    NSID.
+
+- `rkey` - required
+- `commit`
+
+    An optional past commit CID.
+
+## `getRepo( ... )`
+
+```
+$at->getRepo( 'did...', ... );
+```
+
+Gets the DID's repo, optionally catching up from a specific revision.
+
+Expected parameters include:
+
+- `did` - required
+
+    The DID of the repo.
+
+- `since`
+
+    The revision of the repo to catch up from.
+
+## `listBlobs( ..., [...] )`
+
+```
+$at->listBlobs( 'did...' );
+```
+
+List blob CIDs since some revision.
+
+Expected parameters include:
+
+- `did` - required
+
+    The DID of the repo.
+
+- `since`
+
+    on of the repo to list blobs since.
+
+- `limit`
+
+    Minimum is 1, maximum is 1000, default is 500.
+
+- `cursor`
+
+On success, a list of cids is returned and, optionally, a cursor.
+
+## `listRepos( [...] )`
+
+```
+$at->listRepos( );
+```
+
+List DIDs and root CIDs of hosted repos.
+
+Expected parameters include:
+
+- `limit`
+
+    Maximum is 1000, minimum is 1, default is 500.
+
+- `cursor`
+
+On success, a list of `At::Lexicon::com::atproto::sync::repo` objects is returned and, optionally, a cursor.
+
+## `notifyOfUpdate( ... )`
+
+```
+$at->notifyOfUpdate( 'example.com' );
+```
+
+Notify a crawling service of a recent update; often when a long break between updates causes the connection with the
+crawling service to break.
+
+Expected parameters include:
+
+- `hostname` - required
+
+    Hostname of the service that is notifying of update.
+
+Returns a true value on success.
+
+## `requestCrawl( ... )`
+
+```
+$at->requestCrawl( 'example.com' );
+```
+
+Request a service to persistently crawl hosted repos.
+
+Expected parameters include:
+
+- `hostname` - required
+
+    Hostname of the service that is requesting to be crawled.
+
+Returns a true value on success.
+
+## `getBlob( ... )`
+
+```
+$at->getBlob( 'did...', ... );
+```
+
+Get a blob associated with a given repo.
+
+Expected parameters include:
+
+- `did` - required
+
+    The DID of the repo.
+
+- `cid` - required
+
+    The CID of the blob to fetch.
+
+# Temp Methods
+
+These are methods the At Protocol has not placed in a proper namespace. They might be incomplete or depreciated.
+Regardless, they are placed in a lexicon named `com.atproto.temp.*`.
+
+## `fetchLabels( [...] )`
+
+```
+$at->fetchLabels;
+```
+
+Fetch all labels from a labeler created after a certain date.
+
+Expected parameters include:
+
+- `since`
+- `limit`
+
+    Default is 50, minimum is 1, maximum is 250.
+
+Returns a list of labels as new `At::Lexicon::com::atproto::label` objects on success.
+
+## `pushBlob( ... )`
+
+```
+$at->pushBlob( 'did:...' );
+```
+
+Gets the did's repo, optionally catching up from a specific revision.
+
+Expected parameters include:
+
+- `did` - required
+
+    The DID of the repo.
+
+## `transferAccount( ... )`
+
+```
+$at->transferAccount( ... );
+```
+
+Transfer an account.
+
+Expected parameters include:
+
+- `handle` - required
+- `did` - required
+- `plcOp` - required
+
+## `importRepo( ... )`
+
+```
+$at->importRepo( 'did...' );
+```
+
+Gets the did's repo, optionally catching up from a specific revision.
+
+Expected parameters include:
+
+- `did` - required
+
+    The DID of the repo.
+
 # Repo Methods
 
 Repo methods generally require an authorized session. The AT Protocol treats 'posts' and other data as records stored

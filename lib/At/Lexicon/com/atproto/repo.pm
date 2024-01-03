@@ -11,6 +11,8 @@ package At::Lexicon::com::atproto::repo 0.02 {
         ADJUST {
             $uri = URI->new($uri) unless builtin::blessed $uri;
         }
+
+        # perlclass does not have :reader yet
         method uri {$uri}
         method cid {$cid}
 

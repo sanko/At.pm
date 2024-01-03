@@ -29,7 +29,18 @@ package At::Lexicon::com::atproto::admin 0.02 {
         field $creatorHandle : param //= ();    # string, required
         field $subjectHandle : param //= ();    # string, required
         ADJUST {
-            $event     = At::_topkg( $event->{'$type'} )->new(%$event)     if !builtin::blessed $event   && defined $event->{'$type'};
+            #~ $event     = At::_topkg( $event->{'$type'} )->new(%$event)     if !builtin::blessed $event   && defined $event->{'$type'};
+            use Carp;
+            Carp::confess 'unknown event'
+                unless $event->{'$type'} eq 'com.atproto.admin.defs#modEventTakedown' ||
+                $event->{'$type'} eq 'com.atproto.admin.defs#modEventReverseTakedown' ||
+                $event->{'$type'} eq 'com.atproto.admin.defs#modEventComment'         ||
+                $event->{'$type'} eq 'com.atproto.admin.defs#modEventReport'          ||
+                $event->{'$type'} eq 'com.atproto.admin.defs#modEventLabel'           ||
+                $event->{'$type'} eq 'com.atproto.admin.defs#modEventAcknowledge'     ||
+                $event->{'$type'} eq 'com.atproto.admin.defs#modEventEscalate'        ||
+                $event->{'$type'} eq 'com.atproto.admin.defs#modEventMute'            ||
+                $event->{'$type'} eq 'com.atproto.admin.defs#modEventEmail';
             $subject   = At::_topkg( $subject->{'$type'} )->new(%$subject) if !builtin::blessed $subject && defined $subject->{'$type'};
             $createdBy = At::Protocol::DID->new( uri => $createdBy )             unless builtin::blessed $createdBy;
             $createdAt = At::Protocol::Timestamp->new( timestamp => $createdAt ) unless builtin::blessed $createdAt;
@@ -65,7 +76,18 @@ package At::Lexicon::com::atproto::admin 0.02 {
         field $createdBy : param;       # DID, required
         field $createdAt : param;       # Datetime, required
         ADJUST {
-            $event        = At::_topkg( $event->{'$type'} )->new(%$event)     if !builtin::blessed $event   && defined $event->{'$type'};
+            #~ $event        = At::_topkg( $event->{'$type'} )->new(%$event)     if !builtin::blessed $event   && defined $event->{'$type'};
+            use Carp;
+            Carp::confess 'unknown event'
+                unless $event->{'$type'} eq 'com.atproto.admin.defs#modEventTakedown' ||
+                $event->{'$type'} eq 'com.atproto.admin.defs#modEventReverseTakedown' ||
+                $event->{'$type'} eq 'com.atproto.admin.defs#modEventComment'         ||
+                $event->{'$type'} eq 'com.atproto.admin.defs#modEventReport'          ||
+                $event->{'$type'} eq 'com.atproto.admin.defs#modEventLabel'           ||
+                $event->{'$type'} eq 'com.atproto.admin.defs#modEventAcknowledge'     ||
+                $event->{'$type'} eq 'com.atproto.admin.defs#modEventEscalate'        ||
+                $event->{'$type'} eq 'com.atproto.admin.defs#modEventMute'            ||
+                $event->{'$type'} eq 'com.atproto.admin.defs#modEventResolveAppeal';
             $subject      = At::_topkg( $subject->{'$type'} )->new(%$subject) if !builtin::blessed $subject && defined $subject->{'$type'};
             $subjectBlobs = [ map { $_ = At::Lexicon::com::atproto::admin::blobView->new(%$_) unless builtin::blessed $_ } @$subjectBlobs ];
             $createdBy    = At::Protocol::DID->new( uri => $createdBy )             unless builtin::blessed $createdBy;
@@ -82,7 +104,7 @@ package At::Lexicon::com::atproto::admin 0.02 {
 
         method _raw() {
             +{  id          => $id,
-                event       => $event->_raw,
+                event       => $event,
                 subject     => $subject->_raw,
                 subjectBlob => [ map { $_->_raw } @$subjectBlobs ],
                 createdBy   => $createdBy->_raw,

@@ -16,7 +16,8 @@ package At::Lexicon::com::atproto::moderation 0.02 {
                 $type eq 'com.atproto.moderation.defs#reasonMisleading'  ||
                 $type eq 'com.atproto.moderation.defs#reasonSexual'      ||
                 $type eq 'com.atproto.moderation.defs#reasonRude'        ||
-                $type eq 'com.atproto.moderation.defs#reasonOther'
+                $type eq 'com.atproto.moderation.defs#reasonOther'       ||
+                $type eq 'com.atproto.moderation.defs#reasonAppeal'
         }
 
         method _raw() {

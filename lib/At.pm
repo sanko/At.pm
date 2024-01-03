@@ -619,6 +619,142 @@ package At 0.02 {
             }
         }
 
+        #~ class At::Lexicon::AtProto::Sync
+        {
+            use At::Lexicon::com::atproto::sync;
+
+            method getBlocks ( $did, $cids ) {
+                my $res = $self->http->get( sprintf( '%s/xrpc/%s', $self->host, 'com.atproto.sync.getBlocks' ),
+                    { content => +{ did => $did, cids => $cids } } );
+                $res;
+            }
+
+            method getLatestCommit ( $did, $cids ) {
+                my $res
+                    = $self->http->get( sprintf( '%s/xrpc/%s', $self->host, 'com.atproto.sync.getLatestCommit' ), { content => +{ did => $did } } );
+                $res;
+            }
+
+            method getRecord ( $did, $collection, $rkey, $commit //= () ) {
+                my $res = $self->http->get( sprintf( '%s/xrpc/%s', $self->host, 'com.atproto.sync.getRecord' ),
+                    { content => +{ did => $did, collection => $collection, rkey => $rkey, defined $commit ? ( commit => $commit ) : () } } );
+                $res;
+            }
+
+            method getRepo ( $did, $since //= () ) {
+                my $res = $self->http->get(
+                    sprintf( '%s/xrpc/%s', $self->host, 'com.atproto.sync.getRepo' ),
+                    { content => +{ did => $did, defined $since ? ( since => $since ) : () } }
+                );
+                $res;
+            }
+
+            method listBlobs ( $did, $since //= (), $limit //= (), $cursor //= () ) {
+                my $res = $self->http->get(
+                    sprintf( '%s/xrpc/%s', $self->host, 'com.atproto.sync.listBlobs' ),
+                    {   content => +{
+                            did => $did,
+                            defined $since ? ( since => $since ) : (), defined $limit ? ( limit => $limit ) : (),
+                            defined $cursor ? ( cursor => $cursor ) : ()
+                        }
+                    }
+                );
+                $res;
+            }
+
+            method listRepos ( $limit //= (), $cursor //= () ) {
+                my $res = $self->http->get( sprintf( '%s/xrpc/%s', $self->host, 'com.atproto.sync.listRepos' ),
+                    { content => +{ defined $limit ? ( limit => $limit ) : (), defined $cursor ? ( cursor => $cursor ) : () } } );
+                $res->{repos} = [ map { At::Lexicon::com::atproto::sync::repo->new(%$_) } @{ $res->{repos} } ] if defined $res->{repos};
+                $res;
+            }
+
+            method notifyOfUpdate ($hostname) {
+                my $res = $self->http->post( sprintf( '%s/xrpc/%s', $self->host, 'com.atproto.sync.notifyOfUpdate' ),
+                    { content => +{ hostname => $hostname } } );
+                $res->{success};
+            }
+
+            method requestCrawl ($hostname) {
+                my $res = $self->http->post( sprintf( '%s/xrpc/%s', $self->host, 'com.atproto.sync.requestCrawl' ),
+                    { content => +{ hostname => $hostname } } );
+                $res->{success};
+            }
+
+            method getBlob ( $did, $cid ) {
+                my $res = $self->http->get( sprintf( '%s/xrpc/%s', $self->host, 'com.atproto.sync.getBlob' ),
+                    { content => +{ did => $did, cid => $cid } } );
+                $res;
+            }
+
+            # TODO: wrap the proper objects returned by the websocket. See com.atproto.sync.subscribeRepos
+            method subscribeRepos ( $cb, $cursor //= () ) {
+                my $res = $self->http->websocket(
+                    sprintf( 'wss://%s/xrpc/%s%s', $self->host, 'com.atproto.sync.subscribeRepos', defined $cursor ? '?cursor=' . $cursor : '' ),
+
+                    #~ sprintf( '%s/xrpc/%s', $self->host, 'com.atproto.label.subscribeLabels' ),
+                    #~ { content => +{ defined $cursor ? ( cursor => $cursor ) : () } }
+                    $cb
+                );
+                $res;
+            }
+
+            method subscribeRepos_p ( $cb, $cursor //= () ) {    # return a Mojo::Promise
+                $self->http->agent->websocket_p(
+                    sprintf( 'wss://%s/xrpc/%s%s', $self->host, 'com.atproto.sync.subscribeRepos', defined $cursor ? '?cursor=' . $cursor : '' ), )
+                    ->then(
+                    sub ($tx) {
+                        my $promise = Mojo::Promise->new;
+                        $tx->on( finish => sub { $promise->resolve } );
+                        $tx->on(
+                            message => sub ( $tx, $msg ) {
+                                state $decoder //= CBOR::Free::SequenceDecoder->new()->set_tag_handlers( 42 => sub { } );
+                                my $head = $decoder->give($msg);
+                                my $body = $decoder->get;
+                                $cb->( $promise, $$body );
+                            }
+                        );
+                        return $promise;
+                    }
+                )->catch(
+                    sub ($err) {
+                        Carp::confess "WebSocket error: $err";
+                    }
+                );
+            }
+        }
+
+        #~ class At::Lexicon::AtProto::Temp
+        {
+
+            method fetchLables ( $since //= (), $limit //= () ) {
+                my $res = $self->http->get( sprintf( '%s/xrpc/%s', $self->host, 'com.atproto.temp.fetchLabels' ),
+                    { content => +{ defined $since ? ( since => $since ) : (), defined $limit ? ( limit => $limit ) : () } } );
+                $res->{labels} = [ map { At::Lexicon::com::atproto::label->new(%$_) } @{ $res->{labels} } ] if defined $res->{labels};
+                $res;
+            }
+
+            method pushBlob ($did) {
+                my $res = $self->http->post( sprintf( '%s/xrpc/%s', $self->host, 'com.atproto.temp.pushBlob' ), { content => +{ did => $did } } );
+                $res;
+            }
+
+            method transferAccount ( $handle, $did, $plcOp ) {
+                my $res = $self->http->post(
+                    sprintf( '%s/xrpc/%s', $self->host, 'com.atproto.temp.transferAccount' ),
+                    { content => +{ handle => $handle, did => $did, plcOp => $plcOp } }
+                );
+
+                # TODO: Is this a fully fleshed session object?
+                $res;
+            }
+
+            method importRepo ($did) {
+                my $res = $self->http->post( sprintf( '%s/xrpc/%s', $self->host, 'com.atproto.temp.importRepo' ), { content => +{ did => $did } } );
+                $res->{success};
+            }
+        }
+
         class At::Protocol::DID {    # https://atproto.com/specs/did
             field $uri : param;
             ADJUST {
@@ -730,9 +866,7 @@ package At 0.02 {
                     $url . ( defined $req->{content} && keys %{ $req->{content} } ? '?' . _build_query_string( $req->{content} ) : '' ) );
 
                 #~ use Data::Dump;
-                #~ warn
-                #~ $url . ( defined $req->{content} && keys %{ $req->{content}}
-                #~ ? '?' . _build_query_string( $req->{content} ) : '' ) ;
+                #~ warn $url . ( defined $req->{content} && keys %{ $req->{content} } ? '?' . _build_query_string( $req->{content} ) : '' );
                 #~ ddx $res;
                 return $res->{content} = decode_json $res->{content} if $res->{content};
                 return $res;
@@ -970,27 +1104,296 @@ List of account DIDs.
 
 =back
 
+=head1 Sync Methods
+
+Keeping a mirror in sync is easy with these methods.
+
+=head2 C<getBlocks( ... )>
+
+    $at->getBlocks( 'did...' );
+
+Get blocks from a given repo.
+
+Expected parameters include
+
+=over
+
+=item C<did> - required
+
+The DID of the repo.
+
+=item C<cids> - required
+
+=back
+
+=head2 C<getLatestCommit( ... )>
+
+    $at->getLatestCommit( 'did...' );
+
+Get the current commit CID & revision of the repo.
+
+Expected parameters include:
+
+=over
+
+=item C<did> - required
+
+The DID of the repo.
+
+=back
+
+Returns the revision and cid on success.
+
+=head2 C<getRecord( ..., [...] )>
+
+    $at->getRecord( 'did...', ... );
+
+Get blocks needed for existence or non-existence of record.
+
+Expected parameters include:
+
+=over
+
+=item C<did> - required
+
+The DID of the repo.
+
+=item C<collection> - required
+
+NSID.
+
+=item C<rkey> - required
+
+=item C<commit>
+
+An optional past commit CID.
+
+=back
+
+=head2 C<getRepo( ... )>
+
+    $at->getRepo( 'did...', ... );
+
+Gets the DID's repo, optionally catching up from a specific revision.
+
+Expected parameters include:
+
+=over
+
+=item C<did> - required
+
+The DID of the repo.
+
+=item C<since>
+
+The revision of the repo to catch up from.
+
+=back
+
+=head2 C<listBlobs( ..., [...] )>
+
+    $at->listBlobs( 'did...' );
+
+List blob CIDs since some revision.
+
+Expected parameters include:
+
+=over
+
+=item C<did> - required
+
+The DID of the repo.
+
+=item C<since>
+
+on of the repo to list blobs since.
+
+=item C<limit>
+
+Minimum is 1, maximum is 1000, default is 500.
+
+=item C<cursor>
+
+=back
+
+On success, a list of cids is returned and, optionally, a cursor.
+
+=head2 C<listRepos( [...] )>
+
+    $at->listRepos( );
+
+List DIDs and root CIDs of hosted repos.
+
+Expected parameters include:
+
+=over
+
+=item C<limit>
+
+Maximum is 1000, minimum is 1, default is 500.
+
+=item C<cursor>
+
+=back
+
+On success, a list of C<At::Lexicon::com::atproto::sync::repo> objects is returned and, optionally, a cursor.
+
+=head2 C<notifyOfUpdate( ... )>
+
+    $at->notifyOfUpdate( 'example.com' );
+
+Notify a crawling service of a recent update; often when a long break between updates causes the connection with the
+crawling service to break.
+
+Expected parameters include:
+
+=over
+
+=item C<hostname> - required
+
+Hostname of the service that is notifying of update.
+
+=back
+
+Returns a true value on success.
+
+=head2 C<requestCrawl( ... )>
+
+    $at->requestCrawl( 'example.com' );
+
+Request a service to persistently crawl hosted repos.
+
+Expected parameters include:
+
+=over
+
+=item C<hostname> - required
+
+Hostname of the service that is requesting to be crawled.
+
+=back
+
+Returns a true value on success.
+
+=head2 C<getBlob( ... )>
+
+    $at->getBlob( 'did...', ... );
+
+Get a blob associated with a given repo.
+
+Expected parameters include:
+
+=over
+
+=item C<did> - required
+
+The DID of the repo.
+
+=item C<cid> - required
+
+The CID of the blob to fetch.
+
+=back
+
+=begin TODO
+
+=head2 C<subscribeRepos( ... )>
+
+    $at->subscribeRepos( sub {...} );
+
+Subscribe to repo updates.
+
+Expected parameters include:
+
+=over
+
+=item C<cb> - required
+
+=item C<cursor>
+
+The last known event to backfill from.
+
+=back
+
+=head2 C<subscribeRepos_p( ... )>
 
 
+=end TODO
 
+=head1 Temp Methods
 
+These are methods the At Protocol has not placed in a proper namespace. They might be incomplete or depreciated.
+Regardless, they are placed in a lexicon named C<com.atproto.temp.*>.
 
+=head2 C<fetchLabels( [...] )>
 
+    $at->fetchLabels;
 
+Fetch all labels from a labeler created after a certain date.
 
+Expected parameters include:
 
+=over
 
+=item C<since>
 
+=item C<limit>
 
+Default is 50, minimum is 1, maximum is 250.
 
+=back
 
+Returns a list of labels as new C<At::Lexicon::com::atproto::label> objects on success.
 
+=head2 C<pushBlob( ... )>
 
+    $at->pushBlob( 'did:...' );
 
+Gets the did's repo, optionally catching up from a specific revision.
 
+Expected parameters include:
 
+=over
 
+=item C<did> - required
 
+The DID of the repo.
+
+=back
+
+=head2 C<transferAccount( ... )>
+
+    $at->transferAccount( ... );
+
+Transfer an account.
+
+Expected parameters include:
+
+=over
+
+=item C<handle> - required
+
+=item C<did> - required
+
+=item C<plcOp> - required
+
+=back
+
+=head2 C<importRepo( ... )>
+
+    $at->importRepo( 'did...' );
+
+Gets the did's repo, optionally catching up from a specific revision.
+
+Expected parameters include:
+
+=over
+
+=item C<did> - required
+
+The DID of the repo.
+
+=back
 
 =head1 Repo Methods
 
