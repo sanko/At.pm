@@ -120,6 +120,356 @@ Expected parameters include:
 
     Depending on the type of record, this could be anything. It's undefined in the protocol itself.
 
+# Admin Methods
+
+These should only be called by a member of the server's administration team.
+
+## `admin_deleteAccount( ... )`
+
+```
+$at->admin_deleteAccount( 'did://...' );
+```
+
+Delete a user account as an administrator.
+
+Expected parameters include:
+
+- `did` - required
+
+Returns a true value on success.
+
+## `admin_disableAccountInvites( ..., [...] )`
+
+```
+$at->admin_disableAccountInvites( 'did://...' );
+```
+
+Disable an account from receiving new invite codes, but does not invalidate existing codes.
+
+Expected parameters include:
+
+- `account` - required
+- `note`
+
+    Optional reason for disabled invites.
+
+Returns a true value on success.
+
+## `admin_emitModerationEvent( ..., [...] )`
+
+```
+$at->admin_emitModerationEvent( ... );
+```
+
+Take a moderation action on an actor.
+
+Expected parameters include:
+
+- `event` - required
+- `subject` - required
+- `createdBy` - required
+- `subjectBlobCids`
+
+Returns a new `At::Lexicon::com::atproto::admin::modEventView` object on success.
+
+## `admin_enableAccountInvites( ..., [...] )`
+
+```
+$at->admin_enableAccountInvites( 'did://...' );
+```
+
+Re-enable an account's ability to receive invite codes.
+
+Expected parameters include:
+
+- `account` - required
+- `note`
+
+    Optional reason for enabled invites.
+
+Returns a true value on success.
+
+## `admin_getAccountInfo( ..., [...] )`
+
+```
+$at->admin_getAccountInfo( 'did://...' );
+```
+
+Get details about an account.
+
+Expected parameters include:
+
+- `did` - required
+
+Returns a new `At::Lexicon::com::atproto::admin::accountView` object on success.
+
+## `admin_getInviteCodes( [...] )`
+
+```
+$at->admin_getInviteCodes( );
+```
+
+Get an admin view of invite codes.
+
+Expected parameters include:
+
+- `sort`
+
+    Order to sort the codes: 'recent' or 'usage' with 'recent' being the default.
+
+- `limit`
+
+    How many codes to return. Minimum of 1, maximum of 500, default of 100.
+
+- `cursor`
+
+Returns a new `At::Lexicon::com::atproto::server::inviteCode` object on success.
+
+## `admin_getModerationEvent( ... )`
+
+```
+$at->admin_getModerationEvent( 77736393829 );
+```
+
+Get details about a moderation event.
+
+Expected parameters include:
+
+- `id` - required
+
+Returns a new `At::Lexicon::com::atproto::admin::modEventViewDetail` object on success.
+
+## `admin_getRecord( ..., [...] )`
+
+```
+$at->admin_getRecord( 'at://...' );
+```
+
+Get details about a record.
+
+Expected parameters include:
+
+- `uri` - required
+- `cid`
+
+Returns a new `At::Lexicon::com::atproto::admin::recordViewDetail` object on success.
+
+## `admin_getRepo( ... )`
+
+```
+$at->admin_getRepo( 'did:...' );
+```
+
+Get details about a repository.
+
+Expected parameters include:
+
+- `did` - required
+
+Returns a new `At::Lexicon::com::atproto::admin::repoViewDetail` object on success.
+
+## `admin_getSubjectStatus( [...] )`
+
+```
+$at->admin_getSubjectStatus( 'did:...' );
+```
+
+Get details about a repository.
+
+Expected parameters include:
+
+- `did`
+- `uri`
+- `blob`
+
+Returns a subject and, optionally, the takedown reason as a new `At::Lexicon::com::atproto::admin::statusAttr` object
+on success.
+
+## `admin_queryModerationEvents( [...] )`
+
+```
+$at->admin_queryModerationEvents( 'did:...' );
+```
+
+List moderation events related to a subject.
+
+Expected parameters include:
+
+- `types`
+
+    The types of events (fully qualified string in the format of com.atproto.admin#modEvent&lt;name>) to filter by. If not
+    specified, all events are returned.
+
+- `createdBy`
+- `sortDirection`
+
+    Sort direction for the events. `asc` or `desc`. Defaults to descending order of created at timestamp.
+
+- `subject`
+- `includeAllUserRecords`
+
+    If true, events on all record types (posts, lists, profile etc.) owned by the did are returned.
+
+- `limit`
+
+    Minimum is 1, maximum is 100, 50 is the default.
+
+- `cursor`
+
+Returns a list of events as new `At::Lexicon::com::atproto::admin::modEventView` objects on success.
+
+## `admin_queryModerationStatuses( [...] )`
+
+```perl
+$at->admin_queryModerationStatuses( 'did:...' );
+```
+
+List moderation events related to a subject.
+
+Expected parameters include:
+
+- `subject`
+- `comment`
+
+    Search subjects by keyword from comments.
+
+- `reportedAfter`
+
+    Search subjects reported after a given timestamp.
+
+- `reportedBefore`
+
+    Search subjects reported before a given timestamp.
+
+- `reviewedAfter`
+
+    Search subjects reviewed after a given timestamp.
+
+- `reviewedBefore`
+
+    Search subjects reviewed before a given timestamp.
+
+- `includeMuted`
+
+    By default, we don't include muted subjects in the results. Set this to true to include them.
+
+- `reviewState`
+
+    Specify when fetching subjects in a certain state.
+
+- `ignoreSubjects`
+- `lastReviewedBy`
+
+    Get all subject statuses that were reviewed by a specific moderator.
+
+- `sortField`
+
+    `lastReviewedAt` or `lastReportedAt`, which is the default.
+
+- `sortDirection`
+
+    `asc` or `desc`, which is the default.
+
+- `takendown`
+
+    Get subjects that were taken down.
+
+- `limit`
+
+    Minimum of 1, maximum is 100, the default is 50.
+
+- `cursor`
+
+Returns a list of subject statuses as new `At::Lexicon::com::atproto::admin::subjectStatusView` objects on success.
+
+## `admin_searchRepos( [...] )`
+
+```
+$at->admin_searchRepos( 'hydra' );
+```
+
+Find repositories based on a search term.
+
+Expected parameters include:
+
+- `query`
+- `limit`
+
+    Minimum of 1, maximum is 100, the default is 50.
+
+- `cursor`
+
+Returns a list of repos as new `At::Lexicon::com::atproto::admin::repoView` objects on success.
+
+## `admin_sendEmail( ..., [...] )`
+
+```
+$at->admin_sendEmail( 'did:...', 'Hi!', 'did:...' );
+```
+
+Send email to a user's account email address.
+
+Expected parameters include:
+
+- `recipientDid` - required
+- `senderDid` - required
+- `content` - required
+- `subject`
+- `comment`
+
+    Additional comment by the sender that won't be used in the email itself but helpful to provide more context for
+    moderators/reviewers.
+
+Returns a sent status boolean.
+
+## `admin_updateAccountEmail( ... )`
+
+```
+$at->admin_updateAccountEmail( 'atproto2.bsky.social', 'contact@example.com' );
+```
+
+Administrative action to update an account's email.
+
+Expected parameters include:
+
+- `account` - required
+
+    The handle or DID of the repo.
+
+- `email` - required
+
+Returns a true value on success.
+
+## `admin_updateAccountHandle( ... )`
+
+```
+$at->admin_updateAccountHandle( 'did:...', 'atproto2.bsky.social' );
+```
+
+Administrative action to update an account's handle.
+
+Expected parameters include:
+
+- `did` - required
+- `handle` - required
+
+Returns a true value on success.
+
+## `admin_updateSubjectStatus( ..., [...] )`
+
+```
+$at->admin_updateSubjectStatus( ... );
+```
+
+Update the service-specific admin status of a subject (account, record, or blob).
+
+Expected parameters include:
+
+- `subject` - required
+- `takedown`
+
+Returns the subject and takedown objects on success.
+
 # Server Methods
 
 Server methods may require an authorized session.

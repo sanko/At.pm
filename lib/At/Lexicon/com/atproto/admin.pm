@@ -232,6 +232,382 @@ package At::Lexicon::com::atproto::admin 0.02 {
             };
         }
     };
+
+    class At::Lexicon::com::atproto::admin::repoView 1 {
+        field $did : param;                       # DID, required
+        field $handle : param;                    # Handle, required
+        field $email : param;                     # string, required
+        field $relatedRecords : param;            # array, required
+        field $indexedAt : param;                 # datetime, required
+        field $moderation : param;                # ::moderation, required
+        field $invitedBy : param       //= ();    # ::com::atproto::server::inviteCode
+        field $invitesDisabled : param //= ();    # bool
+        field $inviteNote : param      //= ();    # string
+        ADJUST {
+            $did        = At::Protocol::DID->new( uri => $did )                           unless builtin::blessed $did;
+            $handle     = At::Protocol::Handle->new( id => $handle )                      unless builtin::blessed $handle;
+            $indexedAt  = At::Protocol::Timestamp->new( timestamp => $indexedAt )         unless builtin::blessed $indexedAt;
+            $moderation = At::Lexicon::com::atproto::admin::moderation->new(%$moderation) unless builtin::blessed $moderation;
+            $invitedBy  = At::Lexicon::com::atproto::server::inviteCode->new(%$invitedBy) if defined $invitedBy && !builtin::blessed $invitedBy;
+        }
+
+        # perlclass does not have :reader yet
+        method did             {$did}
+        method handle          {$handle}
+        method email           {$email}
+        method relatedRecords  {$relatedRecords}
+        method indexedAt       {$indexedAt}
+        method moderation      {$moderation}
+        method invitedBy       {$invitedBy}
+        method invitesDisabled {$invitesDisabled}
+        method inviteNote      {$inviteNote}
+
+        method _raw() {
+            +{  did            => $did->_raw,
+                handle         => $handle->_raw,
+                email          => $email,
+                relatedRecords => $relatedRecords,
+                indexedAt      => $indexedAt->_raw,
+                moderation     => $moderation->_raw,
+                defined $invitedBy ? ( invitedBy => $invitedBy->_raw ) : (),
+                defined $invitesDisabled ? ( invitesDisabled => \!!$invitesDisabled ) : (), defined $inviteNote ? ( inviteNote => $inviteNote ) : ()
+            };
+        }
+    };
+
+    class At::Lexicon::com::atproto::admin::repoViewDetail 1 {
+        field $did : param;                        # DID, required
+        field $handle : param;                     # Handle, required
+        field $email : param //= ();               # string
+        field $relatedRecords : param;             # array, required
+        field $indexedAt : param;                  # datetime, required
+        field $moderation : param;                 # ::moderationDetail, required
+        field $labels : param           //= ();    # array
+        field $invitedBy : param        //= ();    # ::com::atproto::server::inviteCode
+        field $invites : param          //= ();    # array
+        field $invitesDisabled : param  //= ();    # bool
+        field $inviteNote : param       //= ();    # string
+        field $emailConfirmedAt : param //= ();    # datetime
+        ADJUST {
+            $did              = At::Protocol::DID->new( uri => $did )                                 unless builtin::blessed $did;
+            $handle           = At::Protocol::Handle->new( id => $handle )                            unless builtin::blessed $handle;
+            $indexedAt        = At::Protocol::Timestamp->new( timestamp => $indexedAt )               unless builtin::blessed $indexedAt;
+            $moderation       = At::Lexicon::com::atproto::admin::moderationDetail->new(%$moderation) unless builtin::blessed $moderation;
+            $invitedBy        = At::Lexicon::com::atproto::server::inviteCode->new(%$invitedBy) if defined $invitedBy && !builtin::blessed $invitedBy;
+            $invites          = [ map { At::Lexicon::com::atproto::server::inviteCode->new(%$_) } @$invites ] if defined $invites;
+            $emailConfirmedAt = At::Protocol::Timestamp->new( timestamp => $emailConfirmedAt )
+                if defined $emailConfirmedAt && !builtin::blessed $emailConfirmedAt;
+        }
+
+        # perlclass does not have :reader yet
+        method did              {$did}
+        method handle           {$handle}
+        method email            {$email}
+        method relatedRecords   {$relatedRecords}
+        method indexedAt        {$indexedAt}
+        method moderation       {$moderation}
+        method labels           {$labels}
+        method invitedBy        {$invitedBy}
+        method invites          {$invites}
+        method invitesDisabled  {$invitesDisabled}
+        method inviteNote       {$inviteNote}
+        method emailConfirmedAt {$emailConfirmedAt}
+
+        method _raw() {
+            +{  did    => $did->_raw,
+                handle => $handle->_raw,
+                defined $email ? ( email => $email ) : (),
+                relatedRecords => $relatedRecords,
+                indexedAt      => $indexedAt->_raw,
+                moderation     => $moderation->_raw,
+                defined $labels ? ( labels => [ map { $_->_raw } @$labels ] ) : (), defined $invitedBy ? ( invitedBy => $invitedBy->_raw ) : (),
+                defined $invites          ? ( invites          => [ map { $_->_raw } @$invites ] ) : (),
+                defined $invitesDisabled  ? ( invitesDisabled  => \!!$invitesDisabled )            : (),
+                defined $emailConfirmedAt ? ( emailConfirmedAt => $emailConfirmedAt->_raw )        : ()
+            };
+        }
+    };
+
+    class At::Lexicon::com::atproto::admin::accountView 1 {
+        field $did : param;                        # DID, required
+        field $handle : param;                     # Handle, required
+        field $email : param //= ();               # string
+        field $indexedAt : param;                  # datetime, required
+        field $invitedBy : param        //= ();    # ::com::atproto::server::inviteCode
+        field $invites : param          //= ();    # array
+        field $invitesDisabled : param  //= ();    # bool
+        field $emailConfirmedAt : param //= ();    # datetime
+        field $inviteNote : param       //= ();    # string
+        ADJUST {
+            $did              = At::Protocol::DID->new( uri => $did )                   unless builtin::blessed $did;
+            $handle           = At::Protocol::Handle->new( id => $handle )              unless builtin::blessed $handle;
+            $indexedAt        = At::Protocol::Timestamp->new( timestamp => $indexedAt ) unless builtin::blessed $indexedAt;
+            $invitedBy        = At::Lexicon::com::atproto::server::inviteCode->new(%$invitedBy) if defined $invitedBy && !builtin::blessed $invitedBy;
+            $invites          = [ map { At::Lexicon::com::atproto::server::inviteCode->new(%$_) } @$invites ] if defined $invites;
+            $emailConfirmedAt = At::Protocol::Timestamp->new( timestamp => $emailConfirmedAt )
+                if defined $emailConfirmedAt && !builtin::blessed $emailConfirmedAt;
+        }
+
+        # perlclass does not have :reader yet
+        method did              {$did}
+        method handle           {$handle}
+        method email            {$email}
+        method indexedAt        {$indexedAt}
+        method invitedBy        {$invitedBy}
+        method invites          {$invites}
+        method invitesDisabled  {$invitesDisabled}
+        method emailConfirmedAt {$emailConfirmedAt}
+        method inviteNote       {$inviteNote}
+
+        method _raw() {
+            +{  did    => $did->_raw,
+                handle => $handle->_raw,
+                defined $email ? ( email => $email ) : (),
+                indexedAt => $indexedAt->_raw,
+                defined $invitedBy ? ( invitedBy => $invitedBy->_raw ) : (), defined $invites ? ( invites => [ map { $_->_raw } @$invites ] ) : (),
+                defined $invitesDisabled  ? ( invitesDisabled  => \!!$invitesDisabled )     : (),
+                defined $emailConfirmedAt ? ( emailConfirmedAt => $emailConfirmedAt->_raw ) : (),
+                defined $inviteNote       ? ( inviteNote       => $inviteNote )             : ()
+            };
+        }
+    };
+
+    class At::Lexicon::com::atproto::admin::repoViewNotFound 1 {
+        field $did : param;    # DID, required
+        ADJUST {
+            $did = At::Protocol::DID->new( uri => $did ) unless builtin::blessed $did;
+        }
+
+        # perlclass does not have :reader yet
+        method did {$did}
+
+        method _raw() {
+            +{ did => $did->_raw };
+        }
+    };
+
+    class At::Lexicon::com::atproto::admin::repoRef 1 {
+        field $did : param;    # DID, required
+        ADJUST {
+            $did = At::Protocol::DID->new( uri => $did ) unless builtin::blessed $did;
+        }
+
+        # perlclass does not have :reader yet
+        method did {$did}
+
+        method _raw() {
+            +{ did => $did->_raw };
+        }
+    };
+
+    class At::Lexicon::com::atproto::admin::repoBlobRef 1 {
+        field $did : param;                 # DID, required
+        field $cid : param;                 # CID, required
+        field $recordUri : param //= ();    # at-uri
+        ADJUST {
+            $did       = At::Protocol::DID->new( uri => $did ) unless builtin::blessed $did;
+            $recordUri = URI->new($recordUri) if defined $recordUri && !builtin::blessed $recordUri;
+        }
+
+        # perlclass does not have :reader yet
+        method did       {$did}
+        method cid       {$cid}
+        method recordUri {$recordUri}
+
+        method _raw() {
+            +{ did => $did->_raw, cid => $cid, defined $recordUri ? ( recordUri => $recordUri->as_string ) : () };
+        }
+    };
+
+    class At::Lexicon::com::atproto::admin::recordView 1 {
+        field $uri : param;           # at-uri, required
+        field $cid : param;           # cid, required
+        field $value : param;         # unknown, required
+        field $blobCids : param;      # array, required
+        field $indexedAt : param;     # datetime, required
+        field $moderation : param;    # ::moderation, required
+        field $repo : param;          # ::repoView, required
+        ADJUST {
+            $uri        = URI->new($uri)                                                  unless builtin::blessed $uri;
+            $indexedAt  = At::Protocol::Timestamp->new( timestamp => $indexedAt )         unless builtin::blessed $indexedAt;
+            $moderation = At::Lexicon::com::atproto::admin::moderation->new(%$moderation) unless builtin::blessed $moderation;
+            $repo       = At::Lexicon::com::atproto::admin::repoView->new(%$repo)         unless builtin::blessed $repo;
+        }
+
+        # perlclass does not have :reader yet
+        method uri        {$uri}
+        method cid        {$cid}
+        method value      {$value}
+        method blobCids   {$blobCids}
+        method indexedAt  {$indexedAt}
+        method moderation {$moderation}
+        method repo       {$repo}
+
+        method _raw() {
+            +{  uri        => $uri->as_string,
+                cid        => $cid,
+                value      => $value,
+                blobCids   => $blobCids,
+                indexedAt  => $indexedAt->_raw,
+                moderation => $moderation->_raw,
+                repo       => $repo->_raw
+            };
+        }
+    };
+
+    class At::Lexicon::com::atproto::admin::recordViewDetail 1 {
+        field $uri : param;              # at-uri, required
+        field $cid : param;              # cid, required
+        field $value : param;            # unknown, required
+        field $blobs : param;            # array, required
+        field $labels : param //= ();    # array
+        field $indexedAt : param;        # datetime, required
+        field $moderation : param;       # ::moderationDetail, required
+        field $repo : param;             # ::repoView, required
+        ADJUST {
+            $uri        = URI->new($uri) unless builtin::blessed $uri;
+            $blobs      = [ map { $_ = At::Lexicon::com::atproto::admin::blobView->new(%$_) } @$blobs ];
+            $labels     = [ map { $_ = At::Lexicon::com::atproto::label->new(%$_) } @$labels ] if defined $labels;
+            $indexedAt  = At::Protocol::Timestamp->new( timestamp => $indexedAt )         unless builtin::blessed $indexedAt;
+            $moderation = At::Lexicon::com::atproto::admin::moderation->new(%$moderation) unless builtin::blessed $moderation;
+            $repo       = At::Lexicon::com::atproto::admin::repoView->new(%$repo)         unless builtin::blessed $repo;
+        }
+
+        # perlclass does not have :reader yet
+        method uri        {$uri}
+        method cid        {$cid}
+        method value      {$value}
+        method blobs      {$blobs}
+        method labels     {$labels}
+        method indexedAt  {$indexedAt}
+        method moderation {$moderation}
+        method repo       {$repo}
+
+        method _raw() {
+            +{  uri   => $uri->as_string,
+                cid   => $cid,
+                value => $value,
+                blobs => [ map { $_->_raw } @$blobs ],
+                defined $labels ? ( labels => [ map { $_->_raw } @$labels ] ) : (),
+                indexedAt  => $indexedAt->_raw,
+                moderation => $moderation->_raw,
+                repo       => $repo->_raw
+            };
+        }
+    };
+
+    class At::Lexicon::com::atproto::admin::recordViewNotFound 1 {
+        field $uri : param;    # at-uri, required
+        ADJUST {
+            $uri = URI->new($uri) unless builtin::blessed $uri;
+        }
+
+        # perlclass does not have :reader yet
+        method uri {$uri}
+
+        method _raw() {
+            +{ uri => $uri->as_string };
+        }
+    };
+
+    class At::Lexicon::com::atproto::admin::moderation 1 {
+        field $currentAction : param //= ();    # ::actionViewCurrent
+        ADJUST {
+            $currentAction = At::Lexicon::com::atproto::admin::actionViewCurrent->new(%$currentAction)
+                if defined $currentAction && !builtin::blessed $currentAction;
+        }
+
+        # perlclass does not have :reader yet
+        method currentAction {$currentAction}
+
+        method _raw() {
+            +{ defined $currentAction ? ( currentAction => $currentAction->_raw ) : () };
+        }
+    };
+
+    class At::Lexicon::com::atproto::admin::moderationDetail 1 {
+        field $currentAction : param //= ();    # ::actionViewCurrent
+        field $actions : param;                 # array, required
+        field $reports : param;                 # array, required
+        ADJUST {
+            $currentAction = At::Lexicon::com::atproto::admin::actionViewCurrent->new(%$currentAction)
+                if defined $currentAction && !builtin::blessed $currentAction;
+            $actions = [ map { At::Lexicon::com::atproto::admin::actionView->new(%$_) } @$actions ];
+            $reports = [ map { At::Lexicon::com::atproto::admin::reportView->new(%$_) } @$reports ];
+        }
+
+        # perlclass does not have :reader yet
+        method currentAction {$currentAction}
+        method actions       {$actions}
+        method reports       {$reports}
+
+        method _raw() {
+            +{  defined $currentAction ? ( currentAction => $currentAction->_raw ) : (),
+                actions => [ map { $_->_raw } @$actions ],
+                reports => [ map { $_->_raw } @$reports ]
+            };
+        }
+    };
+
+    class At::Lexicon::com::atproto::admin::blobView 1 {
+        field $cid : param;                  # cid, required
+        field $mimeType : param;             # string, required
+        field $size : param;                 # int, required
+        field $createdAt : param;            # datetime, required
+        field $details : param    //= ();    # union
+        field $moderation : param //= ();    # ::moderation
+        ADJUST {
+            $createdAt = At::Protocol::Timestamp->new( timestamp => $createdAt ) unless builtin::blessed $createdAt;
+            $details   = At::_topkg( $details->{'$type'} )->new(%$details)
+                if defined $details && !builtin::blessed $details && defined $details->{'$type'};
+            $moderation = At::Lexicon::com::atproto::admin::moderation->new(%$moderation) if defined $moderation && !builtin::blessed $moderation;
+        }
+
+        # perlclass does not have :reader yet
+        method cid        {$cid}
+        method mimeType   {$mimeType}
+        method size       {$size}
+        method createdAt  {$createdAt}
+        method details    {$details}
+        method moderation {$moderation}
+
+        method _raw() {
+            +{  cid       => $cid,
+                mimeType  => $mimeType->_raw,
+                size      => $size,
+                createdAt => $createdAt->_raw,
+                defined $details ? ( details => $details->_raw ) : (), defined $moderation ? ( moderation => $moderation->_raw ) : ()
+            };
+        }
+    };
+
+    class At::Lexicon::com::atproto::admin::imageDetails 1 {
+        field $width : param;     # int, required
+        field $height : param;    # int, required
+
+        # perlclass does not have :reader yet
+        method width  {$width}
+        method height {$height}
+
+        method _raw() {
+            +{ witdh => $width, height => $height };
+        }
+    };
+
+    class At::Lexicon::com::atproto::admin::videoDetails 1 {
+        field $width : param;     # int, required
+        field $height : param;    # int, required
+        field $length : param;    # int, required
+
+        # perlclass does not have :reader yet
+        method width  {$width}
+        method height {$height}
+        method length {$length}
+
+        method _raw() {
+            +{ witdh => $width, height => $height, length => $length };
+        }
+    };
 }
 1;
 __END__

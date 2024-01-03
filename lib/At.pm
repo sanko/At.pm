@@ -320,24 +320,261 @@ package At 0.02 {
 
         #~ class At::Lexicon::AtProto::Admin
         {
-            #~ field $self : param;
-            #~ field $did : param;
-            #~ method did {$did}
-            #~ ADJUST {
-            #~ $did = At::Protocol::DID->new( uri => $did ) unless builtin::blessed $did
-            #~ }
-            method disableAccountInvites (%args) {
-                use Carp qw[confess];
-                $self->http->session // confess 'creating a post requires an authenticated client';
+
+            method admin_deleteAccount ($did) {
+                $self->http->session // Carp::confess 'requires an authenticated client';
                 my $res
-                    = $self->http->post( sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.admin.disableAccountInvites' ), { content => \%args } );
+                    = $self->http->post( sprintf( '%s/xrpc/%s', $self->host, 'com.atproto.admin.deleteAccount' ), { content => +{ did => $did } } );
+                $res->{success};
+            }
+
+            method admin_disableAccountInvites ( $account, $note //= () ) {
+                $self->http->session // Carp::confess 'requires an authenticated client';
+                my $res = $self->http->post(
+                    sprintf( '%s/xrpc/%s', $self->host, 'com.atproto.admin.disableAccountInvites' ),
+                    { content => +{ account => $account, defined $note ? ( note => $note ) : () } }
+                );
+                $res->{success};
+            }
+
+            method admin_disableInviteCodes ( $codes //= (), $accounts //= () ) {
+                $self->http->session // Carp::confess 'requires an authenticated client';
+                my $res = $self->http->post( sprintf( '%s/xrpc/%s', $self->host, 'com.atproto.admin.disableInviteCodes' ),
+                    { content => +{ defined $codes ? ( codes => $codes ) : (), defined $accounts ? ( accounts => $accounts ) : () } } );
+                $res->{success};
+            }
+
+            method admin_emitModerationEvent ( $event, $subject, $createdBy, $subjectBlobCids //= () ) {
+                $self->http->session // Carp::confess 'requires an authenticated client';
+                $event     = At::_topkg( $event->{'$type'} )->new(%$event)     if !builtin::blessed $event   && defined $event->{'$type'};
+                $subject   = At::_topkg( $subject->{'$type'} )->new(%$subject) if !builtin::blessed $subject && defined $subject->{'$type'};
+                $createdBy = At::Protocol::DID->new( uri => $createdBy ) unless builtin::blessed $createdBy;
+                my $res = $self->http->post(
+                    sprintf( '%s/xrpc/%s', $self->host, 'com.atproto.admin.emitModerationEvent' ),
+                    {   content => +{
+                            event     => $event->_raw,
+                            subject   => $subject->_raw,
+                            createdBy => $createdBy->_raw,
+                            defined $subjectBlobCids ? ( subjectBlobCids => $subjectBlobCids ) : ()
+                        }
+                    }
+                );
+                $res = At::Lexicon::com::atproto::admin::modEventView->new(%$res) if defined $res;
                 $res;
             }
 
-            method disableInviteCodes (%args) {
-                use Carp qw[confess];
-                $self->http->session // confess 'creating a post requires an authenticated client';
-                my $res = $self->http->post( sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.admin.disableInviteCodes' ), { content => \%args } );
+            method admin_enableAccountInvites ( $account, $note //= () ) {
+                $self->http->session // Carp::confess 'requires an authenticated client';
+                my $res = $self->http->post(
+                    sprintf( '%s/xrpc/%s', $self->host, 'com.atproto.admin.enableAccountInvites' ),
+                    { content => +{ account => $account, defined $note ? ( note => $note ) : (), } }
+                );
+                $res->{success};
+            }
+
+            method admin_getAccountInfo ($did) {
+                $self->http->session // Carp::confess 'requires an authenticated client';
+                my $res
+                    = $self->http->get( sprintf( '%s/xrpc/%s', $self->host, 'com.atproto.admin.getAccountInfo' ), { content => +{ did => $did } } );
+                $res = At::Lexicon::com::atproto::admin::accountView->new(%$res) if defined $res;
+                $res;
+            }
+
+            method admin_getInviteCodes ( $sort //= (), $limit //= (), $cursor //= () ) {
+                $self->http->session // Carp::confess 'requires an authenticated client';
+                my $res = $self->http->get(
+                    sprintf( '%s/xrpc/%s', $self->host, 'com.atproto.admin.getInviteCodes' ),
+                    {   content => +{
+                            defined $sort   ? ( sort   => $sort )   : (),
+                            defined $limit  ? ( limit  => $limit )  : (),
+                            defined $cursor ? ( cursor => $cursor ) : ()
+                        }
+                    }
+                );
+                $res->{codes} = [ map { At::Lexicon::com::atproto::server::inviteCode->new(%$_) } @{ $res->{codes} } ] if defined $res->{codes};
+                $res;
+            }
+
+            method admin_getModerationEvent ($id) {
+                $self->http->session // Carp::confess 'requires an authenticated client';
+                my $res
+                    = $self->http->get( sprintf( '%s/xrpc/%s', $self->host, 'com.atproto.admin.getModerationEvent' ), { content => +{ id => $id } } );
+                $res = At::Lexicon::com::atproto::admin::modEventViewDetail->new(%$res) if defined $res;
+                $res;
+            }
+
+            method admin_getRecord ( $uri, $cid //= () ) {
+                $self->http->session // Carp::confess 'requires an authenticated client';
+                my $res = $self->http->get(
+                    sprintf( '%s/xrpc/%s', $self->host, 'com.atproto.admin.getRecord' ),
+                    { content => +{ uri => $uri, defined $cid ? ( cid => $cid ) : () } }
+                );
+                $res = At::Lexicon::com::atproto::admin::recordViewDetail->new(%$res) if defined $res;
+                $res;
+            }
+
+            method admin_getRepo ($did) {
+                $self->http->session // Carp::confess 'requires an authenticated client';
+                my $res = $self->http->get( sprintf( '%s/xrpc/%s', $self->host, 'com.atproto.admin.getRepo' ), { content => +{ did => $did } } );
+                $res = At::Lexicon::com::atproto::admin::repoViewDetail->new(%$res) if defined $res;
+                $res;
+            }
+
+            method admin_getSubjectStatus ( $did //= (), $uri //= (), $blob //= () ) {
+                $self->http->session // Carp::confess 'requires an authenticated client';
+                my $res = $self->http->get(
+                    sprintf( '%s/xrpc/%s', $self->host, 'com.atproto.admin.getSubjectStatus' ),
+                    {   content =>
+                            +{ defined $did ? ( did => $did ) : (), defined $uri ? ( uri => $uri ) : (), defined $blob ? ( blob => $blob ) : () }
+                    }
+                );
+                $res->{subject} = At::_topkg( $res->{subject}->{'$type'} )->new( %{ $res->{subject} } )
+                    if defined $res->{subject} && !builtin::blessed $res->{subject} && defined $res->{subject}->{'$type'};
+                $res->{takedown} = At::Lexicon::com::atproto::admin::statusAttr->new( %{ $res->{takedown} } ) if defined $res->{takedown};
+                $res;
+            }
+
+            method admin_queryModerationEvents (
+                $types                 //= (),
+                $createdBy             //= (),
+                $sortDirection         //= (),
+                $subject               //= (),
+                $includeUsed           //= (),
+                $includeAllUserRecords //= (),
+                $limit                 //= (),
+                $cursor                //= ()
+            ) {
+                $self->http->session // Carp::confess 'requires an authenticated client';
+                $createdBy = At::Protocol::DID->new( uri => $createdBy ) if defined $createdBy && !builtin::blessed $createdBy;
+                $subject   = URI->new($subject)                          if defined $subject   && !builtin::blessed $subject;
+                my $res = $self->http->get(
+                    sprintf( '%s/xrpc/%s', $self->host, 'com.atproto.admin.queryModerationEvents' ),
+                    {   content => +{
+                            defined $types                 ? ( types                 => $types )                 : (),
+                            defined $createdBy             ? ( createdBy             => $createdBy->_raw )       : (),
+                            defined $sortDirection         ? ( sortDirection         => $sortDirection )         : (),
+                            defined $subject               ? ( subject               => $subject->as_string )    : (),
+                            defined $includeAllUserRecords ? ( includeAllUserRecords => $includeAllUserRecords ) : (),
+                            defined $limit                 ? ( limit                 => $limit )                 : (),
+                            defined $cursor                ? ( cursor                => $cursor )                : ()
+                        }
+                    }
+                );
+                $res->{events} = [ map { At::Lexicon::com::atproto::admin::modEventView->new(%$_) } @{ $res->{events} } ] if defined $res->{events};
+                $res;
+            }
+
+            method admin_queryModerationStatuses (
+                $subject        //= (),
+                $comment        //= (),
+                $reportedAfter  //= (),
+                $reportedBefore //= (),
+                $reviewedAfter  //= (),
+                $reviewedBefore //= (),
+                $includeMuted   //= (),
+                $reviewState    //= (),
+                $ignoreSubjects //= (),
+                $lastReviewedBy //= (),
+                $sortField      //= (),
+                $sortDirection  //= (),
+                $takendown      //= (),
+                $limit          //= (),
+                $cursor         //= ()
+            ) {
+                $self->http->session // Carp::confess 'requires an authenticated client';
+                $subject       = URI->new($subject) if defined $subject && !builtin::blessed $subject;
+                $reportedAfter = At::Protocol::Timestamp->new( timestamp => $reportedAfter )
+                    if defined $reportedAfter && !builtin::blessed $reportedAfter;
+                $reportedBefore = At::Protocol::Timestamp->new( timestamp => $reportedBefore )
+                    if defined $reportedBefore && !builtin::blessed $reportedBefore;
+                $reviewedAfter = At::Protocol::Timestamp->new( timestamp => $reviewedAfter )
+                    if defined $reviewedAfter && !builtin::blessed $reviewedAfter;
+                $reviewedBefore = At::Protocol::Timestamp->new( timestamp => $reviewedBefore )
+                    if defined $reviewedBefore && !builtin::blessed $reviewedBefore;
+                $ignoreSubjects = [ map { $_ = URI->new($_) unless builtin::blessed $_ } @{$ignoreSubjects} ];
+                $lastReviewedBy = At::Protocol::DID->new( uri => $lastReviewedBy ) if defined $lastReviewedBy && !builtin::blessed $lastReviewedBy;
+                my $res = $self->http->get(
+                    sprintf( '%s/xrpc/%s', $self->host, 'com.atproto.admin.queryModerationStatuses' ),
+                    {   content => +{
+                            defined $subject        ? ( subject        => $subject->as_string )                        : (),
+                            defined $comment        ? ( comment        => $comment )                                   : (),
+                            defined $reportedAfter  ? ( reportedAfter  => $reportedAfter->_raw )                       : (),
+                            defined $reportedBefore ? ( reportedBefore => $reportedBefore->_raw )                      : (),
+                            defined $reviewedAfter  ? ( reviewedAfter  => $reviewedAfter->_raw )                       : (),
+                            defined $reviewedBefore ? ( reviewedBefore => $reviewedBefore->_raw )                      : (),
+                            defined $includeMuted   ? ( includeMuted   => \!!$includeMuted )                           : (),
+                            defined $reviewState    ? ( reviewState    => $reviewState )                               : (),
+                            defined $ignoreSubjects ? ( ignoreSubjects => [ map { $_->as_string } @$ignoreSubjects ] ) : (),
+                            defined $lastReviewedBy ? ( lastReviewedBy => $lastReviewedBy->_raw )                      : (),
+                            defined $sortField      ? ( sortField      => $sortField )                                 : (),
+                            defined $sortDirection  ? ( sortDirection  => $sortDirection )                             : (),
+                            defined $takendown      ? ( takendown      => \!!$takendown )                              : (),
+                            defined $limit          ? ( limit          => $limit )                                     : (),
+                            defined $cursor         ? ( cursor         => $cursor )                                    : ()
+                        }
+                    }
+                );
+                $res->{subjectStatuses} = [ map { At::Lexicon::com::atproto::admin::subjectStatusView->new(%$_) } @{ $res->{subjectStatuses} } ]
+                    if defined $res->{subjectStatuses};
+                $res;
+            }
+
+            method admin_searchRepos ( $query //= (), $limit //= (), $cursor //= () ) {
+                $self->http->session // Carp::confess 'requires an authenticated client';
+                my $res = $self->http->get(
+                    sprintf( '%s/xrpc/%s', $self->host, 'com.atproto.admin.searchRepos' ),
+                    {   content => +{
+                            defined $query  ? ( q      => $query )  : (),
+                            defined $limit  ? ( limit  => $limit )  : (),
+                            defined $cursor ? ( cursor => $cursor ) : ()
+                        }
+                    }
+                );
+                $res->{repos} = [ map { At::Lexicon::com::atproto::admin::repoView->new(%$_) } @{ $res->{repos} } ] if defined $res->{repos};
+                $res;
+            }
+
+            method admin_sendEmail ( $recipientDid, $senderDid, $content, $subject //= (), $comment //= () ) {
+                $self->http->session // Carp::confess 'requires an authenticated client';
+                $recipientDid = At::Protocol::DID->new( uri => $recipientDid ) unless builtin::blessed $recipientDid;
+                $senderDid    = At::Protocol::DID->new( uri => $senderDid )    unless builtin::blessed $senderDid;
+                my $res = $self->http->get(
+                    sprintf( '%s/xrpc/%s', $self->host, 'com.atproto.admin.sendEmail' ),
+                    {   content => +{
+                            recipientDid => $recipientDid->_raw,
+                            senderDid    => $senderDid->_raw,
+                            content      => $content,
+                            defined $subject ? ( subject => $subject ) : (), defined $comment ? ( comment => $comment ) : ()
+                        }
+                    }
+                );
+                $res;
+            }
+
+            method admin_updateAccountEmail ( $account, $email ) {
+                $self->http->session // Carp::confess 'requires an authenticated client';
+                my $res = $self->http->post( sprintf( '%s/xrpc/%s', $self->host, 'com.atproto.admin.updateAccountEmail' ),
+                    { content => +{ account => $account, email => $email } } );
+                $res->{success};
+            }
+
+            method admin_updateAccountHandle ( $did, $handle ) {
+                $self->http->session // Carp::confess 'requires an authenticated client';
+                $did = At::Protocol::DID->new( uri => $did ) if defined $did && !builtin::blessed $did;
+                my $res = $self->http->post( sprintf( '%s/xrpc/%s', $self->host, 'com.atproto.admin.updateAccountHandle' ),
+                    { content => +{ did => $did->_raw, handle => $handle } } );
+                $res->{success};
+            }
+
+            method admin_updateSubjectStatus ( $subject, $takedown //= () ) {
+                $self->http->session // Carp::confess 'requires an authenticated client';
+                $subject  = At::_topkg( $subject->{'$type'} )->new(%$subject)        if !builtin::blessed $subject && defined $subject->{'$type'};
+                $takedown = At::Lexicon::com::atproto::admin::statusAttr->new(%$did) if defined $takedown          && !builtin::blessed $takedown;
+                my $res = $self->http->post( sprintf( '%s/xrpc/%s', $self->host, 'com.atproto.admin.updateSubjectStatus' ),
+                    { content => +{ subject => $subject->_raw, defined $takedown ? ( takedown => $takedown->_raw ) : () } } );
+                $res->{subject} = At::_topkg( $res->{subject}{'$type'} )->new( %{ $res->{subject} } )
+                    if !builtin::blessed $res->{subject} && defined $res->{subject}{'$type'};
+                $res->{takedown} = At::Lexicon::com::atproto::admin::statusAttr->new( %{ $res->{takedown} } ) if defined $res->{takedown};
                 $res;
             }
         }
@@ -529,7 +766,11 @@ package At 0.02 {
 
                         #~ say 'Subprotocol negotiation failed!' and return unless $tx->protocol;
                         #~ $tx->send({json => {test => [1, 2, 3]}});
-                        $tx->on( finish => sub ( $tx, $code, $reason ) { say "WebSocket closed with status $code." } );
+                        $tx->on(
+                            finish => sub ( $tx, $code, $reason ) {
+                                say "WebSocket closed with status $code.";
+                            }
+                        );
                         state $decoder //= CBOR::Free::SequenceDecoder->new()->set_tag_handlers( 42 => sub { } );
 
                         #~ $tx->on(json => sub ($ws, $hash) { say "Message: $hash->{msg}" });
@@ -738,6 +979,423 @@ The NSID of the record collection.
 Depending on the type of record, this could be anything. It's undefined in the protocol itself.
 
 =back
+
+=head1 Admin Methods
+
+These should only be called by a member of the server's administration team.
+
+=head2 C<admin_deleteAccount( ... )>
+
+    $at->admin_deleteAccount( 'did://...' );
+
+Delete a user account as an administrator.
+
+Expected parameters include:
+
+=over
+
+=item C<did> - required
+
+=back
+
+Returns a true value on success.
+
+=head2 C<admin_disableAccountInvites( ..., [...] )>
+
+    $at->admin_disableAccountInvites( 'did://...' );
+
+Disable an account from receiving new invite codes, but does not invalidate existing codes.
+
+Expected parameters include:
+
+=over
+
+=item C<account> - required
+
+=item C<note>
+
+Optional reason for disabled invites.
+
+=back
+
+Returns a true value on success.
+
+=head2 C<admin_emitModerationEvent( ..., [...] )>
+
+    $at->admin_emitModerationEvent( ... );
+
+Take a moderation action on an actor.
+
+Expected parameters include:
+
+=over
+
+=item C<event> - required
+
+=item C<subject> - required
+
+=item C<createdBy> - required
+
+=item C<subjectBlobCids>
+
+=back
+
+Returns a new C<At::Lexicon::com::atproto::admin::modEventView> object on success.
+
+=head2 C<admin_enableAccountInvites( ..., [...] )>
+
+    $at->admin_enableAccountInvites( 'did://...' );
+
+Re-enable an account's ability to receive invite codes.
+
+Expected parameters include:
+
+=over
+
+=item C<account> - required
+
+=item C<note>
+
+Optional reason for enabled invites.
+
+=back
+
+Returns a true value on success.
+
+=head2 C<admin_getAccountInfo( ..., [...] )>
+
+    $at->admin_getAccountInfo( 'did://...' );
+
+Get details about an account.
+
+Expected parameters include:
+
+=over
+
+=item C<did> - required
+
+=back
+
+Returns a new C<At::Lexicon::com::atproto::admin::accountView> object on success.
+
+=head2 C<admin_getInviteCodes( [...] )>
+
+    $at->admin_getInviteCodes( );
+
+Get an admin view of invite codes.
+
+Expected parameters include:
+
+=over
+
+=item C<sort>
+
+Order to sort the codes: 'recent' or 'usage' with 'recent' being the default.
+
+=item C<limit>
+
+How many codes to return. Minimum of 1, maximum of 500, default of 100.
+
+=item C<cursor>
+
+=back
+
+Returns a new C<At::Lexicon::com::atproto::server::inviteCode> object on success.
+
+=head2 C<admin_getModerationEvent( ... )>
+
+    $at->admin_getModerationEvent( 77736393829 );
+
+Get details about a moderation event.
+
+Expected parameters include:
+
+=over
+
+=item C<id> - required
+
+=back
+
+Returns a new C<At::Lexicon::com::atproto::admin::modEventViewDetail> object on success.
+
+=head2 C<admin_getRecord( ..., [...] )>
+
+    $at->admin_getRecord( 'at://...' );
+
+Get details about a record.
+
+Expected parameters include:
+
+=over
+
+=item C<uri> - required
+
+=item C<cid>
+
+=back
+
+Returns a new C<At::Lexicon::com::atproto::admin::recordViewDetail> object on success.
+
+=head2 C<admin_getRepo( ... )>
+
+    $at->admin_getRepo( 'did:...' );
+
+Get details about a repository.
+
+Expected parameters include:
+
+=over
+
+=item C<did> - required
+
+=back
+
+Returns a new C<At::Lexicon::com::atproto::admin::repoViewDetail> object on success.
+
+=head2 C<admin_getSubjectStatus( [...] )>
+
+    $at->admin_getSubjectStatus( 'did:...' );
+
+Get details about a repository.
+
+Expected parameters include:
+
+=over
+
+=item C<did>
+
+=item C<uri>
+
+=item C<blob>
+
+=back
+
+Returns a subject and, optionally, the takedown reason as a new C<At::Lexicon::com::atproto::admin::statusAttr> object
+on success.
+
+=head2 C<admin_queryModerationEvents( [...] )>
+
+    $at->admin_queryModerationEvents( 'did:...' );
+
+List moderation events related to a subject.
+
+Expected parameters include:
+
+=over
+
+=item C<types>
+
+The types of events (fully qualified string in the format of com.atproto.admin#modEvent<name>) to filter by. If not
+specified, all events are returned.
+
+=item C<createdBy>
+
+=item C<sortDirection>
+
+Sort direction for the events. C<asc> or C<desc>. Defaults to descending order of created at timestamp.
+
+=item C<subject>
+
+=item C<includeAllUserRecords>
+
+If true, events on all record types (posts, lists, profile etc.) owned by the did are returned.
+
+=item C<limit>
+
+Minimum is 1, maximum is 100, 50 is the default.
+
+=item C<cursor>
+
+=back
+
+Returns a list of events as new C<At::Lexicon::com::atproto::admin::modEventView> objects on success.
+
+=head2 C<admin_queryModerationStatuses( [...] )>
+
+    $at->admin_queryModerationStatuses( 'did:...' );
+
+List moderation events related to a subject.
+
+Expected parameters include:
+
+=over
+
+=item C<subject>
+
+=item C<comment>
+
+Search subjects by keyword from comments.
+
+=item C<reportedAfter>
+
+Search subjects reported after a given timestamp.
+
+=item C<reportedBefore>
+
+Search subjects reported before a given timestamp.
+
+=item C<reviewedAfter>
+
+Search subjects reviewed after a given timestamp.
+
+=item C<reviewedBefore>
+
+Search subjects reviewed before a given timestamp.
+
+=item C<includeMuted>
+
+By default, we don't include muted subjects in the results. Set this to true to include them.
+
+=item C<reviewState>
+
+Specify when fetching subjects in a certain state.
+
+=item C<ignoreSubjects>
+
+=item C<lastReviewedBy>
+
+Get all subject statuses that were reviewed by a specific moderator.
+
+=item C<sortField>
+
+C<lastReviewedAt> or C<lastReportedAt>, which is the default.
+
+=item C<sortDirection>
+
+C<asc> or C<desc>, which is the default.
+
+=item C<takendown>
+
+Get subjects that were taken down.
+
+=item C<limit>
+
+Minimum of 1, maximum is 100, the default is 50.
+
+=item C<cursor>
+
+=back
+
+Returns a list of subject statuses as new C<At::Lexicon::com::atproto::admin::subjectStatusView> objects on success.
+
+=head2 C<admin_searchRepos( [...] )>
+
+    $at->admin_searchRepos( 'hydra' );
+
+Find repositories based on a search term.
+
+Expected parameters include:
+
+=over
+
+=item C<query>
+
+=item C<limit>
+
+Minimum of 1, maximum is 100, the default is 50.
+
+=item C<cursor>
+
+=back
+
+Returns a list of repos as new C<At::Lexicon::com::atproto::admin::repoView> objects on success.
+
+=head2 C<admin_sendEmail( ..., [...] )>
+
+    $at->admin_sendEmail( 'did:...', 'Hi!', 'did:...' );
+
+Send email to a user's account email address.
+
+Expected parameters include:
+
+=over
+
+=item C<recipientDid> - required
+
+=item C<senderDid> - required
+
+=item C<content> - required
+
+=item C<subject>
+
+=item C<comment>
+
+Additional comment by the sender that won't be used in the email itself but helpful to provide more context for
+moderators/reviewers.
+
+=back
+
+Returns a sent status boolean.
+
+=head2 C<admin_updateAccountEmail( ... )>
+
+    $at->admin_updateAccountEmail( 'atproto2.bsky.social', 'contact@example.com' );
+
+Administrative action to update an account's email.
+
+Expected parameters include:
+
+=over
+
+=item C<account> - required
+
+The handle or DID of the repo.
+
+=item C<email> - required
+
+=back
+
+Returns a true value on success.
+
+=head2 C<admin_updateAccountHandle( ... )>
+
+    $at->admin_updateAccountHandle( 'did:...', 'atproto2.bsky.social' );
+
+Administrative action to update an account's handle.
+
+Expected parameters include:
+
+=over
+
+=item C<did> - required
+
+=item C<handle> - required
+
+=back
+
+Returns a true value on success.
+
+=head2 C<admin_updateSubjectStatus( ..., [...] )>
+
+    $at->admin_updateSubjectStatus( ... );
+
+Update the service-specific admin status of a subject (account, record, or blob).
+
+Expected parameters include:
+
+=over
+
+=item C<subject> - required
+
+=item C<takedown>
+
+=back
+
+Returns the subject and takedown objects on success.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 =head1 Server Methods
 
