@@ -579,6 +579,27 @@ package At 0.02 {
             }
         }
 
+        #~ class At::Lexicon::AtProto::Identity
+        {
+
+            method resolveHandle ($handle) {
+
+                #~ $self->http->session // Carp::confess 'requires an authenticated client';
+                my $res = $self->http->get( sprintf( '%s/xrpc/%s', $self->host, 'com.atproto.identity.resolveHandle' ),
+                    { content => +{ handle => $handle } } );
+                $res->{did} = At::Protocol::DID->new( uri => $res->{did} ) if defined $res->{did};
+                $res;
+            }
+
+            method updateHandle ($handle) {
+                $self->http->session // Carp::confess 'requires an authenticated client';
+                $did = At::Protocol::DID->new( uri => $did ) if defined $did && !builtin::blessed $did;
+                my $res = $self->http->post( sprintf( '%s/xrpc/%s', $self->host, 'com.atproto.identity.updateHandle' ),
+                    { content => +{ handle => $handle } } );
+                $res->{success};
+            }
+        }
+
         class At::Protocol::DID {    # https://atproto.com/specs/did
             field $uri : param;
             ADJUST {
@@ -1383,12 +1404,43 @@ Expected parameters include:
 
 Returns the subject and takedown objects on success.
 
+=head1 Identity Methods
 
+These methods allow you to quickly update or gather information about a repository.
 
+=head2 C<resolveHandle( ... )>
 
+    $at->resolveHandle( 'atproto.bsky.social' );
 
+Provides the DID of a repo.
 
+Expected parameters include:
 
+=over
+
+=item C<handle> - required
+
+The handle to resolve.
+
+=back
+
+Returns the DID on success.
+
+=head2 C<updateHandle( ... )>
+
+    $at->updateHandle( 'atproto.bsky.social' );
+
+Updates the handle of the account.
+
+Expected parameters include:
+
+=over
+
+=item C<handle> - required
+
+=back
+
+Returns a true value on success.
 
 
 

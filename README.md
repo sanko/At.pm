@@ -470,6 +470,40 @@ Expected parameters include:
 
 Returns the subject and takedown objects on success.
 
+# Identity Methods
+
+These methods allow you to quickly update or gather information about a repository.
+
+## `resolveHandle( ... )`
+
+```
+$at->resolveHandle( 'atproto.bsky.social' );
+```
+
+Provides the DID of a repo.
+
+Expected parameters include:
+
+- `handle` - required
+
+    The handle to resolve.
+
+Returns the DID on success.
+
+## `updateHandle( ... )`
+
+```
+$at->updateHandle( 'atproto.bsky.social' );
+```
+
+Updates the handle of the account.
+
+Expected parameters include:
+
+- `handle` - required
+
+Returns a true value on success.
+
 # Server Methods
 
 Server methods may require an authorized session.
