@@ -300,11 +300,24 @@ package At 0.02 {
                 return $class;
             }
 
+            method applyWrites ( $repo, $writes, $validate //= (), $swapCommit //= () ) {
+                $self->http->session // Carp::confess 'requires an authenticated client';
+                my $res = $self->http->post(
+                    sprintf( '%s/xrpc/%s', $self->host, 'com.atproto.repo.applyWrites' ),
+                    {   content => +{
+                            repo   => $repo,
+                            writes => $writes,
+                            defined $validate ? ( validate => $validate ) : (), defined $swapCommit ? ( swapCommit => $swapCommit ) : ()
+                        }
+                    }
+                );
+                $res->{success};
+            }
+
             method createRecord (%args) {    # https://atproto.com/blog/create-post
                 use Carp qw[confess];
                 if ( !builtin::blessed $args{record} ) {
                     my $package = _mangle( $args{record}{'$type'} );
-                    delete $args{record}{'$type'};
                     $args{record} = $package->new( %{ $args{record} } )->_raw;
                 }
                 $self->http->session // confess 'creating a post requires an authenticated client';
