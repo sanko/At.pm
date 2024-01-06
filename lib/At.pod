@@ -10,8 +10,9 @@ At - The AT Protocol for Social Networking
     my $at = At->new( host => 'https://fun.example' );
     $at->createSession( 'sanko', '1111-aaaa-zzzz-0000' );
     $at->createRecord(
-        collection => 'app.bsky.feed.post',
-        record     => { '$type' => 'app.bsky.feed.post', text => 'Hello world! I posted this via the API.', createdAt => time }
+        $at->did,
+        'app.bsky.feed.post',
+        { '$type' => 'app.bsky.feed.post', text => 'Hello world! I posted this via the API.', createdAt => time }
     );
 
 =head1 DESCRIPTION
@@ -139,9 +140,9 @@ The DID of the repo.
 
 Returns the revision and cid on success.
 
-=head2 C<getRecord( ..., [...] )>
+=head2 C<sync_getRecord( ..., [...] )>
 
-    $at->getRecord( 'did...', ... );
+    $at->sync_getRecord( 'did...', ... );
 
 Get blocks needed for existence or non-existence of record.
 
@@ -520,14 +521,123 @@ The handle or DID of the repo.
 On success, returns the repo's handle, did, a didDoc, a list of supported collections, a flag indicating whether or not
 the handle is correct.
 
+=head2 C<getRecord( ..., [...] )>
 
+    $at->getRecord( $at->did, 'app.bsky.feed.post', '3kiburrigys27' );
 
+Get a record.
 
+Expected parameters include:
 
+=over
 
+=item C<repo> - required
 
+The handle or DID of the repo.
 
+=item C<collection> - required
 
+The NSID of the record collection.
+
+=item C<rkey> - required
+
+The key of the record.
+
+=item C<cid>
+
+The CID of the version of the record. If not specified, then return the most recent version.
+
+=back
+
+Returns the uri, value, and, optionally, cid of the requested record on success.
+
+=head2 C<listRecords( ..., [...] )>
+
+    $at->listRecords( $at->did, 'app.bsky.feed.post' );
+
+List a range of records in a collection.
+
+Expected parameters include:
+
+=over
+
+=item C<repo> - required
+
+The handle or DID of the repo.
+
+=item C<collection> - required
+
+The NSID of the record type.
+
+=item C<limit>
+
+The number of records to return.
+
+Maximum is 100, minimum is 1, default is 50.
+
+=item C<reverse>
+
+Flag to reverse the order of the returned records.
+
+=item C<cursor>
+
+=back
+
+=head2 C<putRecord( ..., [...] )>
+
+    $at->putRecord( $at->did, 'app.bsky.feed.post', 'aaaaaaaaaaaaaaa', {...} );
+
+Write a record, creating or updating it as needed.
+
+Expected parameters include:
+
+=over
+
+=item C<repo> - required
+
+The handle or DID of the repo.
+
+=item C<collection> - required
+
+The NSID of the record collection.
+
+=item C<rkey> - required
+
+The key of the record.
+
+=item C<record> - required
+
+The record to write.
+
+=item C<validate>
+
+Flag for validating the record.
+
+=item C<swapRecord>
+
+Compare and swap with the previous record by CID.
+
+=item C<swapCommit>
+
+Compare and swap with the previous commit by CID.
+
+=back
+
+Returns the record's uri and cid on success.
+
+=head2 C<uploadBlob( ... )>
+
+Upload a new blob to be added to repo in a later request.
+
+Expected parameters include:
+
+=over
+
+=item C<blob> - required
+
+=back
+
+Returns the blob on success.
 
 =head1 Admin Methods
 

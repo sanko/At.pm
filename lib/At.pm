@@ -466,6 +466,63 @@ package At 0.02 {
                 $res->{did}    = At::Protocol::DID->new( uri => $res->{did} )      if defined $res->{did};
                 $res;
             }
+
+            method getRecord ( $repo, $collection, $rkey, $cid //= () ) {
+                $self->http->session // confess 'creating a post requires an authenticated client';
+                $repo = At::Protocol::DID->new( uri => $repo ) unless builtin::blessed $repo;
+                my $res = $self->http->get( sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.repo.getRecord' ),
+                    { content => +{ repo => $did->_raw, collection => $collection, rkey => $rkey, defined $cid ? ( cid => $cid ) : () } } );
+                $res->{uri}   = URI->new( $res->{uri} ) if defined $res->{uri};
+                $res->{value} = At::_topkg( $res->{value}{'$type'} )->new( %{ $res->{value} } )
+                    if defined $res->{value} && defined $res->{value}{'$type'};
+                $res;
+            }
+
+            method listRecords ( $repo, $collection, $limit //= (), $reverse //= (), $cursor //= () ) {
+                $self->http->session // confess 'creating a post requires an authenticated client';
+                $repo = At::Protocol::DID->new( uri => $repo ) unless builtin::blessed $repo;
+                my $res = $self->http->get(
+                    sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.repo.listRecords' ),
+                    {   content => +{
+                            repo       => $did->_raw,
+                            collection => $collection,
+                            defined $limit ? ( limit => $limit ) : (), defined $reverse ? ( reverse => \!!$reverse ) : (),
+                            defined $cursor ? ( cursor => $cursor ) : ()
+                        }
+                    }
+                );
+                $res->{records} = [ map { At::Lexicon::com::atproto::repo::listRecords::record->new(%$_) } @{ $res->{records} } ]
+                    if defined $res->{records};
+                $res;
+            }
+
+            method putRecord ( $repo, $collection, $rkey, $record, $validate //= (), $swapRecord //= (), $swapCommit //= () ) {
+                $self->http->session // confess 'creating a post requires an authenticated client';
+                confess 'rkey is too long' if length $rkey > 15;
+                $repo   = At::Protocol::DID->new( uri => $repo ) unless builtin::blessed $repo;
+                $record = At::_topkg( $record->{'$type'} )->new(%$record) if !builtin::blessed $record && defined $record->{'$type'};
+                my $res = $self->http->post(
+                    sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.repo.putRecord' ),
+                    {   content => +{
+                            repo       => $did->_raw,
+                            collection => $collection,
+                            rkey       => $rkey,
+                            record     => builtin::blessed $record? $record->_raw : $record,
+                            defined $validate ? ( validate => $validate ) : (), defined $swapRecord ? ( swapRecord => $swapRecord ) : (),
+                            defined $swapCommit ? ( swapCommit => $swapCommit ) : ()
+                        }
+                    }
+                );
+                $res->{uri} = URI->new( $res->{uri} ) if defined $res->{uri};
+                $res;
+            }
+
+            method uploadBlob ($blob) {
+                $self->http->session // confess 'creating a post requires an authenticated client';
+                my $res
+                    = $self->http->post( sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.repo.uploadBlob' ), { content => +{ blob => $blob } } );
+                $res;
+            }
         }
 
         #~ class At::Lexicon::AtProto::Server
@@ -671,7 +728,8 @@ package At 0.02 {
                 $res;
             }
 
-            method getRecord ( $did, $collection, $rkey, $commit //= () ) {
+            # TODO: Hate this name...
+            method sync_getRecord ( $did, $collection, $rkey, $commit //= () ) {
                 my $res = $self->http->get( sprintf( '%s/xrpc/%s', $self->host, 'com.atproto.sync.getRecord' ),
                     { content => +{ did => $did, collection => $collection, rkey => $rkey, defined $commit ? ( commit => $commit ) : () } } );
                 $res;
@@ -1018,9 +1076,4 @@ package At 0.02 {
         return 'At::Lexicon::' . $name;
     }
 }
-<<'EOF';
-# ABSTRACT: The AT Protocol for Social Networking
-=head1 AUTHOR
-
-Sanko Robinson E<lt>sanko@cpan.orgE<gt>
-EOF
+1;

@@ -74,6 +74,25 @@ package At::Lexicon::com::atproto::repo 0.02 {
             +{ '$type' => $type, collection => $collection, rkey => $rkey };
         }
     };
+
+    class At::Lexicon::com::atproto::repo::listRecords::record 1 {
+        field $uri : param;                                                    # at-uri, required
+        field $cid : param;                                                    # cid, required
+        field $value : param;                                                  # unknown, required
+        ADJUST {
+            $uri   = URI->new($uri) unless builtin::blessed $uri;
+            $value = At::_topkg( $value->{'$type'} )->new(%$value) if !builtin::blessed $value && defined $value->{'$type'};
+        }
+
+        # perlclass does not have :reader yet
+        method uri   {$uri}
+        method cid   {$cid}
+        method value {$value}
+
+        method _raw {
+            +{ uri => $uri->as_string, cid => $cid, value => builtin::blessed $value ? $value->_raw : $value };
+        }
+    };
 }
 1;
 __END__
