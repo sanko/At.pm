@@ -10,12 +10,13 @@ use At;
 #
 subtest 'live' => sub {
     my $at = At->new( host => 'bsky.social' );
-    isa_ok $at->listRepos->{repos}[0], ['At::Lexicon::com::atproto::sync::repo'];
+    isa_ok $at->sync_listRepos->{repos}[0], ['At::Lexicon::com::atproto::sync::repo'];
 
     # Do not run these tests; they might not be supported upstream...
-    can_ok $at, $_ for qw[getBlocks getLatestCommit getRecord getRepo listBlobs notifyOfUpdate requestCrawl getBlob
-        subscribeRepos
-        subscribeRepos_p];
+    can_ok $at, $_ for qw[
+        sync_getBlocks sync_getLatestCommit sync_getRecord sync_getRepo sync_listBlobs
+        sync_notifyOfUpdate sync_requestCrawl sync_getBlob
+        sync_subscribeRepos sync_subscribeRepos_p];
 };
 #
 done_testing;

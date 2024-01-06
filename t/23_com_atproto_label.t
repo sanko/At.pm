@@ -16,7 +16,7 @@ subtest 'live' => sub {
     my $at = At::Bluesky->new( identifier => 'atperl.bsky.social', password => 'ck2f-bqxl-h54l-xm3l' );
 
     # Do not run these tests... bsky.network doesn't support the endpoint and I don't know a service that does
-    can_ok $at, $_ for qw[queryLabels subscribeLabels subscribeLabels_p];
+    can_ok $at, $_ for qw[label_queryLabels label_subscribeLabels label_subscribeLabels_p];
 };
 #
 done_testing;

@@ -45,76 +45,70 @@ isa_ok(
 );
 subtest 'live' => sub {
     my $bsky = At::Bluesky->new( identifier => 'atperl.bsky.social', password => 'ck2f-bqxl-h54l-xm3l' );
-    subtest 'getSuggestedFeeds' => sub {
-        ok my $feeds = $bsky->getSuggestedFeeds(), '$bsky->getSuggestedFeeds()';
-        my $feed = $feeds->{feeds}->[0];
-        isa_ok $feed,          ['At::Lexicon::app::bsky::feed::generatorView'], '...contains list of feeds';
-        isa_ok $feed->creator, ['At::Lexicon::app::bsky::actor::profileView'],  '......feeds contain creators';
-    };
-    subtest 'getBlocks' => sub {
-        ok my $blocks = $bsky->getBlocks(), '$bsky->getBlocks()';
+    subtest 'graph_getBlocks' => sub {
+        ok my $blocks = $bsky->graph_getBlocks(), '$bsky->graph_getBlocks()';
     SKIP: {
             skip 'I have not banned anyone. ...yet' unless scalar @{ $blocks->{blocks} };
             isa_ok $blocks->{blocks}->[0], ['At::Lexicon::app::bsky::actor::profileView'], '...contains list of profileView objects';
         }
     };
-    subtest 'getFollowers' => sub {
-        ok my $followers = $bsky->getFollowers('bsky.app'), '$bsky->getFollowers("bsky.app")';
+    subtest 'graph_getFollowers' => sub {
+        ok my $followers = $bsky->graph_getFollowers('bsky.app'), '$bsky->graph_getFollowers("bsky.app")';
         isa_ok $followers->{followers}->[0], ['At::Lexicon::app::bsky::actor::profileView'], '...contains list of profileView objects';
     };
-    subtest 'getFollows' => sub {
-        ok my $follows = $bsky->getFollows('bsky.app'), '$bsky->getFollows("bsky.app")';
+    subtest 'graph_getFollows' => sub {
+        ok my $follows = $bsky->graph_getFollows('bsky.app'), '$bsky->graph_getFollows("bsky.app")';
         isa_ok $follows->{follows}->[0], ['At::Lexicon::app::bsky::actor::profileView'], '...contains list of profileView objects';
     };
-    subtest 'getSuggestedFollowsByActor' => sub {
-        ok my $res = $bsky->getSuggestedFollowsByActor('bsky.app'), '$bsky->getSuggestedFollowsByActor("bsky.app")';
+    subtest 'graph_getSuggestedFollowsByActor' => sub {
+        ok my $res = $bsky->graph_getSuggestedFollowsByActor('bsky.app'), '$bsky->graph_getSuggestedFollowsByActor("bsky.app")';
         isa_ok $res->{suggestions}->[0], ['At::Lexicon::app::bsky::actor::profileViewDetailed'], '...contains list of profileViewDetailed objects';
     };
     {
         my $list;
-        subtest 'getLists' => sub {
-            ok my $res   = $bsky->getLists('jacob.gold'), '$bsky->getLists("jacob.gold")';
+        subtest 'graph_getLists' => sub {
+            ok my $res   = $bsky->graph_getLists('jacob.gold'), '$bsky->graph_getLists("jacob.gold")';
             isa_ok $list = $res->{lists}->[0], ['At::Lexicon::app::bsky::graph::listView'], '...contains list of listView objects';
         };
-        subtest 'getList' => sub {
+        subtest 'graph_getList' => sub {
         SKIP: {
                 skip 'failed to gather list in previous test' unless defined $list && builtin::blessed $list;
-                ok my $res = $bsky->getList( $list->uri->as_string ), '$bsky->getList(' . $list->uri->as_string . ')';
+                ok my $res = $bsky->graph_getList( $list->uri->as_string ), '$bsky->graph_getList(' . $list->uri->as_string . ')';
                 isa_ok $res->{items}->[0], ['At::Lexicon::app::bsky::graph::listItemView'], '...contains list of listItemView objects';
             }
         };
-        subtest 'getListBlocks' => sub {
-            ok my $res = $bsky->getListBlocks(), '$bsky->getListBlocks()';
+        subtest 'graph_getListBlocks' => sub {
+            ok my $res = $bsky->graph_getListBlocks(), '$bsky->graph_getListBlocks()';
         SKIP: {
                 skip 'not blocking any lists' unless scalar @{ $res->{lists} };
                 isa_ok $res->{lists}->[0], ['At::Lexicon::app::bsky::graph::listView'], '...contains list of listView objects';
             }
         };
-        subtest 'muteActorList' => sub {
-            ok $bsky->muteActorList( $list->uri->as_string ), '$bsky->muteActorList(' . $list->uri->as_string . ')';
+        subtest 'graph_muteActorList' => sub {
+            ok $bsky->graph_muteActorList( $list->uri->as_string ), '$bsky->graph_muteActorList(' . $list->uri->as_string . ')';
         };
-        subtest 'getListMutes' => sub {
-            ok my $res = $bsky->getListMutes(), '$bsky->getListMutes()';
+        subtest 'graph_getListMutes' => sub {
+            ok my $res = $bsky->graph_getListMutes(), '$bsky->graph_getListMutes()';
         SKIP: {
                 skip 'not muting any lists' unless scalar @{ $res->{lists} };
                 isa_ok $res->{lists}->[0], ['At::Lexicon::app::bsky::graph::listView'], '...contains list of listView objects';
             }
         };
-        subtest 'unmuteActorList' => sub {
-            ok $bsky->unmuteActorList( $list->uri->as_string ), '$bsky->unmuteActorList(' . $list->uri->as_string . ')';
+        subtest 'graph_unmuteActorList' => sub {
+            ok $bsky->graph_unmuteActorList( $list->uri->as_string ), '$bsky->graph_unmuteActorList(' . $list->uri->as_string . ')';
         };
-        subtest 'muteActor' => sub {
-            ok $bsky->muteActor('sankor.bsky.social'), '$bsky->muteActor("sankor.bsky.social")';
+        subtest 'graph_muteActor' => sub {
+            ok $bsky->graph_muteActor('sankor.bsky.social'), '$bsky->graph_muteActor("sankor.bsky.social")';
         };
-        subtest 'getMutes' => sub {
-            ok my $res = $bsky->getMutes(), '$bsky->getMutes()';
+        subtest 'graph_getMutes' => sub {
+            ok my $res = $bsky->graph_getMutes(), '$bsky->graph_getMutes()';
         SKIP: {
                 skip 'not muting any lists' unless scalar @{ $res->{mutes} };
                 isa_ok $res->{mutes}->[0], ['At::Lexicon::app::bsky::actor::profileView'], '...contains list of profileView objects';
             }
         };
-        subtest 'unmuteActor' => sub {
-            ok $bsky->unmuteActor('sankor.bsky.social'), '$bsky->unmuteActor("sankor.bsky.social")';
+        subtest 'graph_unmuteActor' => sub {
+            ok $bsky->graph_unmuteActor('sankor.bsky.social'), '$bsky->graph_unmuteActor("sankor.bsky.social")';
         };
     }
 };

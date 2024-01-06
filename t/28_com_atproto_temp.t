@@ -12,7 +12,7 @@ subtest 'live' => sub {
     my $at = At->new( host => 'bsky.social' );
 
     # Do not run these tests; they might not be supported upstream...
-    can_ok $at, $_ for qw[fetchLables pushBlob transferAccount importRepo];
+    can_ok $at, $_ for qw[temp_fetchLables temp_pushBlob temp_transferAccount temp_importRepo];
 };
 #
 done_testing;

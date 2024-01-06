@@ -14,7 +14,7 @@ subtest 'live' => sub {
     my $at = At->new( host => 'bsky.social' );
 
     # Do not run these tests...
-    can_ok $at, $_ for qw[createReport];
+    can_ok $at, $_ for qw[moderation_createReport];
 };
 #
 done_testing;

@@ -11,22 +11,22 @@ use At::Bluesky;
 #
 subtest 'live' => sub {
     my $bsky = At::Bluesky->new( identifier => 'atperl.bsky.social', password => 'ck2f-bqxl-h54l-xm3l' );
-    subtest 'getPopularFeedGenerators' => sub {
-        ok my $res = $bsky->getPopularFeedGenerators(), '$bsky->getPopularFeedGenerators()';
+    subtest 'unspecced_getPopularFeedGenerators' => sub {
+        ok my $res = $bsky->unspecced_getPopularFeedGenerators(), '$bsky->unspecced_getPopularFeedGenerators()';
         isa_ok $res->{feeds}->[0], ['At::Lexicon::app::bsky::feed::generatorView'], '...returns a list of ::bsky::feed::generatorView objects';
     };
-    subtest 'searchActorsSkeleton' => sub {
+    subtest 'unspecced_searchActorsSkeleton' => sub {
     SKIP: {
-            my $res = eval { $bsky->searchActorsSkeleton('perl'), '$bsky->searchActorsSkeleton("perl")' };
+            my $res = eval { $bsky->unspecced_searchActorsSkeleton('perl'), '$bsky->unspecced_searchActorsSkeleton("perl")' };
             skip 'searchActorsSkeleton is unsupported' if !$res;
             isa_ok $res->{actors}->[0], ['At::Lexicon::app::bsky::unspecced::skeletonSearchActor'],
                 '...returns a list of ::bsky::unspecced::skeletonSearchActor objects';
         }
     };
-    subtest 'searchPostsSkeleton' => sub {
+    subtest 'unspecced_searchPostsSkeleton' => sub {
     SKIP: {
-            my $res = eval { $bsky->searchPostsSkeleton('perl'), '$bsky->searchPostsSkeleton("perl")' };
-            skip 'searchPostsSkeleton is unsupported' if !$res;
+            my $res = eval { $bsky->unspecced_searchPostsSkeleton('perl'), '$bsky->unspecced_searchPostsSkeleton("perl")' };
+            skip 'unspecced_searchPostsSkeleton is unsupported' if !$res;
             isa_ok $res->{posts}->[0], ['At::Lexicon::app::bsky::unspecced::skeletonSearchPost'],
                 '...returns a list of ::bsky::unspecced::skeletonSearchPost objects';
         }

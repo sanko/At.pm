@@ -24,92 +24,93 @@ isa_ok(
 #
 subtest 'live' => sub {
     my $bsky = At::Bluesky->new( identifier => 'atperl.bsky.social', password => 'ck2f-bqxl-h54l-xm3l' );
-    subtest 'getSuggestedFeeds' => sub {
-        ok my $feeds = $bsky->getSuggestedFeeds(), '$bsky->getSuggestedFeeds()';
+    subtest 'feed_getSuggestedFeeds' => sub {
+        ok my $feeds = $bsky->feed_getSuggestedFeeds(), '$bsky->feed_getSuggestedFeeds()';
         my $feed = $feeds->{feeds}->[0];
         isa_ok $feed,          ['At::Lexicon::app::bsky::feed::generatorView'], '...contains list of feeds';
         isa_ok $feed->creator, ['At::Lexicon::app::bsky::actor::profileView'],  '......feeds contain creators';
     };
     #
-    subtest 'getTimeline' => sub {
-        ok my $timeline = $bsky->getTimeline(), '$bsky->getTimeline()';
+    subtest 'feed_getTimeline' => sub {
+        ok my $timeline = $bsky->feed_getTimeline(), '$bsky->feed_getTimeline()';
         my $post = $timeline->{feed}->[0];
         isa_ok $post, ['At::Lexicon::app::bsky::feed::feedViewPost'], '...contains list of feedViewPost objects';
     };
     #
-    subtest 'searchPosts' => sub {
-        ok my $results = $bsky->searchPosts('perl'), '$bsky->searchPosts("perl")';
+    subtest 'feed_searchPosts' => sub {
+        ok my $results = $bsky->feed_searchPosts('perl'), '$bsky->feed_searchPosts("perl")';
         my $post = $results->{posts}->[0];
         isa_ok $post, ['At::Lexicon::app::bsky::feed::postView'], '...contains list of postView objects';
     };
     {
         my $replied;    # Set in getAuthorFeed and used later on
-        subtest 'getAuthorFeed' => sub {
-            ok my $results = $bsky->getAuthorFeed('bsky.app'), '$bsky->getAuthorFeed("bsky.app")';
+        subtest 'feed_getAuthorFeed' => sub {
+            ok my $results = $bsky->feed_getAuthorFeed('bsky.app'), '$bsky->feed_getAuthorFeed("bsky.app")';
             my $post = $results->{feed}->[0];
             isa_ok $post, ['At::Lexicon::app::bsky::feed::feedViewPost'], '...contains list of feedViewPost objects';
 
             # Store the latest!
             ($replied) = grep { $_->post->replyCount } @{ $results->{feed} };
         };
-        subtest 'getRepostedBy' => sub {
+        subtest 'feed_getRepostedBy' => sub {
             $replied // skip_all 'failed to find a reposted post';
-            ok my $results = $bsky->getRepostedBy( $replied->post->uri, $replied->post->cid ), sprintf '$bsky->getRepostedBy("%s...", "%s...")',
-                substr( $replied->post->uri->as_string, 0, 25 ), substr( $replied->post->cid, 0, 10 );
+            ok my $results = $bsky->feed_getRepostedBy( $replied->post->uri, $replied->post->cid ),
+                sprintf '$bsky->feed_getRepostedBy("%s...", "%s...")', substr( $replied->post->uri->as_string, 0, 25 ),
+                substr( $replied->post->cid, 0, 10 );
             my $post = $results->{repostedBy}->[0];
             isa_ok $post, ['At::Lexicon::app::bsky::actor::profileView'], '...contains list of profileView objects';
         };
     }
-    subtest 'getActorFeeds' => sub {
-        ok my $results = $bsky->getActorFeeds('bsky.app'), '$bsky->getActorFeeds("bsky.app")';
+    subtest 'feed_getActorFeeds' => sub {
+        ok my $results = $bsky->feed_getActorFeeds('bsky.app'), '$bsky->feed_getActorFeeds("bsky.app")';
         my $post = $results->{feeds}->[0];
         isa_ok $post, ['At::Lexicon::app::bsky::feed::generatorView'], '...contains list of generatorView objects';
     };
-    subtest 'getActorLikes' => sub {
-        ok my $results = $bsky->getActorLikes('atperl.bsky.social'), '$bsky->getActorLikes("atperl.bsky.social")';
+    subtest 'feed_getActorLikes' => sub {
+        ok my $results = $bsky->feed_getActorLikes('atperl.bsky.social'), '$bsky->feed_getActorLikes("atperl.bsky.social")';
         if ( !scalar @{ $results->{feed} } ) { skip_all 1, 'I apparently do not like anything. Weird' }
         else {
             my $post = $results->{feed}->[0];
             isa_ok $post, ['At::Lexicon::app::bsky::feed::feedViewPost'], '...contains list of feedViewPost objects';
         }
     };
-    subtest 'getPosts' => sub {    # hardcoded from https://bsky.app/profile/atproto.com/post/3kftlbujmfk24
-        ok my $results = $bsky->getPosts('at://did:plc:ewvi7nxzyoun6zhxrhs64oiz/app.bsky.feed.post/3kftlbujmfk24'), '$bsky->getPosts(...)';
+    subtest 'feed_getPosts' => sub {    # hardcoded from https://bsky.app/profile/atproto.com/post/3kftlbujmfk24
+        ok my $results = $bsky->feed_getPosts('at://did:plc:ewvi7nxzyoun6zhxrhs64oiz/app.bsky.feed.post/3kftlbujmfk24'), '$bsky->feed_getPosts(...)';
         my $post = $results->{posts}->[0];
         isa_ok $post, ['At::Lexicon::app::bsky::feed::postView'], '...contains list of postView objects';
     };
-    subtest 'getPostThread' => sub {    # hardcoded from https://bsky.app/profile/atproto.com/post/3kftlbujmfk24
-        ok my $results = $bsky->getPostThread('at://did:plc:ewvi7nxzyoun6zhxrhs64oiz/app.bsky.feed.post/3kftlbujmfk24'),
-            '$bsky->getPostThread("at://did:plc:ewvi...")';
+    subtest 'feed_getPostThread' => sub {    # hardcoded from https://bsky.app/profile/atproto.com/post/3kftlbujmfk24
+        ok my $results = $bsky->feed_getPostThread('at://did:plc:ewvi7nxzyoun6zhxrhs64oiz/app.bsky.feed.post/3kftlbujmfk24'),
+            '$bsky->feed_getPostThread("at://did:plc:ewvi...")';
         isa_ok $results->{thread}, ['At::Lexicon::app::bsky::feed::threadViewPost'], '...returns a threadViewPost object';
     };
-    subtest 'getLikes' => sub {
-        ok my $results = $bsky->getLikes('at://did:plc:ewvi7nxzyoun6zhxrhs64oiz/app.bsky.feed.post/3kftlbujmfk24'),
-            '$bsky->getLikes("at://did:plc:ewvi...")';
+    subtest 'feed_getLikes' => sub {
+        ok my $results = $bsky->feed_getLikes('at://did:plc:ewvi7nxzyoun6zhxrhs64oiz/app.bsky.feed.post/3kftlbujmfk24'),
+            '$bsky->feed_getLikes("at://did:plc:ewvi...")';
         isa_ok $results->{likes}->[0], ['At::Lexicon::app::bsky::feed::getLikes::like'], '...contains list of ::feed::getLikes::like objects';
     };
-    subtest 'getListFeed' => sub {      # TODO: I should create a new list for this
-        ok my $results = $bsky->getListFeed('at://did:plc:kyttpb6um57f4c2wep25lqhq/app.bsky.graph.list/3k4diugcw3k2p'),
-            '$bsky->getListFeed("at://did:plc:kytt...")';
+    subtest 'feed_getListFeed' => sub {      # TODO: I should create a new list for this
+        ok my $results = $bsky->feed_getListFeed('at://did:plc:kyttpb6um57f4c2wep25lqhq/app.bsky.graph.list/3k4diugcw3k2p'),
+            '$bsky->feed_getListFeed("at://did:plc:kytt...")';
         isa_ok $results->{feed}->[0], ['At::Lexicon::app::bsky::feed::feedViewPost'], '...contains list of ::feed::feedViewPost objects';
     };
-    can_ok $bsky, 'getFeedSkeleton';    # TODO: test this
-    subtest 'getFeedGenerator' => sub {
-        ok my $results = $bsky->getFeedGenerator('at://did:plc:kyttpb6um57f4c2wep25lqhq/app.bsky.feed.generator/aaalfodybabzy'),
-            '$bsky->getFeedGenerator("at://did:plc:kytt...")';
+    can_ok $bsky, 'feed_getFeedSkeleton';    # TODO: test this
+    subtest 'feed_getFeedGenerator' => sub {
+        ok my $results = $bsky->feed_getFeedGenerator('at://did:plc:kyttpb6um57f4c2wep25lqhq/app.bsky.feed.generator/aaalfodybabzy'),
+            '$bsky->feed_getFeedGenerator("at://did:plc:kytt...")';
         isa_ok $results->{view}, ['At::Lexicon::app::bsky::feed::generatorView'], '...returns a ::feed::generatorView object';
     };
-    subtest 'getFeedGenerators' => sub {
-        ok my $results = $bsky->getFeedGenerators('at://did:plc:kyttpb6um57f4c2wep25lqhq/app.bsky.feed.generator/aaalfodybabzy'),
-            '$bsky->getFeedGenerators("at://did:plc:kytt...")';
+    subtest 'feed_getFeedGenerators' => sub {
+        ok my $results = $bsky->feed_getFeedGenerators('at://did:plc:kyttpb6um57f4c2wep25lqhq/app.bsky.feed.generator/aaalfodybabzy'),
+            '$bsky->feed_getFeedGenerators("at://did:plc:kytt...")';
         isa_ok $results->{feeds}->[0], ['At::Lexicon::app::bsky::feed::generatorView'], '...returns a list of ::feed::generatorView objects';
     };
-    subtest 'getFeed' => sub {
-        ok my $results = $bsky->getFeed('at://did:plc:kyttpb6um57f4c2wep25lqhq/app.bsky.feed.generator/aaalfodybabzy'),
-            '$bsky->getFeed("at://did:plc:kytt...")';
+    subtest 'feed_getFeed' => sub {
+        ok my $results = $bsky->feed_getFeed('at://did:plc:kyttpb6um57f4c2wep25lqhq/app.bsky.feed.generator/aaalfodybabzy'),
+            '$bsky->feed_getFeed("at://did:plc:kytt...")';
         isa_ok $results->{feed}->[0], ['At::Lexicon::app::bsky::feed::feedViewPost'], '...contains list of ::feed::feedViewPost objects';
     };
-    can_ok $bsky, 'describeFeedGenerator';    # TODO: test this
+    can_ok $bsky, 'feed_describeFeedGenerator';    # TODO: test this
 };
 #
 done_testing;

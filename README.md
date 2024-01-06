@@ -8,8 +8,8 @@ At - The AT Protocol for Social Networking
 ```perl
 use At;
 my $at = At->new( host => 'https://fun.example' );
-$at->createSession( 'sanko', '1111-aaaa-zzzz-0000' );
-$at->createRecord(
+$at->server_createSession( 'sanko', '1111-aaaa-zzzz-0000' );
+$at->repo_createRecord(
     $at->did,
     'app.bsky.feed.post',
     { '$type' => 'app.bsky.feed.post', text => 'Hello world! I posted this via the API.', createdAt => time }
@@ -50,7 +50,7 @@ Read their disclaimer here: [https://atproto.com/community/projects#disclaimer](
 
 # Methods
 
-Honestly, to keep to the layout of the underlying protocol, almost everything is handled in members of this class.
+The API attempts to follow the layout of the underlying protocol so changes to this module might be beyond my control.
 
 ## `new( ... )`
 
@@ -67,7 +67,7 @@ Expected parameters include:
     Host for the account. If you're using the 'official' Bluesky, this would be 'https://bsky.social' but you'll probably
     want `At::Bluesky->new(...)` because that client comes with all the bits that aren't part of the core protocol.
 
-## `disableAccountInvites( ... )`
+## `admin_disableAccountInvites( ... )`
 
 Disable an account from receiving new invite codes, but does not invalidate existing codes.
 
@@ -81,7 +81,7 @@ Expected parameters include:
 
     Optional reason for disabled invites.
 
-## `disableInviteCodes( )`
+## `admin_disableInviteCodes( )`
 
 Disable some set of codes and/or all codes associated with a set of users.
 
@@ -94,476 +94,6 @@ Expected parameters include:
 - `accounts`
 
     List of account DIDs.
-
-# Sync Methods
-
-Keeping a mirror in sync is easy with these methods.
-
-## `getBlocks( ... )`
-
-```
-$at->getBlocks( 'did...' );
-```
-
-Get blocks from a given repo.
-
-Expected parameters include
-
-- `did` - required
-
-    The DID of the repo.
-
-- `cids` - required
-
-## `getLatestCommit( ... )`
-
-```
-$at->getLatestCommit( 'did...' );
-```
-
-Get the current commit CID & revision of the repo.
-
-Expected parameters include:
-
-- `did` - required
-
-    The DID of the repo.
-
-Returns the revision and cid on success.
-
-## `sync_getRecord( ..., [...] )`
-
-```
-$at->sync_getRecord( 'did...', ... );
-```
-
-Get blocks needed for existence or non-existence of record.
-
-Expected parameters include:
-
-- `did` - required
-
-    The DID of the repo.
-
-- `collection` - required
-
-    NSID.
-
-- `rkey` - required
-- `commit`
-
-    An optional past commit CID.
-
-## `getRepo( ... )`
-
-```
-$at->getRepo( 'did...', ... );
-```
-
-Gets the DID's repo, optionally catching up from a specific revision.
-
-Expected parameters include:
-
-- `did` - required
-
-    The DID of the repo.
-
-- `since`
-
-    The revision of the repo to catch up from.
-
-## `listBlobs( ..., [...] )`
-
-```
-$at->listBlobs( 'did...' );
-```
-
-List blob CIDs since some revision.
-
-Expected parameters include:
-
-- `did` - required
-
-    The DID of the repo.
-
-- `since`
-
-    on of the repo to list blobs since.
-
-- `limit`
-
-    Minimum is 1, maximum is 1000, default is 500.
-
-- `cursor`
-
-On success, a list of cids is returned and, optionally, a cursor.
-
-## `listRepos( [...] )`
-
-```
-$at->listRepos( );
-```
-
-List DIDs and root CIDs of hosted repos.
-
-Expected parameters include:
-
-- `limit`
-
-    Maximum is 1000, minimum is 1, default is 500.
-
-- `cursor`
-
-On success, a list of `At::Lexicon::com::atproto::sync::repo` objects is returned and, optionally, a cursor.
-
-## `notifyOfUpdate( ... )`
-
-```
-$at->notifyOfUpdate( 'example.com' );
-```
-
-Notify a crawling service of a recent update; often when a long break between updates causes the connection with the
-crawling service to break.
-
-Expected parameters include:
-
-- `hostname` - required
-
-    Hostname of the service that is notifying of update.
-
-Returns a true value on success.
-
-## `requestCrawl( ... )`
-
-```
-$at->requestCrawl( 'example.com' );
-```
-
-Request a service to persistently crawl hosted repos.
-
-Expected parameters include:
-
-- `hostname` - required
-
-    Hostname of the service that is requesting to be crawled.
-
-Returns a true value on success.
-
-## `getBlob( ... )`
-
-```
-$at->getBlob( 'did...', ... );
-```
-
-Get a blob associated with a given repo.
-
-Expected parameters include:
-
-- `did` - required
-
-    The DID of the repo.
-
-- `cid` - required
-
-    The CID of the blob to fetch.
-
-# Temp Methods
-
-These are methods the At Protocol has not placed in a proper namespace. They might be incomplete or depreciated.
-Regardless, they are placed in a lexicon named `com.atproto.temp.*`.
-
-## `fetchLabels( [...] )`
-
-```
-$at->fetchLabels;
-```
-
-Fetch all labels from a labeler created after a certain date.
-
-Expected parameters include:
-
-- `since`
-- `limit`
-
-    Default is 50, minimum is 1, maximum is 250.
-
-Returns a list of labels as new `At::Lexicon::com::atproto::label` objects on success.
-
-## `pushBlob( ... )`
-
-```
-$at->pushBlob( 'did:...' );
-```
-
-Gets the did's repo, optionally catching up from a specific revision.
-
-Expected parameters include:
-
-- `did` - required
-
-    The DID of the repo.
-
-## `transferAccount( ... )`
-
-```
-$at->transferAccount( ... );
-```
-
-Transfer an account.
-
-Expected parameters include:
-
-- `handle` - required
-- `did` - required
-- `plcOp` - required
-
-## `importRepo( ... )`
-
-```
-$at->importRepo( 'did...' );
-```
-
-Gets the did's repo, optionally catching up from a specific revision.
-
-Expected parameters include:
-
-- `did` - required
-
-    The DID of the repo.
-
-# Repo Methods
-
-Repo methods generally require an authorized session. The AT Protocol treats 'posts' and other data as records stored
-in repositories.
-
-## `applyWrites( ..., [...] )`
-
-```
-$at->applyWrites( $at->did, [ ... ] );
-```
-
-Apply a batch transaction of creates, updates, and deletes.
-
-Expected parameters include:
-
-- `repo` - required
-
-    The handle or DID of the repo.
-
-- `writes`
-
-    Array of [At::Lexicon::com::atproto::repo::applyWrites::create](https://metacpan.org/pod/At%3A%3ALexicon%3A%3Acom%3A%3Aatproto%3A%3Arepo%3A%3AapplyWrites%3A%3Acreate),
-    [At::Lexicon::com::atproto::repo::applyWrites::update](https://metacpan.org/pod/At%3A%3ALexicon%3A%3Acom%3A%3Aatproto%3A%3Arepo%3A%3AapplyWrites%3A%3Aupdate), or [At::Lexicon::com::atproto::repo::applyWrites::delete](https://metacpan.org/pod/At%3A%3ALexicon%3A%3Acom%3A%3Aatproto%3A%3Arepo%3A%3AapplyWrites%3A%3Adelete)
-    objects.
-
-- `validate` - required
-
-    Flag for validating the records.
-
-- `swapCommit`
-
-Returns a true value on success.
-
-## `createRecord( ..., [...] )`
-
-Create a new record.
-
-```perl
-$at->createRecord(
-    $at->did,
-    'app.bsky.feed.post',
-    { '$type' => 'app.bsky.feed.post', text => "Hello world! I posted this via the API.", createdAt => gmtime->datetime . 'Z' }
-);
-```
-
-Expected parameters include:
-
-- `repo` - required
-
-    The handle or DID of the repo.
-
-- `collection` - required
-
-    The NSID of the record collection.
-
-- `record` - required
-
-    The record to create.
-
-- `validate`
-
-    Flag for validating the record.
-
-- `swapCommit`
-
-    Compare and swap with the previous commit by CID.
-
-- `rkey`
-
-    The key of the record.
-
-Returns the uri and cid of the newly created record on success.
-
-## `deleteRecord( ..., [...] )`
-
-Create a new record.
-
-```
-$at->deleteRecord( $at->did, 'app.bsky.feed.post', '3kiburrigys27' );
-```
-
-Expected parameters include:
-
-- `repo` - required
-
-    The handle or DID of the repo.
-
-- `collection` - required
-
-    The NSID of the record collection.
-
-- `rkey`
-
-    The key of the record.
-
-- `swapRecord`
-
-    Compare and swap with the previous record by CID.
-
-- `swapCommit`
-
-    Compare and swap with the previous commit by CID.
-
-Returns a true value on success.
-
-## `describeRepo( ... )`
-
-```
-$at->describeRepo( $at->did );
-```
-
-Get information about the repo, including the list of collections.
-
-Expected parameters include:
-
-- `repo` - required
-
-    The handle or DID of the repo.
-
-On success, returns the repo's handle, did, a didDoc, a list of supported collections, a flag indicating whether or not
-the handle is correct.
-
-## `getRecord( ..., [...] )`
-
-```
-$at->getRecord( $at->did, 'app.bsky.feed.post', '3kiburrigys27' );
-```
-
-Get a record.
-
-Expected parameters include:
-
-- `repo` - required
-
-    The handle or DID of the repo.
-
-- `collection` - required
-
-    The NSID of the record collection.
-
-- `rkey` - required
-
-    The key of the record.
-
-- `cid`
-
-    The CID of the version of the record. If not specified, then return the most recent version.
-
-Returns the uri, value, and, optionally, cid of the requested record on success.
-
-## `listRecords( ..., [...] )`
-
-```
-$at->listRecords( $at->did, 'app.bsky.feed.post' );
-```
-
-List a range of records in a collection.
-
-Expected parameters include:
-
-- `repo` - required
-
-    The handle or DID of the repo.
-
-- `collection` - required
-
-    The NSID of the record type.
-
-- `limit`
-
-    The number of records to return.
-
-    Maximum is 100, minimum is 1, default is 50.
-
-- `reverse`
-
-    Flag to reverse the order of the returned records.
-
-- `cursor`
-
-## `putRecord( ..., [...] )`
-
-```
-$at->putRecord( $at->did, 'app.bsky.feed.post', 'aaaaaaaaaaaaaaa', {...} );
-```
-
-Write a record, creating or updating it as needed.
-
-Expected parameters include:
-
-- `repo` - required
-
-    The handle or DID of the repo.
-
-- `collection` - required
-
-    The NSID of the record collection.
-
-- `rkey` - required
-
-    The key of the record.
-
-- `record` - required
-
-    The record to write.
-
-- `validate`
-
-    Flag for validating the record.
-
-- `swapRecord`
-
-    Compare and swap with the previous record by CID.
-
-- `swapCommit`
-
-    Compare and swap with the previous commit by CID.
-
-Returns the record's uri and cid on success.
-
-## `uploadBlob( ... )`
-
-Upload a new blob to be added to repo in a later request.
-
-Expected parameters include:
-
-- `blob` - required
-
-Returns the blob on success.
-
-# Admin Methods
-
-These should only be called by a member of the server's administration team.
 
 ## `admin_deleteAccount( ... )`
 
@@ -911,14 +441,10 @@ Expected parameters include:
 
 Returns the subject and takedown objects on success.
 
-# Identity Methods
-
-These methods allow you to quickly update or gather information about a repository.
-
-## `resolveHandle( ... )`
+## `identity_resolveHandle( ... )`
 
 ```
-$at->resolveHandle( 'atproto.bsky.social' );
+$at->identity_resolveHandle( 'atproto.bsky.social' );
 ```
 
 Provides the DID of a repo.
@@ -931,10 +457,10 @@ Expected parameters include:
 
 Returns the DID on success.
 
-## `updateHandle( ... )`
+## `identity_updateHandle( ... )`
 
 ```
-$at->updateHandle( 'atproto.bsky.social' );
+$at->identity_updateHandle( 'atproto.bsky.social' );
 ```
 
 Updates the handle of the account.
@@ -945,14 +471,81 @@ Expected parameters include:
 
 Returns a true value on success.
 
-# Moderation Methods
+## `label_queryLabels( ... )`
 
-These methods allow you to help moderate the content on the network.
+```
+$at->label_queryLabels( '' );
+```
 
-## `createReport( ..., [...] )`
+Find labels relevant to the provided URI patterns.
+
+Expected parameters include:
+
+- `uriPatterns` - required
+
+    List of AT URI patterns to match (boolean 'OR'). Each may be a prefix (ending with '\*'; will match inclusive of the
+    string leading to '\*'), or a full URI.
+
+- `sources`
+
+    Optional list of label sources (DIDs) to filter on.
+
+- `limit`
+
+    Number of results to return. 250 max. Default is 50.
+
+- `cursor`
+
+On success, labels are returned as a list of new `At::Lexicon::com::atproto::label` objects.
+
+## `label_subscribeLabels( ..., [...] )`
 
 ```perl
-$at->createReport( { '$type' => 'com.atproto.moderation.defs#reasonSpam' }, { '$type' => 'com.atproto.repo.strongRef', uri => ..., cid => ... } );
+$at->label_subscribeLabels( sub { ... } );
+```
+
+Subscribe to label updates.
+
+Expected parameters include:
+
+- `callback` - required
+
+    Code reference triggered with every event.
+
+- `cursor`
+
+    The last known event to backfill from.
+
+On success, a websocket is initiated. Events we receive include
+`At::Lexicon::com::atproto::label::subscribeLables::labels` and
+`At::Lexicon::com::atproto::label::subscribeLables::info` objects.
+
+## `label_subscribeLabels_p( ..., [...] )`
+
+```perl
+$at->label_subscribeLabels_p( sub { ... } );
+```
+
+Subscribe to label updates.
+
+Expected parameters include:
+
+- `callback` - required
+
+    Code reference triggered with every event.
+
+- `cursor`
+
+    The last known event to backfill from.
+
+On success, a websocket is initiated and a promise is returned. Events we receive include
+`At::Lexicon::com::atproto::label::subscribeLables::labels` and
+`At::Lexicon::com::atproto::label::subscribeLables::info` objects.
+
+## `moderation_createReport( ..., [...] )`
+
+```perl
+$at->moderation_createReport( { '$type' => 'com.atproto.moderation.defs#reasonSpam' }, { '$type' => 'com.atproto.repo.strongRef', uri => ..., cid => ... } );
 ```
 
 Report a repo or a record.
@@ -972,14 +565,235 @@ Expected parameters include:
 On success, an id, the original reason type, subject, and reason, are returned as well as the DID of the user making
 the report and a timestamp.
 
-# Server Methods
-
-Server methods may require an authorized session.
-
-## `createSession( ... )`
+## `repo_applyWrites( ..., [...] )`
 
 ```
-$at->createSession( 'sanko', '1111-2222-3333-4444' );
+$at->repo_applyWrites( $at->did, [ ... ] );
+```
+
+Apply a batch transaction of creates, updates, and deletes.
+
+Expected parameters include:
+
+- `repo` - required
+
+    The handle or DID of the repo.
+
+- `writes`
+
+    Array of [At::Lexicon::com::atproto::repo::applyWrites::create](https://metacpan.org/pod/At%3A%3ALexicon%3A%3Acom%3A%3Aatproto%3A%3Arepo%3A%3AapplyWrites%3A%3Acreate),
+    [At::Lexicon::com::atproto::repo::applyWrites::update](https://metacpan.org/pod/At%3A%3ALexicon%3A%3Acom%3A%3Aatproto%3A%3Arepo%3A%3AapplyWrites%3A%3Aupdate), or [At::Lexicon::com::atproto::repo::applyWrites::delete](https://metacpan.org/pod/At%3A%3ALexicon%3A%3Acom%3A%3Aatproto%3A%3Arepo%3A%3AapplyWrites%3A%3Adelete)
+    objects.
+
+- `validate` - required
+
+    Flag for validating the records.
+
+- `swapCommit`
+
+Returns a true value on success.
+
+## `repo_createRecord( ..., [...] )`
+
+Create a new record.
+
+```perl
+$at->repo_createRecord(
+    $at->did,
+    'app.bsky.feed.post',
+    { '$type' => 'app.bsky.feed.post', text => "Hello world! I posted this via the API.", createdAt => gmtime->datetime . 'Z' }
+);
+```
+
+Expected parameters include:
+
+- `repo` - required
+
+    The handle or DID of the repo.
+
+- `collection` - required
+
+    The NSID of the record collection.
+
+- `record` - required
+
+    The record to create.
+
+- `validate`
+
+    Flag for validating the record.
+
+- `swapCommit`
+
+    Compare and swap with the previous commit by CID.
+
+- `rkey`
+
+    The key of the record.
+
+Returns the uri and cid of the newly created record on success.
+
+## `repo_deleteRecord( ..., [...] )`
+
+Create a new record.
+
+```
+$at->repo_deleteRecord( $at->did, 'app.bsky.feed.post', '3kiburrigys27' );
+```
+
+Expected parameters include:
+
+- `repo` - required
+
+    The handle or DID of the repo.
+
+- `collection` - required
+
+    The NSID of the record collection.
+
+- `rkey`
+
+    The key of the record.
+
+- `swapRecord`
+
+    Compare and swap with the previous record by CID.
+
+- `swapCommit`
+
+    Compare and swap with the previous commit by CID.
+
+Returns a true value on success.
+
+## `repo_describeRepo( ... )`
+
+```
+$at->repo_describeRepo( $at->did );
+```
+
+Get information about the repo, including the list of collections.
+
+Expected parameters include:
+
+- `repo` - required
+
+    The handle or DID of the repo.
+
+On success, returns the repo's handle, did, a didDoc, a list of supported collections, a flag indicating whether or not
+the handle is correct.
+
+## `repo_getRecord( ..., [...] )`
+
+```
+$at->repo_getRecord( $at->did, 'app.bsky.feed.post', '3kiburrigys27' );
+```
+
+Get a record.
+
+Expected parameters include:
+
+- `repo` - required
+
+    The handle or DID of the repo.
+
+- `collection` - required
+
+    The NSID of the record collection.
+
+- `rkey` - required
+
+    The key of the record.
+
+- `cid`
+
+    The CID of the version of the record. If not specified, then return the most recent version.
+
+Returns the uri, value, and, optionally, cid of the requested record on success.
+
+## `repo_listRecords( ..., [...] )`
+
+```
+$at->repo_listRecords( $at->did, 'app.bsky.feed.post' );
+```
+
+List a range of records in a collection.
+
+Expected parameters include:
+
+- `repo` - required
+
+    The handle or DID of the repo.
+
+- `collection` - required
+
+    The NSID of the record type.
+
+- `limit`
+
+    The number of records to return.
+
+    Maximum is 100, minimum is 1, default is 50.
+
+- `reverse`
+
+    Flag to reverse the order of the returned records.
+
+- `cursor`
+
+## `repo_putRecord( ..., [...] )`
+
+```
+$at->repo_putRecord( $at->did, 'app.bsky.feed.post', 'aaaaaaaaaaaaaaa', {...} );
+```
+
+Write a record, creating or updating it as needed.
+
+Expected parameters include:
+
+- `repo` - required
+
+    The handle or DID of the repo.
+
+- `collection` - required
+
+    The NSID of the record collection.
+
+- `rkey` - required
+
+    The key of the record.
+
+- `record` - required
+
+    The record to write.
+
+- `validate`
+
+    Flag for validating the record.
+
+- `swapRecord`
+
+    Compare and swap with the previous record by CID.
+
+- `swapCommit`
+
+    Compare and swap with the previous commit by CID.
+
+Returns the record's uri and cid on success.
+
+## `repo_uploadBlob( ... )`
+
+Upload a new blob to be added to repo in a later request.
+
+Expected parameters include:
+
+- `blob` - required
+
+Returns the blob on success.
+
+## `server_createSession( ... )`
+
+```
+$at->server_createSession( 'sanko', '1111-2222-3333-4444' );
 ```
 
 Create an authentication session.
@@ -994,12 +808,12 @@ Expected parameters include:
 
 On success, the access and refresh JSON web tokens, the account's handle, DID and (optionally) other data is returned.
 
-## `describeServer( )`
+## `server_describeServer( )`
 
 Get a document describing the service's accounts configuration.
 
 ```
-$at->describeServer( );
+$at->server_describeServer( );
 ```
 
 This method does not require an authenticated session.
@@ -1007,40 +821,40 @@ This method does not require an authenticated session.
 Returns a boolean value indicating whether an invite code is required, a list of available user domains, and links to
 the TOS and privacy policy.
 
-## `listAppPasswords( )`
+## `server_listAppPasswords( )`
 
 ```
-$at->listAppPasswords( );
+$at->server_listAppPasswords( );
 ```
 
 List all App Passwords.
 
 Returns a list of passwords as new `At::Lexicon::com::atproto::server::listAppPasswords::appPassword` objects.
 
-## `getSession( )`
+## `server_getSession( )`
 
 ```
-$at->getSession( );
+$at->server_getSession( );
 ```
 
 Get information about the current session.
 
 Returns the handle, DID, and (optionally) other data.
 
-## `getAccountInviteCodes( )`
+## `server_getAccountInviteCodes( )`
 
 ```
-$at->getAccountInviteCodes( );
+$at->server_getAccountInviteCodes( );
 ```
 
 Get all invite codes for a given account.
 
 Returns codes as a list of new `At::Lexicon::com::atproto::server::inviteCode` objects.
 
-## `getAccountInviteCodes( [...] )`
+## `server_getAccountInviteCodes( [...] )`
 
 ```
-$at->getAccountInviteCodes( );
+$at->server_getAccountInviteCodes( );
 ```
 
 Get all invite codes for a given account.
@@ -1058,10 +872,10 @@ Expected parameters include:
 Returns a list of `At::Lexicon::com::atproto::server::inviteCode` objects on success. Note that this method returns an
 error if the session was authorized with an app password.
 
-## `updateEmail( ..., [...] )`
+## `server_updateEmail( ..., [...] )`
 
 ```
-$at->updateEmail( 'smith...@gmail.com' );
+$at->server_updateEmail( 'smith...@gmail.com' );
 ```
 
 Update an account's email.
@@ -1073,10 +887,10 @@ Expected parameters include:
 
     This method requires a token from `requestEmailUpdate( ... )` if the account's email has been confirmed.
 
-## `requestEmailUpdate( ... )`
+## `server_requestEmailUpdate( ... )`
 
 ```
-$at->requestEmailUpdate( 1 );
+$at->server_requestEmailUpdate( 1 );
 ```
 
 Request a token in order to update email.
@@ -1087,10 +901,10 @@ Expected parameters include:
 
     Boolean value.
 
-## `revokeAppPassword( ... )`
+## `server_revokeAppPassword( ... )`
 
 ```
-$at->revokeAppPassword( 'Demo App [beta]' );
+$at->server_revokeAppPassword( 'Demo App [beta]' );
 ```
 
 Revoke an App Password by name.
@@ -1099,23 +913,10 @@ Expected parameters include:
 
 - `name` - required
 
-## `resetPassword( ... )`
+## `server_resetPassword( ... )`
 
 ```
-$at->resetPassword( 'fdsjlkJIofdsaf89w3jqirfu2q8docwe', '****************' );
-```
-
-Reset a user account password using a token.
-
-Expected parameters include:
-
-- `token` - required
-- `password` - required
-
-## `resetPassword( ... )`
-
-```
-$at->resetPassword( 'fdsjlkJIofdsaf89w3jqirfu2q8docwe', '****************' );
+$at->server_resetPassword( 'fdsjlkJIofdsaf89w3jqirfu2q8docwe', '****************' );
 ```
 
 Reset a user account password using a token.
@@ -1125,10 +926,23 @@ Expected parameters include:
 - `token` - required
 - `password` - required
 
-## `reserveSigningKey( [...] )`
+## `server_resetPassword( ... )`
 
 ```
-$at->reserveSigningKey( 'did:...' );
+$at->server_resetPassword( 'fdsjlkJIofdsaf89w3jqirfu2q8docwe', '****************' );
+```
+
+Reset a user account password using a token.
+
+Expected parameters include:
+
+- `token` - required
+- `password` - required
+
+## `server_reserveSigningKey( [...] )`
+
+```
+$at->server_reserveSigningKey( 'did:...' );
 ```
 
 Reserve a repo signing key for account creation.
@@ -1141,10 +955,10 @@ Expected parameters include:
 
 On success, a public signing key in the form of a did:key is returned.
 
-## `requestPasswordReset( [...] )`
+## `server_requestPasswordReset( [...] )`
 
 ```
-$at->requestPasswordReset( 'smith...@gmail.com' );
+$at->server_requestPasswordReset( 'smith...@gmail.com' );
 ```
 
 Initiate a user account password reset via email.
@@ -1153,34 +967,34 @@ Expected parameters include:
 
 - `email` - required
 
-## `requestEmailConfirmation( )`
+## `server_requestEmailConfirmation( )`
 
 ```
-$at->requestEmailConfirmation( );
+$at->server_requestEmailConfirmation( );
 ```
 
 Request an email with a code to confirm ownership of email.
 
-## `requestAccountDelete( )`
+## `server_requestAccountDelete( )`
 
 ```
-$at->requestAccountDelete( );
-```
-
-Initiate a user account deletion via email.
-
-## `deleteSession( )`
-
-```
-$at->deleteSession( );
+$at->server_requestAccountDelete( );
 ```
 
 Initiate a user account deletion via email.
 
-## `deleteAccount( )`
+## `server_deleteSession( )`
 
 ```
-$at->deleteAccount( );
+$at->server_deleteSession( );
+```
+
+Initiate a user account deletion via email.
+
+## `server_deleteAccount( )`
+
+```
+$at->server_deleteAccount( );
 ```
 
 Delete an actor's account with a token and password.
@@ -1191,10 +1005,10 @@ Expected parameters include:
 - `password` - required
 - `token` - required
 
-## `createInviteCodes( ..., [...] )`
+## `server_createInviteCodes( ..., [...] )`
 
 ```
-$at->createInviteCodes( 1, 1 );
+$at->server_createInviteCodes( 1, 1 );
 ```
 
 Create invite codes.
@@ -1215,10 +1029,10 @@ Expected parameters include:
 
 On success, returns a list of new `At::Lexicon::com::atproto::server::createInviteCodes::accountCodes` objects.
 
-## `createInviteCode( ..., [...] )`
+## `server_createInviteCode( ..., [...] )`
 
 ```
-$at->createInviteCode( 1 );
+$at->server_createInviteCode( 1 );
 ```
 
 Create an invite code.
@@ -1235,10 +1049,10 @@ Expected parameters include:
 
 On success, a new invite code is returned.
 
-## `createAppPassword( ..., [...] )`
+## `server_createAppPassword( ..., [...] )`
 
 ```
-$at->createAppPassword( 'AT Client [release]' );
+$at->server_createAppPassword( 'AT Client [release]' );
 ```
 
 Create an App Password.
@@ -1249,10 +1063,10 @@ Expected parameters include:
 
 On success, a new `At::Lexicon::com::atproto::server::createAppPassword::appPassword` object.
 
-## `createAccount( ..., [...] )`
+## `server_createAccount( ..., [...] )`
 
 ```
-$at->createAccount( 'jsmith....', '*********' );
+$at->server_createAccount( 'jsmith....', '*********' );
 ```
 
 Create an account.
@@ -1269,10 +1083,10 @@ Expected parameters include:
 
 On success, JSON web access and refresh tokens, the handle, did, and (optionally) a server defined didDoc are returned.
 
-## `confirmEmail( ... )`
+## `server_confirmEmail( ... )`
 
 ```
-$at->confirmEmail( 'jsmith...@gmail.com', 'idkidkidkidkdifkasjkdfsaojfd' );
+$at->server_confirmEmail( 'jsmith...@gmail.com', 'idkidkidkidkdifkasjkdfsaojfd' );
 ```
 
 Confirm an email using a token from `requestEmailConfirmation( )`,
@@ -1281,6 +1095,252 @@ Expected parameters include:
 
 - `email` - required
 - `token` - required
+
+## `sync_getBlocks( ... )`
+
+```
+$at->sync_getBlocks( 'did...' );
+```
+
+Get blocks from a given repo.
+
+Expected parameters include
+
+- `did` - required
+
+    The DID of the repo.
+
+- `cids` - required
+
+## `sync_getLatestCommit( ... )`
+
+```
+$at->sync_getLatestCommit( 'did...' );
+```
+
+Get the current commit CID & revision of the repo.
+
+Expected parameters include:
+
+- `did` - required
+
+    The DID of the repo.
+
+Returns the revision and cid on success.
+
+## `sync_getRecord( ..., [...] )`
+
+```
+$at->sync_getRecord( 'did...', ... );
+```
+
+Get blocks needed for existence or non-existence of record.
+
+Expected parameters include:
+
+- `did` - required
+
+    The DID of the repo.
+
+- `collection` - required
+
+    NSID.
+
+- `rkey` - required
+- `commit`
+
+    An optional past commit CID.
+
+## `sync_getRepo( ... )`
+
+```
+$at->sync_getRepo( 'did...', ... );
+```
+
+Gets the DID's repo, optionally catching up from a specific revision.
+
+Expected parameters include:
+
+- `did` - required
+
+    The DID of the repo.
+
+- `since`
+
+    The revision of the repo to catch up from.
+
+## `sync_listBlobs( ..., [...] )`
+
+```
+$at->sync_listBlobs( 'did...' );
+```
+
+List blob CIDs since some revision.
+
+Expected parameters include:
+
+- `did` - required
+
+    The DID of the repo.
+
+- `since`
+
+    on of the repo to list blobs since.
+
+- `limit`
+
+    Minimum is 1, maximum is 1000, default is 500.
+
+- `cursor`
+
+On success, a list of cids is returned and, optionally, a cursor.
+
+## `sync_listRepos( [...] )`
+
+```
+$at->sync_listRepos( );
+```
+
+List DIDs and root CIDs of hosted repos.
+
+Expected parameters include:
+
+- `limit`
+
+    Maximum is 1000, minimum is 1, default is 500.
+
+- `cursor`
+
+On success, a list of `At::Lexicon::com::atproto::sync::repo` objects is returned and, optionally, a cursor.
+
+## `sync_notifyOfUpdate( ... )`
+
+```
+$at->sync_notifyOfUpdate( 'example.com' );
+```
+
+Notify a crawling service of a recent update; often when a long break between updates causes the connection with the
+crawling service to break.
+
+Expected parameters include:
+
+- `hostname` - required
+
+    Hostname of the service that is notifying of update.
+
+Returns a true value on success.
+
+## `sync_requestCrawl( ... )`
+
+```
+$at->sync_requestCrawl( 'example.com' );
+```
+
+Request a service to persistently crawl hosted repos.
+
+Expected parameters include:
+
+- `hostname` - required
+
+    Hostname of the service that is requesting to be crawled.
+
+Returns a true value on success.
+
+## `sync_getBlob( ... )`
+
+```
+$at->sync_getBlob( 'did...', ... );
+```
+
+Get a blob associated with a given repo.
+
+Expected parameters include:
+
+- `did` - required
+
+    The DID of the repo.
+
+- `cid` - required
+
+    The CID of the blob to fetch.
+
+## `sync_subscribeRepos( ... )`
+
+```perl
+$at->sync_subscribeRepos( sub {...} );
+```
+
+Subscribe to repo updates.
+
+Expected parameters include:
+
+- `cb` - required
+- `cursor`
+
+    The last known event to backfill from.
+
+## `sync_subscribeRepos_p( ... )`
+
+TODO
+
+## `temp_fetchLabels( [...] )`
+
+```
+$at->temp_fetchLabels;
+```
+
+Fetch all labels from a labeler created after a certain date.
+
+Expected parameters include:
+
+- `since`
+- `limit`
+
+    Default is 50, minimum is 1, maximum is 250.
+
+Returns a list of labels as new `At::Lexicon::com::atproto::label` objects on success.
+
+## `temp_pushBlob( ... )`
+
+```
+$at->temp_pushBlob( 'did:...' );
+```
+
+Gets the did's repo, optionally catching up from a specific revision.
+
+Expected parameters include:
+
+- `did` - required
+
+    The DID of the repo.
+
+## `temp_transferAccount( ... )`
+
+```
+$at->temp_transferAccount( ... );
+```
+
+Transfer an account.
+
+Expected parameters include:
+
+- `handle` - required
+- `did` - required
+- `plcOp` - required
+
+## `temp_importRepo( ... )`
+
+```
+$at->temp_importRepo( 'did...' );
+```
+
+Gets the did's repo, optionally catching up from a specific revision.
+
+Expected parameters include:
+
+- `did` - required
+
+    The DID of the repo.
 
 # See Also
 
