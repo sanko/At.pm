@@ -2,6 +2,8 @@ Revision history for Perl extension At.pm
 
 {{$NEXT}}
 
+    - ...don't write tests that fail when an otherwise unrelated page on the internet changes
+
 0.03 2024-01-06T20:58:02Z
 
     - Full support for core At protocol and Bluesky extensions
