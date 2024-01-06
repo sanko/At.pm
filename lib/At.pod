@@ -395,18 +395,53 @@ The DID of the repo.
 Repo methods generally require an authorized session. The AT Protocol treats 'posts' and other data as records stored
 in repositories.
 
-=head2 C<createRecord( ... )>
+=head2 C<applyWrites( ..., [...] )>
+
+    $at->applyWrites( $at->did, [ ... ] );
+
+Apply a batch transaction of creates, updates, and deletes.
+
+Expected parameters include:
+
+=over
+
+=item C<repo> - required
+
+The handle or DID of the repo.
+
+=item C<writes>
+
+Array of L<At::Lexicon::com::atproto::repo::applyWrites::create>,
+L<At::Lexicon::com::atproto::repo::applyWrites::update>, or L<At::Lexicon::com::atproto::repo::applyWrites::delete>
+objects.
+
+=item C<validate> - required
+
+Flag for validating the records.
+
+=item C<swapCommit>
+
+=back
+
+Returns a true value on success.
+
+=head2 C<createRecord( ..., [...] )>
 
 Create a new record.
 
     $at->createRecord(
-        collection => 'app.bsky.feed.post',
-        record     => { '$type' => 'app.bsky.feed.post', text => "Hello world! I posted this via the API.", createdAt => gmtime->datetime . 'Z' }
+        $at->did,
+        'app.bsky.feed.post',
+        { '$type' => 'app.bsky.feed.post', text => "Hello world! I posted this via the API.", createdAt => gmtime->datetime . 'Z' }
     );
 
 Expected parameters include:
 
 =over
+
+=item C<repo> - required
+
+The handle or DID of the repo.
 
 =item C<collection> - required
 
@@ -414,9 +449,85 @@ The NSID of the record collection.
 
 =item C<record> - required
 
-Depending on the type of record, this could be anything. It's undefined in the protocol itself.
+The record to create.
+
+=item C<validate>
+
+Flag for validating the record.
+
+=item C<swapCommit>
+
+Compare and swap with the previous commit by CID.
+
+=item C<rkey>
+
+The key of the record.
 
 =back
+
+Returns the uri and cid of the newly created record on success.
+
+=head2 C<deleteRecord( ..., [...] )>
+
+Create a new record.
+
+    $at->deleteRecord( $at->did, 'app.bsky.feed.post', '3kiburrigys27' );
+
+Expected parameters include:
+
+=over
+
+=item C<repo> - required
+
+The handle or DID of the repo.
+
+=item C<collection> - required
+
+The NSID of the record collection.
+
+=item C<rkey>
+
+The key of the record.
+
+=item C<swapRecord>
+
+Compare and swap with the previous record by CID.
+
+=item C<swapCommit>
+
+Compare and swap with the previous commit by CID.
+
+=back
+
+Returns a true value on success.
+
+=head2 C<describeRepo( ... )>
+
+    $at->describeRepo( $at->did );
+
+Get information about the repo, including the list of collections.
+
+Expected parameters include:
+
+=over
+
+=item C<repo> - required
+
+The handle or DID of the repo.
+
+=back
+
+On success, returns the repo's handle, did, a didDoc, a list of supported collections, a flag indicating whether or not
+the handle is correct.
+
+
+
+
+
+
+
+
+
 
 =head1 Admin Methods
 

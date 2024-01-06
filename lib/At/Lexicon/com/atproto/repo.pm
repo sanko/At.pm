@@ -3,6 +3,7 @@ package At::Lexicon::com::atproto::repo 0.02 {
     no warnings 'experimental::class', 'experimental::builtin';    # Be quiet.
     use feature 'class';
     use URI;
+    use Carp;
     #
     class At::Lexicon::com::atproto::repo::strongRef 1 {
         field $type : param($type) //= ();    # record field
@@ -18,6 +19,59 @@ package At::Lexicon::com::atproto::repo 0.02 {
 
         method _raw {
             +{ defined $type ? ( '$type' => $type ) : (), uri => $uri->as_string, cid => $cid };
+        }
+    };
+
+    class At::Lexicon::com::atproto::repo::applyWrites::create 1 {
+        field $type : param($type) = 'com.atproto.repo.applyWrites#create';    # record field
+        field $collection : param;                                             # nsid, required
+        field $rkey : param;                                                   # string, required, max length: 15
+        field $value : param;                                                  # unknown
+        ADJUST {
+            Carp::confess 'rkey is too long'                       if length $rkey > 15;
+            $value = At::_topkg( $value->{'$type'} )->new(%$value) if !builtin::blessed $value && defined $value->{'$type'};
+        }
+
+        # perlclass does not have :reader yet
+        method collection {$collection}
+        method rkey       {$rkey}
+        method value      {$value}
+
+        method _raw {
+            +{ '$type' => $type, collection => $collection, rkey => $rkey, value => builtin::blessed $value ? $value->_raw : $value };
+        }
+    };
+
+    class At::Lexicon::com::atproto::repo::applyWrites::update 1 {
+        field $type : param($type) = 'com.atproto.repo.applyWrites#update';    # record field
+        field $collection : param;                                             # nsid, required
+        field $rkey : param;                                                   # string, required
+        field $value : param;                                                  # unknown
+        ADJUST {
+            $value = At::_topkg( $value->{'$type'} )->new(%$value) if !builtin::blessed $value && defined $value->{'$type'};
+        }
+
+        # perlclass does not have :reader yet
+        method collection {$collection}
+        method rkey       {$rkey}
+        method value      {$value}
+
+        method _raw {
+            +{ '$type' => $type, collection => $collection, rkey => $rkey, value => builtin::blessed $value ? $value->_raw : $value };
+        }
+    };
+
+    class At::Lexicon::com::atproto::repo::applyWrites::delete 1 {
+        field $type : param($type) = 'com.atproto.repo.applyWrites#delete';    # record field
+        field $collection : param;                                             # nsid, required
+        field $rkey : param;                                                   # string, required
+
+        # perlclass does not have :reader yet
+        method collection {$collection}
+        method rkey       {$rkey}
+
+        method _raw {
+            +{ '$type' => $type, collection => $collection, rkey => $rkey };
         }
     };
 }
