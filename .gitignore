@@ -40,3 +40,10 @@ eg/clutter.pl
 eg/*.conf
 
 eg/atproto/
+
+eg/bluesky.pl
+eg/notifications.pl
+eg/podfix.pl
+eg/subscription.pl
+eg/temp.pm
+

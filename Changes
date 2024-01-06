@@ -2,8 +2,7 @@ Revision history for Perl extension At.pm
 
 {{$NEXT}}
 
-    - At admin, identity, label, moderation, repo, server, and sync lexicons
-    - Bluesky social graph, richtext, notification, and actor extensions
+    - Full support for core At protocol and Bluesky extensions
 
 0.02 2023-11-22T04:14:23Z
 
