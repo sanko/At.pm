@@ -353,7 +353,8 @@ package At::Lexicon::com::atproto::admin 0.04 {
     class At::Lexicon::com::atproto::admin::accountView 1 {
         field $did : param;                        # DID, required
         field $handle : param;                     # Handle, required
-        field $email : param //= ();               # string
+        field $email : param          //= ();      # string
+        field $relatedRecords : param //= ();      # array
         field $indexedAt : param;                  # datetime, required
         field $invitedBy : param        //= ();    # ::com::atproto::server::inviteCode
         field $invites : param          //= ();    # array
@@ -361,8 +362,10 @@ package At::Lexicon::com::atproto::admin 0.04 {
         field $emailConfirmedAt : param //= ();    # datetime
         field $inviteNote : param       //= ();    # string
         ADJUST {
-            $did              = At::Protocol::DID->new( uri => $did )                   unless builtin::blessed $did;
-            $handle           = At::Protocol::Handle->new( id => $handle )              unless builtin::blessed $handle;
+            $did            = At::Protocol::DID->new( uri => $did )      unless builtin::blessed $did;
+            $handle         = At::Protocol::Handle->new( id => $handle ) unless builtin::blessed $handle;
+            $relatedRecords = [ map { builtin::blessed $_ || !defined $_->{'$type'} ? $_ : At::_topkg( $_->{'$type'} )->new(%$_) } @$relatedRecords ]
+                if defined $relatedRecords;
             $indexedAt        = At::Protocol::Timestamp->new( timestamp => $indexedAt ) unless builtin::blessed $indexedAt;
             $invitedBy        = At::Lexicon::com::atproto::server::inviteCode->new(%$invitedBy) if defined $invitedBy && !builtin::blessed $invitedBy;
             $invites          = [ map { At::Lexicon::com::atproto::server::inviteCode->new(%$_) } @$invites ] if defined $invites;
@@ -374,6 +377,7 @@ package At::Lexicon::com::atproto::admin 0.04 {
         method did              {$did}
         method handle           {$handle}
         method email            {$email}
+        method relatedRecords   {$relatedRecords}
         method indexedAt        {$indexedAt}
         method invitedBy        {$invitedBy}
         method invites          {$invites}
@@ -384,7 +388,8 @@ package At::Lexicon::com::atproto::admin 0.04 {
         method _raw() {
             +{  did    => $did->_raw,
                 handle => $handle->_raw,
-                defined $email ? ( email => $email ) : (),
+                defined $email          ? ( email          => $email )                                                           : (),
+                defined $relatedRecords ? ( relatedRecords => [ map { builtin::blessed $_ ? $_->_raw : $_ } @$relatedRecords ] ) : (),
                 indexedAt => $indexedAt->_raw,
                 defined $invitedBy ? ( invitedBy => $invitedBy->_raw ) : (), defined $invites ? ( invites => [ map { $_->_raw } @$invites ] ) : (),
                 defined $invitesDisabled  ? ( invitesDisabled  => \!!$invitesDisabled )     : (),

@@ -174,6 +174,20 @@ Expected parameters include:
 
 Returns a new `At::Lexicon::com::atproto::admin::accountView` object on success.
 
+## `admin_getAccountsInfo( ... )`
+
+```
+$at->admin_getAccountsInfo( 'did://...', 'did://...' );
+```
+
+Get details about some accounts.
+
+Expected parameters include:
+
+- `dids` - required
+
+Returns an info list of new `At::Lexicon::com::atproto::admin::accountView` objects on success.
+
 ## `admin_getInviteCodes( [...] )`
 
 ```

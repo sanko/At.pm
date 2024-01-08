@@ -2,6 +2,10 @@ Revision history for Perl extension At.pm
 
 {{$NEXT}}
 
+    - Implement changes in bluesky-social/atproto#1970
+       - new method: admin_getAccountsInfo
+       - new field in At::Lexicon::com::atproto::admin::accountView class
+
 0.04 2024-01-06T21:14:08Z
 
     - ...don't write tests that fail when an otherwise unimportant page on the internet changes

@@ -107,6 +107,14 @@ package At 0.04 {
                 $res;
             }
 
+            method admin_getAccountsInfo (@dids) {
+                $self->http->session // Carp::confess 'requires an authenticated client';
+                my $res = $self->http->get( sprintf( '%s/xrpc/%s', $self->host, 'com.atproto.admin.getAccountsInfo' ),
+                    { content => +{ dids => \@dids } } );
+                $res->{infos} = [ map { At::Lexicon::com::atproto::admin::accountView->new(%$_) } @{ $res->{infos} } ] if defined $res->{infos};
+                $res;
+            }
+
             method admin_getInviteCodes ( $sort //= (), $limit //= (), $cursor //= () ) {
                 $self->http->session // Carp::confess 'requires an authenticated client';
                 my $res = $self->http->get(
@@ -1280,6 +1288,22 @@ Expected parameters include:
 =back
 
 Returns a new C<At::Lexicon::com::atproto::admin::accountView> object on success.
+
+=head2 C<admin_getAccountsInfo( ... )>
+
+    $at->admin_getAccountsInfo( 'did://...', 'did://...' );
+
+Get details about some accounts.
+
+Expected parameters include:
+
+=over
+
+=item C<dids> - required
+
+=back
+
+Returns an info list of new C<At::Lexicon::com::atproto::admin::accountView> objects on success.
 
 =head2 C<admin_getInviteCodes( [...] )>
 

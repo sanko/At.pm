@@ -16,7 +16,7 @@ subtest 'methods' => sub {
         admin_emitModerationEvent admin_getModerationEvent admin_queryModerationEvents
         admin_updateAccountEmail admin_deleteAccount admin_enableAccountInvites admin_getRecord
         admin_queryModerationStatuses admin_updateAccountHandle admin_disableAccountInvites
-        admin_getAccountInfo admin_getRepo admin_searchRepos admin_updateSubjectStatus
+        admin_getAccountInfo admin_getAccountsInfo admin_getRepo admin_searchRepos admin_updateSubjectStatus
         admin_disableInviteCodes admin_getInviteCodes admin_getSubjectStatus admin_sendEmail
     ];
 };
