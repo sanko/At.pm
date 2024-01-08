@@ -22,4 +22,5 @@ jobs:
         with:
           perl-version: ${{ matrix.perl }}
       - run: perl -V
+      - run: cpanm --installdeps -n -v At
       - run: cpanm --test-only -v At
