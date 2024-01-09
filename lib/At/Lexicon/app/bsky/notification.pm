@@ -1,4 +1,4 @@
-package At::Lexicon::app::bsky::notification 0.04 {
+package At::Lexicon::app::bsky::notification 0.05 {
     use v5.38;
     no warnings 'experimental::class', 'experimental::builtin';    # Be quiet.
     use feature 'class';
