@@ -2,9 +2,9 @@ Revision history for Perl extension At.pm
 
 {{$NEXT}}
 
-    - Implement changes in bluesky-social/atproto#1970
+    - Update according to lexicon changes in bluesky-social/atproto#1970
        - new method: admin_getAccountsInfo
-       - new field in At::Lexicon::com::atproto::admin::accountView class
+       - new field in class At::Lexicon::com::atproto::admin::accountView
 
 0.04 2024-01-06T21:14:08Z
 
