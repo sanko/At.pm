@@ -937,8 +937,9 @@ package At 0.06 {
             field $refreshJwt : param;
 
             # waiting for perlclass to implement accessors with :reader
-            method accessJwt {$accessJwt}
-            method did       {$did}
+            method accessJwt  {$accessJwt}
+            method did        {$did}
+            method refreshJwt {$refreshJwt}
             #
             ADJUST {
                 $did            = At::Protocol::DID->new( uri => $did ) unless builtin::blessed $did;
