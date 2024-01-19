@@ -2,6 +2,11 @@ Revision history for Perl extension At.pm
 
 {{$NEXT}}
 
+0.06 2024-01-19T02:20:52Z
+
+    - Update according to lexicon changes in bluesky-social/atproto@e43396a
+       - phone verification support on account creation
+
 0.05 2024-01-09T04:01:09Z
 
     - Update according to lexicon changes in bluesky-social/atproto#1970

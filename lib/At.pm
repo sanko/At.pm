@@ -1,4 +1,4 @@
-package At 0.05 {
+package At 0.06 {
     use v5.38;
     no warnings 'experimental::class', 'experimental::builtin', 'experimental::for_list';    # Be quiet.
     use feature 'class';
@@ -698,21 +698,26 @@ package At 0.05 {
 
             method server_createAccount (
                 $handle,
-                $email       //= (),
-                $password    //= (),
-                $inviteCode  //= (),
-                $did         //= (),
-                $recoveryKey //= (),
-                $plcOP       //= ()
+                $email             //= (),
+                $password          //= (),
+                $inviteCode        //= (),
+                $verificationCode  //= (),
+                $verificationPhone //= (),
+                $did               //= (),
+                $recoveryKey       //= (),
+                $plcOP             //= ()
             ) {
                 Carp::cluck 'likely do not want an authenticated client' if defined $self->http->session;
                 my $res = $self->http->post(
                     sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.server.createAccount' ),
                     {   content => +{
                             handle => $handle,
-                            defined $email       ? ( email       => $email )       : (), defined $did      ? ( did      => $did )      : (),
-                            defined $inviteCode  ? ( inviteCode  => $inviteCode )  : (), defined $password ? ( password => $password ) : (),
-                            defined $recoveryKey ? ( recoveryKey => $recoveryKey ) : (), defined $plcOP    ? ( plcOP    => $plcOP )    : ()
+                            defined $email             ? ( email             => $email )             : (), defined $did ? ( did => $did ) : (),
+                            defined $inviteCode        ? ( inviteCode        => $inviteCode )        : (),
+                            defined $verificationCode  ? ( verificationCode  => $verificationCode )  : (),
+                            defined $verificationPhone ? ( verificationPhone => $verificationPhone ) : (),
+                            defined $password          ? ( password => $password ) : (), defined $recoveryKey ? ( recoveryKey => $recoveryKey ) : (),
+                            defined $plcOP             ? ( plcOP    => $plcOP )    : ()
                         }
                     }
                 );
@@ -860,6 +865,12 @@ package At 0.05 {
 
             method temp_importRepo ($did) {
                 my $res = $self->http->post( sprintf( '%s/xrpc/%s', $self->host, 'com.atproto.temp.importRepo' ), { content => +{ did => $did } } );
+                $res->{success};
+            }
+
+            method temp_requestPhoneVerification ($phoneNumber) {
+                my $res = $self->http->post( sprintf( '%s/xrpc/%s', $self->host, 'com.atproto.temp.requestPhoneVerification' ),
+                    { content => +{ phoneNumber => $phoneNumber } } );
                 $res->{success};
             }
         }
@@ -2017,8 +2028,8 @@ Get a document describing the service's accounts configuration.
 
 This method does not require an authenticated session.
 
-Returns a boolean value indicating whether an invite code is required, a list of available user domains, and links to
-the TOS and privacy policy.
+Returns a list of available user domains and, optionally, boolean values indicating whether an invite code and/or phone
+verification are required, and links to the TOS and privacy policy.
 
 =head2 C<server_listAppPasswords( )>
 
@@ -2601,6 +2612,24 @@ Expected parameters include:
 The DID of the repo.
 
 =back
+
+=head2 C<temp_requestPhoneVerification( ... )>
+
+    $at->temp_requestPhoneVerification( '2125551000' );
+
+Request a verification code to be sent to the supplied phone number.
+
+Expected parameters include:
+
+=over
+
+=item C<phoneNumber> - required
+
+Phone number
+
+=back
+
+Returns a true value on success.
 
 =begin todo
 

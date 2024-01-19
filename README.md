@@ -832,8 +832,8 @@ $at->server_describeServer( );
 
 This method does not require an authenticated session.
 
-Returns a boolean value indicating whether an invite code is required, a list of available user domains, and links to
-the TOS and privacy policy.
+Returns a list of available user domains and, optionally, boolean values indicating whether an invite code and/or phone
+verification are required, and links to the TOS and privacy policy.
 
 ## `server_listAppPasswords( )`
 
@@ -1355,6 +1355,22 @@ Expected parameters include:
 - `did` - required
 
     The DID of the repo.
+
+## `temp_requestPhoneVerification( ... )`
+
+```
+$at->temp_requestPhoneVerification( '2125551000' );
+```
+
+Request a verification code to be sent to the supplied phone number.
+
+Expected parameters include:
+
+- `phoneNumber` - required
+
+    Phone number
+
+Returns a true value on success.
 
 # See Also
 

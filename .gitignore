@@ -46,4 +46,4 @@ eg/notifications.pl
 eg/podfix.pl
 eg/subscription.pl
 eg/temp.pm
-
+eg/*.pl

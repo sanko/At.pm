@@ -1,4 +1,4 @@
-package At::Lexicon::app::bsky::richtext 0.05 {
+package At::Lexicon::app::bsky::richtext 0.06 {
     use v5.38;
     no warnings 'experimental::class', 'experimental::builtin';    # Be quiet.
     use feature 'class';
@@ -73,8 +73,9 @@ package At::Lexicon::app::bsky::richtext 0.05 {
 
     # A text segment. Start is inclusive, end is exclusive. Indices are for utf8-encoded strings.
     class At::Lexicon::app::bsky::richtext::facet::byteSlice {
-        field $byteEnd : param;      # int, required, minimum: 0
-        field $byteStart : param;    # int, required, minimum: 0
+        field $type : param($type) //= ();    # record field
+        field $byteEnd : param;               # int, required, minimum: 0
+        field $byteStart : param;             # int, required, minimum: 0
         ADJUST {
             Carp::confess 'byteEnd must be greater than 0'   if $byteEnd < 0;
             Carp::confess 'byteStart must be greater than 0' if $byteStart < 0;
@@ -85,7 +86,7 @@ package At::Lexicon::app::bsky::richtext 0.05 {
         method byteStart {$byteStart}
 
         method _raw() {
-            +{ byteEnd => $byteEnd, byteStart => $byteStart };
+            +{ defined $type ? ( '$type' => $type ) : (), byteEnd => $byteEnd, byteStart => $byteStart };
         }
     }
 };
