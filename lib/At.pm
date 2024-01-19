@@ -13,6 +13,12 @@ package At 0.06 {
     #~ |-5-55------4-44-5-55----353--3-33-/1~--|
     #~ |---------------------335---33----------|
     class At {
+
+        sub resume ( $class, %config ) {    # store $at->http->session->_raw and restore it here
+            my $at = $class->new();
+            $at->http->set_session( \%config );
+            $at;
+        }
         field $http //= Mojo::UserAgent->can('start') ? At::UserAgent::Mojo->new() : At::UserAgent::Tiny->new();
         method http {$http}
         field $host : param = ();
@@ -20,8 +26,12 @@ package At 0.06 {
         field $identifier : param //= ();
         field $password : param   //= ();
         #
-        field $did : param = ();    # do not allow arg to new
+        field $did : param = ();            # do not allow arg to new
         method did {$did}
+
+        # Allow session restoration
+        field $accessJwt : param  //= ();
+        field $refreshJwt : param //= ();
         #
         method host {
             return $host if defined $host;
@@ -37,15 +47,21 @@ package At 0.06 {
             if ( defined $host ) {
                 $host = 'https://' . $host unless $host =~ /^https?:/;
                 $host = URI->new($host)    unless builtin::blessed $host;
-                if ( defined $identifier && defined $password ) {    # auto-login
+                if ( defined $accessJwt && defined $refreshJwt && defined $did ) {
+                    $http->set_session( { accessJwt => $accessJwt, refreshJwt => $refreshJwt, did => $did } );
+                    $did = At::Protocol::DID->new( uri => $did );
+                }
+                elsif ( defined $identifier && defined $password ) {    # auto-login
                     my $session = $self->server_createSession( $identifier, $password );
                     if ( defined $session->{accessJwt} ) {
                         $http->set_session($session);
                         $did = At::Protocol::DID->new( uri => $http->session->did->_raw );
                     }
                     else {
-                        use Carp qw[confess];
-                        confess 'Error creating session' . ( defined $session->{message} ? ': ' . $session->{message} : '' );
+                        use Carp qw[carp];
+                        carp 'Error creating session' . ( defined $session->{message} ? ': ' . $session->{message} : '' );
+
+                        #~ undef $self;
                     }
                 }
             }
@@ -933,17 +949,30 @@ package At 0.06 {
             field $didDoc : param         = ();    # spec says 'unknown' so I'm just gonna ignore it for now even with the dump
             field $email : param          = ();
             field $emailConfirmed : param = ();
-            field $handle : param;
+            field $handle : param         = ();
             field $refreshJwt : param;
 
             # waiting for perlclass to implement accessors with :reader
             method accessJwt  {$accessJwt}
             method did        {$did}
             method refreshJwt {$refreshJwt}
+            method handle     {$handle}
             #
             ADJUST {
                 $did            = At::Protocol::DID->new( uri => $did ) unless builtin::blessed $did;
-                $emailConfirmed = !!$emailConfirmed if defined $emailConfirmed;
+                $handle         = At::Protocol::Handle->new( id => $handle ) if defined $handle && !builtin::blessed $handle;
+                $emailConfirmed = !!$emailConfirmed                          if defined $emailConfirmed;
+            }
+
+            # This could be used as part of a session resume system
+            method _raw {
+                +{  accessJwt => $accessJwt,
+                    did       => $did->_raw,
+                    defined $didDoc ? ( didDoc => $didDoc ) : (), defined $email ? ( email => $email ) : (),
+                    defined $emailConfirmed ? ( emailConfirmed => \!!$emailConfirmed ) : (),
+                    refreshJwt => $refreshJwt,
+                    defined $handle ? ( handle => $handle->_raw ) : ()
+                };
             }
         }
 
