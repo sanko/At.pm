@@ -2,6 +2,8 @@ Revision history for Perl extension At.pm
 
 {{$NEXT}}
 
+    - Login failures are fatal errors
+
 0.06 2024-01-19T02:20:52Z
 
     - Update according to lexicon changes in bluesky-social/atproto@e43396a

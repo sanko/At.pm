@@ -12,7 +12,7 @@ package At 0.06 {
     #~ |------3-33-----------------------------|
     #~ |-5-55------4-44-5-55----353--3-33-/1~--|
     #~ |---------------------335---33----------|
-    class At 1.00 {
+    class At {
         field $http //= Mojo::UserAgent->can('start') ? At::UserAgent::Mojo->new() : At::UserAgent::Tiny->new();
         method http {$http}
         field $host : param = ();
@@ -39,8 +39,14 @@ package At 0.06 {
                 $host = URI->new($host)    unless builtin::blessed $host;
                 if ( defined $identifier && defined $password ) {    # auto-login
                     my $session = $self->server_createSession( $identifier, $password );
-                    $http->set_session($session);
-                    $did = At::Protocol::DID->new( uri => $http->session->did->_raw );
+                    if ( defined $session->{accessJwt} ) {
+                        $http->set_session($session);
+                        $did = At::Protocol::DID->new( uri => $http->session->did->_raw );
+                    }
+                    else {
+                        use Carp qw[confess];
+                        confess 'Error creating session' . ( defined $session->{message} ? ': ' . $session->{message} : '' );
+                    }
                 }
             }
         }
