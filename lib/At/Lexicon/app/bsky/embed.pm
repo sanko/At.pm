@@ -258,7 +258,7 @@ package At::Lexicon::app::bsky::actor 0.06 {
             $uri    = URI->new($uri)                                                 unless builtin::blessed $uri;
             $author = At::Lexicon::app::bsky::actor::profileViewBasic->new(%$author) unless builtin::blessed $author;
             $value  = At::_topkg( $value->{'$type'} )->new(%$value) if !builtin::blessed $value && defined $value->{'$type'};
-            $labels = [ map { $_ = At::Lexicon::com::atproto::label::label->new(%$_) unless builtin::blessed $_ } @$labels ] if defined $labels;
+            $labels = [ map { $_ = At::Lexicon::com::atproto::label->new(%$_) unless builtin::blessed $_ } @$labels ] if defined $labels;
             $embeds = [ map { $_ = At::_topkg( $_->{'$type'} )->new(%$_) if !builtin::blessed $_ && defined $_->{'$type'} } @$embeds ]
                 if defined $embeds;
             $indexedAt = At::Protocol::Timestamp->new( timestamp => $indexedAt ) unless builtin::blessed $indexedAt;
