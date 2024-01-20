@@ -15,9 +15,10 @@ package At::Bluesky {
     use At::Lexicon::app::bsky::unspecced;
     #
     class At::Bluesky : isa(At) {
+        field $_host : param(_host) //= 'https://bsky.social';
 
         # Required in subclasses of At
-        method host { URI->new('https://bsky.social') }
+        method host { URI->new($_host) }
 
         # Sugar
         method post (%args) {
