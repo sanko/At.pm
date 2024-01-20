@@ -635,6 +635,44 @@ package At::Lexicon::com::atproto::admin 0.06 {
             +{ witdh => $width, height => $height, length => $length };
         }
     };
+
+    class At::Lexicon::com::atproto::admin::communicationTemplateView 1 {
+        field $id : param;                 # string, required
+        field $name : param;               # string, required
+        field $subject : param //= ();     # string
+        field $contentMarkdown : param;    # string, required
+        field $disabled : param;           # bool, required
+        field $lastUpdatedBy : param;      # did, required
+        field $createdAt : param;          # timestamp, required
+        field $updatedAt : param;          # timestamp, required
+        ADJUST {
+            $lastUpdatedBy = At::Protocol::DID->new( uri => $lastUpdatedBy ) unless builtin::blessed $lastUpdatedBy;
+            $createdAt     = At::Protocol::Timestamp->new( timestamp => $createdAt ) unless builtin::blessed $createdAt;
+            $updatedAt     = At::Protocol::Timestamp->new( timestamp => $updatedAt ) unless builtin::blessed $updatedAt;
+        }
+
+        # perlclass does not have :reader yet
+        method id              {$id}
+        method name            {$name}
+        method subject         {$subject}
+        method contentMarkdown {$contentMarkdown}
+        method disabled        {$disabled}
+        method lastUpdatedBy   {$lastUpdatedBy}
+        method createdAt       {$createdAt}
+        method updatedAt       {$updatedAt}
+
+        method _raw() {
+            +{  id   => $id,
+                name => $name,
+                defined $subject ? ( subject => $subject ) : (),
+                contentMarkdown => $contentMarkdown,
+                disabled        => \!!$disabled,
+                lastUpdatedBy   => $lastUpdatedBy->_raw,
+                createdAt       => $createdAt->_raw,
+                updatedAt       => $updatedAt->_raw
+            };
+        }
+    };
 }
 1;
 __END__

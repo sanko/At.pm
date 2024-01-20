@@ -75,10 +75,32 @@ package At 0.06 {
         #~ class At::Lexicon::AtProto::Admin
         {
 
+            method admin_createCommunicationTemplate ( $name, $subject, $contentMarkdown, $createdBy //= () ) {
+                $self->http->session // Carp::confess 'requires an authenticated client';
+                my $res = $self->http->post(
+                    sprintf( '%s/xrpc/%s', $self->host, 'com.atproto.admin.createCommunicationTemplate' ),
+                    {   content => +{
+                            name            => $name,
+                            subject         => $subject,
+                            contentMarkdown => $contentMarkdown,
+                            defined $createdBy ? ( createdBy => builtin::blessed $createdBy ? $createdBy->_raw : $createdBy ) : ()
+                        }
+                    }
+                );
+                $res->{success};
+            }
+
             method admin_deleteAccount ($did) {
                 $self->http->session // Carp::confess 'requires an authenticated client';
                 my $res
                     = $self->http->post( sprintf( '%s/xrpc/%s', $self->host, 'com.atproto.admin.deleteAccount' ), { content => +{ did => $did } } );
+                $res->{success};
+            }
+
+            method admin_deleteCommunicationTemplate ($id) {
+                $self->http->session // Carp::confess 'requires an authenticated client';
+                my $res = $self->http->post( sprintf( '%s/xrpc/%s', $self->host, 'com.atproto.admin.deleteCommunicationTemplate' ),
+                    { content => +{ id => $id } } );
                 $res->{success};
             }
 
@@ -193,6 +215,15 @@ package At 0.06 {
                 $res->{subject} = At::_topkg( $res->{subject}->{'$type'} )->new( %{ $res->{subject} } )
                     if defined $res->{subject} && !builtin::blessed $res->{subject} && defined $res->{subject}->{'$type'};
                 $res->{takedown} = At::Lexicon::com::atproto::admin::statusAttr->new( %{ $res->{takedown} } ) if defined $res->{takedown};
+                $res;
+            }
+
+            method admin_listCommunicationTemplates ( ) {
+                $self->http->session // Carp::confess 'requires an authenticated client';
+                my $res = $self->http->get( sprintf( '%s/xrpc/%s', $self->host, 'com.atproto.admin.listCommunicationTemplates' ) );
+                $res->{communicationTemplates}
+                    = [ map { $_ = At::Lexicon::com::atproto::admin::communicationTemplateView->new(%$_) } @{ $res->{communicationTemplates} } ]
+                    if defined $res->{communicationTemplates};
                 $res;
             }
 
@@ -322,9 +353,31 @@ package At 0.06 {
 
             method admin_updateAccountHandle ( $did, $handle ) {
                 $self->http->session // Carp::confess 'requires an authenticated client';
-                $did = At::Protocol::DID->new( uri => $did ) if defined $did && !builtin::blessed $did;
+                $did = At::Protocol::DID->new( uri => $did ) unless builtin::blessed $did;
                 my $res = $self->http->post( sprintf( '%s/xrpc/%s', $self->host, 'com.atproto.admin.updateAccountHandle' ),
                     { content => +{ did => $did->_raw, handle => $handle } } );
+                $res->{success};
+            }
+
+            method admin_updateCommunicationTemplate (
+                $id,
+                $name            //= (),
+                $contentMarkdown //= (),
+                $subject         //= (),
+                $updatedBy       //= (),
+                $disabled        //= ()
+            ) {
+                $self->http->session // Carp::confess 'requires an authenticated client';
+                $updatedBy = At::Protocol::DID->new( uri => $did ) if defined $updatedBy && !builtin::blessed $updatedBy;
+                my $res = $self->http->post(
+                    sprintf( '%s/xrpc/%s', $self->host, 'com.atproto.admin.updateCommunicationTemplate' ),
+                    {   content => +{
+                            id => $id,
+                            defined $name      ? ( name      => $name ) : (), defined $contentMarkdown ? ( contentMarkdown => $contentMarkdown ) : (),
+                            defined $updatedBy ? ( updatedBy => $updatedBy->_raw ) : (), defined $disabled ? ( disabled => \!!$disabled )        : ()
+                        }
+                    }
+                );
                 $res->{success};
             }
 
@@ -1233,6 +1286,24 @@ Returns data which may be used to resume an authenticated session.
 
 Note that this data is subject to change in line with the AT protocol.
 
+=head2 C<admin_deleteCommunicationTemplate( ... )>
+
+    $at->admin_deleteCommunicationTemplate( 99999 );
+
+Delete a communication template.
+
+Expected parameters include:
+
+=over
+
+=item C<id> - required
+
+ID of the template.
+
+=back
+
+Returns a true value on success.
+
 =head2 C<admin_disableAccountInvites( ... )>
 
 Disable an account from receiving new invite codes, but does not invalidate existing codes.
@@ -1269,6 +1340,36 @@ List of account DIDs.
 
 =back
 
+=head2 C<admin_createCommunicationTemplate( ... )>
+
+    $at->admin_createCommunicationTemplate( 'warning_1', 'Initial Warning for [...]', 'You are being alerted [...]' );
+
+Administrative action to create a new, re-usable communication (email for now) template.
+
+Expected parameters include:
+
+=over
+
+=item C<name> - required
+
+Name of the template.
+
+=item C<subject> - required
+
+Subject of the message, used in emails.
+
+=item C<contentMarkdown> - required
+
+Content of the template, markdown supported, can contain variable placeholders.
+
+=item C<createdBy>
+
+DID of the user who is creating the template.
+
+=back
+
+Returns a true value on success.
+
 =head2 C<admin_deleteAccount( ... )>
 
     $at->admin_deleteAccount( 'did://...' );
@@ -1280,26 +1381,6 @@ Expected parameters include:
 =over
 
 =item C<did> - required
-
-=back
-
-Returns a true value on success.
-
-=head2 C<admin_disableAccountInvites( ..., [...] )>
-
-    $at->admin_disableAccountInvites( 'did://...' );
-
-Disable an account from receiving new invite codes, but does not invalidate existing codes.
-
-Expected parameters include:
-
-=over
-
-=item C<account> - required
-
-=item C<note>
-
-Optional reason for disabled invites.
 
 =back
 
@@ -1472,6 +1553,15 @@ Expected parameters include:
 =back
 
 Returns a subject and, optionally, the takedown reason as a new C<At::Lexicon::com::atproto::admin::statusAttr> object
+on success.
+
+=head2 C<admin_listCommunicationTemplates( )>
+
+    $at->admin_listCommunicationTemplates( );
+
+Get list of all communication templates.
+
+Returns a list of communicationTemplates as new C<At::Lexicon::com::atproto::admin::communicationTemplateView> objects
 on success.
 
 =head2 C<admin_queryModerationEvents( [...] )>
@@ -1661,6 +1751,45 @@ Expected parameters include:
 =item C<did> - required
 
 =item C<handle> - required
+
+=back
+
+Returns a true value on success.
+
+=head2 C<admin_updateCommunicationTemplate( ... )>
+
+    $at->admin_updateCommunicationTemplate( 999999, 'warning_1', 'First Warning for [...]' );
+
+Administrative action to update an existing communication template. Allows passing partial fields to patch specific
+fields only.
+
+Expected parameters include:
+
+=over
+
+=item C<id> - required
+
+ID of the template to be updated.
+
+=item C<name>
+
+Name of the template.
+
+=item C<contentMarkdown>
+
+Content of the template, markdown supported, can contain variable placeholders.
+
+=item C<subject>
+
+Subject of the message, used in emails.
+
+=item C<updatedBy>
+
+DID of the user who is updating the template.
+
+=item C<disabled>
+
+Boolean.
 
 =back
 

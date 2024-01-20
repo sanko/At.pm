@@ -57,7 +57,7 @@ The API attempts to follow the layout of the underlying protocol so changes to t
 Creates an AT client and initiates an authentication session.
 
 ```perl
-my $self = At->new( host => 'https://bsky.social' );
+my $at = At->new( host => 'https://bsky.social' );
 ```
 
 Expected parameters include:
@@ -66,6 +66,44 @@ Expected parameters include:
 
     Host for the account. If you're using the 'official' Bluesky, this would be 'https://bsky.social' but you'll probably
     want `At::Bluesky->new(...)` because that client comes with all the bits that aren't part of the core protocol.
+
+## `resume( ... )`
+
+Resumes an authenticated session.
+
+```perl
+my $at = At->resume( $session );
+```
+
+Expected parameters include:
+
+- `session` - required
+
+## `session( )`
+
+Returns data which may be used to resume an authenticated session.
+
+```perl
+my $restore = $at->session;
+```
+
+Note that this data is subject to change in line with the AT protocol.
+
+## `admin_deleteCommunicationTemplate( ... )`
+
+```
+$at->admin_deleteCommunicationTemplate( 99999 );
+```
+
+Delete a communication template.
+
+Expected parameters include:
+
+- `id` - required
+
+    ID of the template.
+
+Returns a true value on success.
 
 ## `admin_disableAccountInvites( ... )`
 
@@ -95,6 +133,34 @@ Expected parameters include:
 
     List of account DIDs.
 
+## `admin_createCommunicationTemplate( ... )`
+
+```
+$at->admin_createCommunicationTemplate( 'warning_1', 'Initial Warning for [...]', 'You are being alerted [...]' );
+```
+
+Administrative action to create a new, re-usable communication (email for now) template.
+
+Expected parameters include:
+
+- `name` - required
+
+    Name of the template.
+
+- `subject` - required
+
+    Subject of the message, used in emails.
+
+- `contentMarkdown` - required
+
+    Content of the template, markdown supported, can contain variable placeholders.
+
+- `createdBy`
+
+    DID of the user who is creating the template.
+
+Returns a true value on success.
+
 ## `admin_deleteAccount( ... )`
 
 ```
@@ -106,23 +172,6 @@ Delete a user account as an administrator.
 Expected parameters include:
 
 - `did` - required
-
-Returns a true value on success.
-
-## `admin_disableAccountInvites( ..., [...] )`
-
-```
-$at->admin_disableAccountInvites( 'did://...' );
-```
-
-Disable an account from receiving new invite codes, but does not invalidate existing codes.
-
-Expected parameters include:
-
-- `account` - required
-- `note`
-
-    Optional reason for disabled invites.
 
 Returns a true value on success.
 
@@ -268,6 +317,17 @@ Expected parameters include:
 - `blob`
 
 Returns a subject and, optionally, the takedown reason as a new `At::Lexicon::com::atproto::admin::statusAttr` object
+on success.
+
+## `admin_listCommunicationTemplates( )`
+
+```
+$at->admin_listCommunicationTemplates( );
+```
+
+Get list of all communication templates.
+
+Returns a list of communicationTemplates as new `At::Lexicon::com::atproto::admin::communicationTemplateView` objects
 on success.
 
 ## `admin_queryModerationEvents( [...] )`
@@ -437,6 +497,43 @@ Expected parameters include:
 
 - `did` - required
 - `handle` - required
+
+Returns a true value on success.
+
+## `admin_updateCommunicationTemplate( ... )`
+
+```
+$at->admin_updateCommunicationTemplate( 999999, 'warning_1', 'First Warning for [...]' );
+```
+
+Administrative action to update an existing communication template. Allows passing partial fields to patch specific
+fields only.
+
+Expected parameters include:
+
+- `id` - required
+
+    ID of the template to be updated.
+
+- `name`
+
+    Name of the template.
+
+- `contentMarkdown`
+
+    Content of the template, markdown supported, can contain variable placeholders.
+
+- `subject`
+
+    Subject of the message, used in emails.
+
+- `updatedBy`
+
+    DID of the user who is updating the template.
+
+- `disabled`
+
+    Boolean.
 
 Returns a true value on success.
 
