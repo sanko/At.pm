@@ -1,4 +1,4 @@
-package At::Lexicon::app::bsky::graph 0.06 {
+package At::Lexicon::app::bsky::graph 0.07 {
     use v5.38;
     no warnings 'experimental::class', 'experimental::builtin';    # Be quiet.
     use feature 'class';

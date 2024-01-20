@@ -1,4 +1,4 @@
-package At 0.06 {
+package At 0.07 {
     use v5.38;
     no warnings 'experimental::class', 'experimental::builtin', 'experimental::for_list';    # Be quiet.
     use feature 'class';
@@ -2902,7 +2902,7 @@ Sanko Robinson E<lt>sanko@cpan.orgE<gt>
 
 =begin stopwords
 
-didDoc cids cid websocket
+didDoc cids cid websocket emails communicationTemplates
 
 =end stopwords
 
