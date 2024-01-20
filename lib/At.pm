@@ -38,6 +38,11 @@ package At 0.06 {
             use Carp qw[confess];
             confess 'You must provide a host or perhaps you wanted At::Bluesky';
         }
+
+        method session() {
+            return unless defined $http && defined $http->session;
+            $http->session->_raw;
+        }
         ## Internals
         sub _now {
             At::Protocol::Timestamp->new( timestamp => time );
@@ -1193,7 +1198,7 @@ The API attempts to follow the layout of the underlying protocol so changes to t
 
 Creates an AT client and initiates an authentication session.
 
-    my $self = At->new( host => 'https://bsky.social' );
+    my $at = At->new( host => 'https://bsky.social' );
 
 Expected parameters include:
 
@@ -1205,6 +1210,28 @@ Host for the account. If you're using the 'official' Bluesky, this would be 'htt
 want C<At::Bluesky-E<gt>new(...)> because that client comes with all the bits that aren't part of the core protocol.
 
 =back
+
+=head2 C<resume( ... )>
+
+Resumes an authenticated session.
+
+    my $at = At->resume( $session );
+
+Expected parameters include:
+
+=over
+
+=item C<session> - required
+
+=back
+
+=head2 C<session( )>
+
+Returns data which may be used to resume an authenticated session.
+
+    my $restore = $at->session;
+
+Note that this data is subject to change in line with the AT protocol.
 
 =head2 C<admin_disableAccountInvites( ... )>
 
