@@ -1,7 +1,7 @@
 [![Actions Status](https://github.com/sanko/At.pm/actions/workflows/linux.yaml/badge.svg)](https://github.com/sanko/At.pm/actions) [![Actions Status](https://github.com/sanko/At.pm/actions/workflows/windows.yaml/badge.svg)](https://github.com/sanko/At.pm/actions) [![Actions Status](https://github.com/sanko/At.pm/actions/workflows/osx.yaml/badge.svg)](https://github.com/sanko/At.pm/actions) [![MetaCPAN Release](https://badge.fury.io/pl/At.svg)](https://metacpan.org/release/At)
 # NAME
 
-At - The AT Protocol for Social Networking
+At - The Bluesky Protocol for Social Networking
 
 # SYNOPSIS
 
@@ -18,7 +18,8 @@ $at->repo_createRecord(
 
 # DESCRIPTION
 
-The AT Protocol is a "social networking technology created to power the next generation of social applications."
+Bluesky is backed by the AT Protocol, a "social networking technology created to power the next generation of social
+applications."
 
 At.pm uses perl's new class system which requires perl 5.38.x or better and, like the protocol itself, is still under
 development.

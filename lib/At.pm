@@ -1202,7 +1202,7 @@ __END__
 
 =head1 NAME
 
-At - The AT Protocol for Social Networking
+At - The Bluesky Protocol for Social Networking
 
 =head1 SYNOPSIS
 
@@ -1217,7 +1217,8 @@ At - The AT Protocol for Social Networking
 
 =head1 DESCRIPTION
 
-The AT Protocol is a "social networking technology created to power the next generation of social applications."
+Bluesky is backed by the AT Protocol, a "social networking technology created to power the next generation of social
+applications."
 
 At.pm uses perl's new class system which requires perl 5.38.x or better and, like the protocol itself, is still under
 development.
