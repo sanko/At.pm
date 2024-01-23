@@ -14,7 +14,10 @@ subtest 'live' => sub {
         '$bsky = At::Bluesky->new( identifier => ..., password => ... )';
     ref_ok my $session = $bsky->session, 'HASH', '$bsky->session';
     isa_ok my $resumed = At::Bluesky->resume(%$session), [ 'At', 'At::Bluesky' ], '$resumed = At::Bluesky->resume( ... )';
-    ok $resumed->actor_getPreferences, '$resumed->actor_getPreferences()';
+    ok $resumed->server_getSession, '$resumed->server_getSession()';
+    my $refreshed = At::Bluesky->new();
+    ok $refreshed->resume( %{ $refreshed->server_refreshSession( $resumed->session->{refreshJwt} ) } ), '$refreshed->server_refreshSession( ... )';
+    ok $refreshed->server_getSession,                                                                   '$refreshed->server_getSession()';
 };
 #
 done_testing;

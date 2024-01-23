@@ -2,6 +2,8 @@ Revision history for Perl extension At.pm
 
 {{$NEXT}}
 
+    - Resume expired sessions with $at->server_refreshSession( ... )
+
 0.07 2024-01-20T22:54:55Z
 
     - Login failures are fatal errors

@@ -37,7 +37,7 @@ subtest 'live' => sub {
             for sort qw[server_getAccountInviteCodes server_updateEmail server_requestEmailUpdate server_revokeAppPassword server_resetPassword
             server_reserveSigningKey server_requestPasswordReset server_requestEmailConfirmation server_requestAccountDelete
             server_deleteSession server_deleteAccount server_createSession server_createInviteCodes server_createInviteCode
-            server_createAppPassword server_createAccount server_confirmEmail];
+            server_createAppPassword server_createAccount server_confirmEmail server_refreshSession];
     }
 };
 #

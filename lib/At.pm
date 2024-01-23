@@ -15,7 +15,7 @@ package At 0.07 {
     class At {
 
         sub resume ( $class, %config ) {    # store $at->http->session->_raw and restore it here
-            my $at = $class->new();
+            my $at = builtin::blessed $class ? $class : $class->new();    # Expect a blessed object
             $at->http->set_session( \%config );
             $at;
         }
@@ -26,7 +26,7 @@ package At 0.07 {
         field $identifier : param //= ();
         field $password : param   //= ();
         #
-        field $did : param = ();            # do not allow arg to new
+        field $did : param = ();    # do not allow arg to new
         method did {$did}
 
         # Allow session restoration
@@ -617,162 +617,9 @@ package At 0.07 {
         {
             use At::Lexicon::com::atproto::server;
 
-            method server_createSession ( $identifier, $password ) {
-                my $res = $self->http->post(
-                    sprintf( '%s/xrpc/%s', $self->host, 'com.atproto.server.createSession' ),
-                    { content => +{ identifier => $identifier, password => $password } }
-                );
-                $res->{handle}         = At::Protocol::Handle->new( id => $res->{handle} ) if defined $res->{handle};
-                $res->{did}            = At::Protocol::DID->new( uri => $res->{did} )      if defined $res->{did};
-                $res->{emailConfirmed} = !!$res->{emailConfirmed} if defined $res->{emailConfirmed} && builtin::blessed $res->{emailConfirmed};
-                $res;
-            }
-
-            method server_describeServer () {    # functions without auth session
-                my $res = $self->http->get( sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.server.describeServer' ) );
-                $res->{links} = At::Lexicon::com::atproto::server::describeServer::links->new( %{ $res->{links} } ) if defined $res->{links};
-                $res;
-            }
-
-            method server_listAppPasswords () {
-                $self->http->session // Carp::confess 'requires an authenticated client';
-                my $res = $self->http->get( sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.server.listAppPasswords' ) );
-                $res->{passwords} = [ map { $_ = At::Lexicon::com::atproto::server::listAppPasswords::appPassword->new(%$_) } @{ $res->{passwords} } ]
-                    if defined $res->{passwords};
-                $res;
-            }
-
-            method server_getSession () {
-                $self->http->session // Carp::confess 'requires an authenticated client';
-                my $res = $self->http->get( sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.server.getSession' ) );
-                $res->{handle}         = At::Protocol::Handle->new( id => $res->{handle} ) if defined $res->{handle};
-                $res->{did}            = At::Protocol::DID->new( uri => $res->{did} )      if defined $res->{did};
-                $res->{emailConfirmed} = !!$res->{emailConfirmed} if defined $res->{emailConfirmed} && builtin::blessed $res->{emailConfirmed};
-                $res;
-            }
-
-            method server_getAccountInviteCodes ( $includeUsed //= (), $createAvailable //= () ) {
-                $self->http->session // Carp::confess 'requires an authenticated client';
-                my $res = $self->http->get(
-                    sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.server.getAccountInviteCodes' ),
-                    {   content => +{
-                            defined $includeUsed     ? ( includeUsed     => $includeUsed )     : (),
-                            defined $createAvailable ? ( createAvailable => $createAvailable ) : ()
-                        }
-                    }
-                );
-                $res->{codes} = [ map { At::Lexicon::com::atproto::server::inviteCode->new(%$_) } @{ $res->{codes} } ] if defined $res->{codes};
-                $res;
-            }
-
-            method server_updateEmail ( $email, $token //= () ) {
-                $self->http->session // Carp::confess 'requires an authenticated client';
-                my $res = $self->http->post(
-                    sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.server.updateEmail' ),
-                    { content => +{ email => $email, defined $token ? ( token => $token ) : () } }
-                );
-                $res;
-            }
-
-            method server_requestEmailUpdate ($tokenRequired) {
-                $self->http->session // Carp::confess 'requires an authenticated client';
-                my $res = $self->http->post( sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.server.requestEmailUpdate' ),
-                    { content => +{ tokenRequired => !!$tokenRequired } } );
-                $res;
-            }
-
-            method server_revokeAppPassword ($name) {
-                $self->http->session // Carp::confess 'requires an authenticated client';
-                my $res = $self->http->post( sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.server.revokeAppPassword' ),
-                    { content => +{ name => $name } } );
-                $res;
-            }
-
-            method server_resetPassword ( $token, $password ) {
-                $self->http->session // Carp::confess 'requires an authenticated client';
-                my $res = $self->http->post(
-                    sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.server.resetPassword' ),
-                    { content => +{ token => $token, password => $password } }
-                );
-                $res;
-            }
-
-            method server_reserveSigningKey ($did) {
-                $self->http->session // Carp::confess 'requires an authenticated client';
-                my $res = $self->http->post( sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.server.reserveSigningKey' ),
-                    { content => +{ defined $did ? ( did => $did ) : () } } );
-                $res;
-            }
-
-            method server_requestPasswordReset ($email) {
-                $self->http->session // Carp::confess 'requires an authenticated client';
-                my $res = $self->http->post( sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.server.requestPasswordReset' ),
-                    { content => +{ email => $email } } );
-                $res;
-            }
-
-            method server_requestEmailConfirmation ( ) {
-                $self->http->session // Carp::confess 'requires an authenticated client';
-                my $res = $self->http->post( sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.server.requestEmailConfirmation' ) );
-                $res;
-            }
-
-            method server_requestAccountDelete ( ) {
-                $self->http->session // Carp::confess 'requires an authenticated client';
-                my $res = $self->http->post( sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.server.requestAccountDelete' ) );
-                $res;
-            }
-
-            method server_deleteSession ( ) {
-                $self->http->session // Carp::confess 'requires an authenticated client';
-                my $res = $self->http->post( sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.server.deleteSession' ) );
-                $res;
-            }
-
-            method server_deleteAccount ( $did, $password, $token ) {
-                $self->http->session // Carp::confess 'requires an authenticated client';
-                my $res = $self->http->post(
-                    sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.server.deleteAccount' ),
-                    { content => +{ did => $did, password => $password, token => $token } }
-                );
-                $res;
-            }
-
-            method server_createInviteCodes ( $codeCount, $useCount, $forAccounts //= () ) {
-                $self->http->session // Carp::confess 'requires an authenticated client';
-                my $res = $self->http->post(
-                    sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.server.createInviteCodes' ),
-                    {   content => +{
-                            codeCount => $codeCount,
-                            useCount  => $useCount,
-                            defined $forAccounts ? ( forAccounts => [ map { $_ = $_->_raw if builtin::blessed $_ } @$forAccounts ] ) : ()
-                        }
-                    }
-                );
-                $res->{codes} = [ map { At::Lexicon::com::atproto::server::createInviteCodes::accountCodes->new(%$_) } @{ $res->{codes} } ]
-                    if defined $res->{codes};
-                $res;
-            }
-
-            method server_createInviteCode ( $useCount, $forAccount //= () ) {
-                $self->http->session // Carp::confess 'requires an authenticated client';
-                my $res = $self->http->post(
-                    sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.server.createInviteCode' ),
-                    {   content => +{
-                            useCount => $useCount,
-                            defined $forAccount ? ( forAccount => builtin::blessed $forAccount? $forAccount->_raw : $forAccount ) : ()
-                        }
-                    }
-                );
-                $res;
-            }
-
-            method server_createAppPassword ($name) {
-                $self->http->session // Carp::confess 'requires an authenticated client';
-                my $res = $self->http->post( sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.server.createAppPassword' ),
-                    { content => +{ name => $name } } );
-                $res->{appPassword} = At::Lexicon::com::atproto::server::createAppPassword::appPassword->new( %{ $res->{appPassword} } )
-                    if defined $res->{appPassword};
+            method server_confirmEmail ( $email, $token ) {
+                my $res = $self->http->post( sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.server.confirmEmail' ),
+                    { content => +{ email => $email, token => $token } } );
                 $res;
             }
 
@@ -806,9 +653,175 @@ package At 0.07 {
                 $res;
             }
 
-            method server_confirmEmail ( $email, $token ) {
-                my $res = $self->http->post( sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.server.confirmEmail' ),
-                    { content => +{ email => $email, token => $token } } );
+            method server_createAppPassword ($name) {
+                $self->http->session // Carp::confess 'requires an authenticated client';
+                my $res = $self->http->post( sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.server.createAppPassword' ),
+                    { content => +{ name => $name } } );
+                $res->{appPassword} = At::Lexicon::com::atproto::server::createAppPassword::appPassword->new( %{ $res->{appPassword} } )
+                    if defined $res->{appPassword};
+                $res;
+            }
+
+            method server_createInviteCode ( $useCount, $forAccount //= () ) {
+                $self->http->session // Carp::confess 'requires an authenticated client';
+                my $res = $self->http->post(
+                    sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.server.createInviteCode' ),
+                    {   content => +{
+                            useCount => $useCount,
+                            defined $forAccount ? ( forAccount => builtin::blessed $forAccount? $forAccount->_raw : $forAccount ) : ()
+                        }
+                    }
+                );
+                $res;
+            }
+
+            method server_createInviteCodes ( $codeCount, $useCount, $forAccounts //= () ) {
+                $self->http->session // Carp::confess 'requires an authenticated client';
+                my $res = $self->http->post(
+                    sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.server.createInviteCodes' ),
+                    {   content => +{
+                            codeCount => $codeCount,
+                            useCount  => $useCount,
+                            defined $forAccounts ? ( forAccounts => [ map { $_ = $_->_raw if builtin::blessed $_ } @$forAccounts ] ) : ()
+                        }
+                    }
+                );
+                $res->{codes} = [ map { At::Lexicon::com::atproto::server::createInviteCodes::accountCodes->new(%$_) } @{ $res->{codes} } ]
+                    if defined $res->{codes};
+                $res;
+            }
+
+            method server_createSession ( $identifier, $password ) {
+                my $res = $self->http->post(
+                    sprintf( '%s/xrpc/%s', $self->host, 'com.atproto.server.createSession' ),
+                    { content => +{ identifier => $identifier, password => $password } }
+                );
+                $res->{handle}         = At::Protocol::Handle->new( id => $res->{handle} ) if defined $res->{handle};
+                $res->{did}            = At::Protocol::DID->new( uri => $res->{did} )      if defined $res->{did};
+                $res->{emailConfirmed} = !!$res->{emailConfirmed} if defined $res->{emailConfirmed} && builtin::blessed $res->{emailConfirmed};
+                $res;
+            }
+
+            method server_deleteAccount ( $did, $password, $token ) {
+                $self->http->session // Carp::confess 'requires an authenticated client';
+                my $res = $self->http->post(
+                    sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.server.deleteAccount' ),
+                    { content => +{ did => $did, password => $password, token => $token } }
+                );
+                $res;
+            }
+
+            method server_deleteSession ( ) {
+                $self->http->session // Carp::confess 'requires an authenticated client';
+                my $res = $self->http->post( sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.server.deleteSession' ) );
+                $res;
+            }
+
+            method server_describeServer () {    # functions without auth session
+                my $res = $self->http->get( sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.server.describeServer' ) );
+                $res->{links} = At::Lexicon::com::atproto::server::describeServer::links->new( %{ $res->{links} } ) if defined $res->{links};
+                $res;
+            }
+
+            method server_getAccountInviteCodes ( $includeUsed //= (), $createAvailable //= () ) {
+                $self->http->session // Carp::confess 'requires an authenticated client';
+                my $res = $self->http->get(
+                    sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.server.getAccountInviteCodes' ),
+                    {   content => +{
+                            defined $includeUsed     ? ( includeUsed     => $includeUsed )     : (),
+                            defined $createAvailable ? ( createAvailable => $createAvailable ) : ()
+                        }
+                    }
+                );
+                $res->{codes} = [ map { At::Lexicon::com::atproto::server::inviteCode->new(%$_) } @{ $res->{codes} } ] if defined $res->{codes};
+                $res;
+            }
+
+            method server_getSession () {
+                $self->http->session // Carp::confess 'requires an authenticated client';
+                my $res = $self->http->get( sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.server.getSession' ) );
+                $res->{handle}         = At::Protocol::Handle->new( id => $res->{handle} ) if defined $res->{handle};
+                $res->{did}            = At::Protocol::DID->new( uri => $res->{did} )      if defined $res->{did};
+                $res->{emailConfirmed} = !!$res->{emailConfirmed} if defined $res->{emailConfirmed} && builtin::blessed $res->{emailConfirmed};
+                $res;
+            }
+
+            method server_listAppPasswords () {
+                $self->http->session // Carp::confess 'requires an authenticated client';
+                my $res = $self->http->get( sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.server.listAppPasswords' ) );
+                $res->{passwords} = [ map { $_ = At::Lexicon::com::atproto::server::listAppPasswords::appPassword->new(%$_) } @{ $res->{passwords} } ]
+                    if defined $res->{passwords};
+                $res;
+            }
+
+            method server_refreshSession ($refreshJwt) {    # TODO: Should this require an unauth'd client?
+
+                #~ $self->http->session // Carp::confess 'requires an authenticated client';
+                my $res = $self->http->post(
+                    sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.server.refreshSession' ),
+                    { headers => +{ Authorization => 'Bearer ' . $refreshJwt } }
+                );
+                $res->{handle}         = At::Protocol::Handle->new( id => $res->{handle} ) if defined $res->{handle};
+                $res->{did}            = At::Protocol::DID->new( uri => $res->{did} )      if defined $res->{did};
+                $res->{emailConfirmed} = !!$res->{emailConfirmed} if defined $res->{emailConfirmed} && builtin::blessed $res->{emailConfirmed};
+                $res;
+            }
+
+            method server_requestAccountDelete ( ) {
+                $self->http->session // Carp::confess 'requires an authenticated client';
+                my $res = $self->http->post( sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.server.requestAccountDelete' ) );
+                $res;
+            }
+
+            method server_requestEmailConfirmation ( ) {
+                $self->http->session // Carp::confess 'requires an authenticated client';
+                my $res = $self->http->post( sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.server.requestEmailConfirmation' ) );
+                $res;
+            }
+
+            method server_requestEmailUpdate ($tokenRequired) {
+                $self->http->session // Carp::confess 'requires an authenticated client';
+                my $res = $self->http->post( sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.server.requestEmailUpdate' ),
+                    { content => +{ tokenRequired => !!$tokenRequired } } );
+                $res;
+            }
+
+            method server_requestPasswordReset ($email) {
+                $self->http->session // Carp::confess 'requires an authenticated client';
+                my $res = $self->http->post( sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.server.requestPasswordReset' ),
+                    { content => +{ email => $email } } );
+                $res;
+            }
+
+            method server_reserveSigningKey ($did) {
+                $self->http->session // Carp::confess 'requires an authenticated client';
+                my $res = $self->http->post( sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.server.reserveSigningKey' ),
+                    { content => +{ defined $did ? ( did => $did ) : () } } );
+                $res;
+            }
+
+            method server_resetPassword ( $token, $password ) {
+                $self->http->session // Carp::confess 'requires an authenticated client';
+                my $res = $self->http->post(
+                    sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.server.resetPassword' ),
+                    { content => +{ token => $token, password => $password } }
+                );
+                $res;
+            }
+
+            method server_revokeAppPassword ($name) {
+                $self->http->session // Carp::confess 'requires an authenticated client';
+                my $res = $self->http->post( sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.server.revokeAppPassword' ),
+                    { content => +{ name => $name } } );
+                $res;
+            }
+
+            method server_updateEmail ( $email, $token //= () ) {
+                $self->http->session // Carp::confess 'requires an authenticated client';
+                my $res = $self->http->post(
+                    sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.server.updateEmail' ),
+                    { content => +{ email => $email, defined $token ? ( token => $token ) : () } }
+                );
                 $res;
             }
         }
@@ -1059,8 +1072,10 @@ package At 0.07 {
             );
 
             method get ( $url, $req = () ) {
-                my $res = $agent->get(
-                    $url . ( defined $req->{content} && keys %{ $req->{content} } ? '?' . $agent->www_form_urlencode( $req->{content} ) : '' ) );
+                my $res
+                    = $agent->get(
+                    $url . ( defined $req->{content} && keys %{ $req->{content} } ? '?' . $agent->www_form_urlencode( $req->{content} ) : '' ),
+                    { defined $req->{headers} ? ( headers => $req->{headers} ) : () } );
 
                 #~ use Data::Dump;
                 #~ warn $url . ( defined $req->{content} && keys %{ $req->{content} } ? '?' . _build_query_string( $req->{content} ) : '' );
@@ -1070,7 +1085,12 @@ package At 0.07 {
             }
 
             method post ( $url, $req = () ) {
-                my $res = $agent->post( $url, defined $req->{content} ? { content => encode_json $req->{content} } : () );
+                my $res = $agent->post(
+                    $url,
+                    {   defined $req->{headers} ? ( headers => $req->{headers} )             : (),
+                        defined $req->{content} ? ( content => encode_json $req->{content} ) : ()
+                    }
+                );
 
                 #~ use Data::Dump;
                 #~ warn $url;
@@ -1093,7 +1113,7 @@ package At 0.07 {
             # TODO: Error handling
             field $agent : param = sub {
                 my $ua = Mojo::UserAgent->new;
-                $ua->transactor->name( sprintf( 'At.pm/%1.2f;Mojo ', $At::VERSION ) );
+                $ua->transactor->name( sprintf( 'At.pm/%1.2f;Mojo', $At::VERSION ) );
                 $ua;
                 }
                 ->();
@@ -1101,8 +1121,11 @@ package At 0.07 {
             field $auth : param //= ();
 
             method get ( $url, $req = () ) {
-                my $res = $agent->get( $url, defined $auth ? { Authorization => $auth } : (),
-                    defined $req->{content} ? ( form => $req->{content} ) : () );
+                my $res = $agent->get(
+                    $url,
+                    defined $auth           ? { Authorization => $auth, defined $req->{headers} ? %{ $req->{headers} } : () } : (),
+                    defined $req->{content} ? ( form => $req->{content} )                                                     : ()
+                );
                 $res = $res->result;
 
                 # todo: error handling
@@ -1115,8 +1138,11 @@ package At 0.07 {
             method post ( $url, $req = () ) {
 
                 #~ warn $url;
-                my $res = $agent->post( $url, defined $auth ? { Authorization => $auth } : (),
-                    defined $req->{content} ? ( json => $req->{content} ) : () )->result;
+                my $res = $agent->post(
+                    $url,
+                    defined $auth           ? { Authorization => $auth, defined $req->{headers} ? %{ $req->{headers} } : () } : (),
+                    defined $req->{content} ? ( json => $req->{content} )                                                     : ()
+                )->result;
 
                 # todo: error handling
                 if    ( $res->is_success )  { return $res->content ? $res->json : () }
@@ -2388,6 +2414,25 @@ Expected parameters include:
     $at->server_requestEmailConfirmation( );
 
 Request an email with a code to confirm ownership of email.
+
+=head2 C<server_refreshSession( ... )>
+
+    $at->server_refreshSession( 'eyJhbGc...' );
+
+Refresh an authentication session.
+
+Expected parameters include:
+
+=over
+
+=item C<refreshJwt> - required
+
+Refresh token returned as part of the response from C<server_createSession( ... )>.
+
+=back
+
+On success, new access and refresh JSON web tokens are returned along with the account's handle, DID and (optionally)
+other data.
 
 =head2 C<server_requestAccountDelete( )>
 

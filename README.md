@@ -1087,6 +1087,23 @@ $at->server_requestEmailConfirmation( );
 
 Request an email with a code to confirm ownership of email.
 
+## `server_refreshSession( ... )`
+
+```
+$at->server_refreshSession( 'eyJhbGc...' );
+```
+
+Refresh an authentication session.
+
+Expected parameters include:
+
+- `refreshJwt` - required
+
+    Refresh token returned as part of the response from `server_createSession( ... )`.
+
+On success, new access and refresh JSON web tokens are returned along with the account's handle, DID and (optionally)
+other data.
+
 ## `server_requestAccountDelete( )`
 
 ```
