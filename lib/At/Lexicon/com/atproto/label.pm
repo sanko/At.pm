@@ -1,4 +1,4 @@
-package At::Lexicon::com::atproto::label 0.08 {
+package At::Lexicon::com::atproto::label 0.09 {
     use v5.38;
     no warnings 'experimental::class', 'experimental::builtin';    # Be quiet.
     use feature 'class';
