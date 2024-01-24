@@ -516,7 +516,7 @@ package At 0.08 {
                 my $res = $self->http->post(
                     sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.repo.createRecord' ),
                     {   content => +{
-                            repo       => $did->_raw,
+                            repo       => $repo->_raw,
                             collection => $collection,
                             record     => builtin::blessed $record? $record->_raw : $record,
                             defined $validate ? ( validate => $validate ) : (), defined $swapCommit ? ( swapCommit => $swapCommit ) : (),
@@ -535,7 +535,7 @@ package At 0.08 {
                 my $res = $self->http->post(
                     sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.repo.deleteRecord' ),
                     {   content => +{
-                            repo       => $did->_raw,
+                            repo       => $repo->_raw,
                             collection => $collection,
                             rkey       => $rkey,
                             defined $swapRecord ? ( swapRecord => $swapRecord ) : (), defined $swapCommit ? ( swapCommit => $swapCommit ) : ()
@@ -549,7 +549,7 @@ package At 0.08 {
                 $self->http->session // confess 'creating a post requires an authenticated client';
                 $repo = At::Protocol::DID->new( uri => $repo ) unless builtin::blessed $repo;
                 my $res = $self->http->get( sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.repo.describeRepo' ),
-                    { content => +{ repo => $did->_raw } } );
+                    { content => +{ repo => $repo->_raw } } );
                 $res->{handle} = At::Protocol::Handle->new( id => $res->{handle} ) if defined $res->{handle};
                 $res->{did}    = At::Protocol::DID->new( uri => $res->{did} )      if defined $res->{did};
                 $res;
@@ -559,7 +559,7 @@ package At 0.08 {
                 $self->http->session // confess 'creating a post requires an authenticated client';
                 $repo = At::Protocol::DID->new( uri => $repo ) unless builtin::blessed $repo;
                 my $res = $self->http->get( sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.repo.getRecord' ),
-                    { content => +{ repo => $did->_raw, collection => $collection, rkey => $rkey, defined $cid ? ( cid => $cid ) : () } } );
+                    { content => +{ repo => $repo->_raw, collection => $collection, rkey => $rkey, defined $cid ? ( cid => $cid ) : () } } );
                 $res->{uri}   = URI->new( $res->{uri} ) if defined $res->{uri};
                 $res->{value} = At::_topkg( $res->{value}{'$type'} )->new( %{ $res->{value} } )
                     if defined $res->{value} && defined $res->{value}{'$type'};
@@ -572,7 +572,7 @@ package At 0.08 {
                 my $res = $self->http->get(
                     sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.repo.listRecords' ),
                     {   content => +{
-                            repo       => $did->_raw,
+                            repo       => $repo->_raw,
                             collection => $collection,
                             defined $limit ? ( limit => $limit ) : (), defined $reverse ? ( reverse => \!!$reverse ) : (),
                             defined $cursor ? ( cursor => $cursor ) : ()
@@ -592,7 +592,7 @@ package At 0.08 {
                 my $res = $self->http->post(
                     sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.repo.putRecord' ),
                     {   content => +{
-                            repo       => $did->_raw,
+                            repo       => $repo->_raw,
                             collection => $collection,
                             rkey       => $rkey,
                             record     => builtin::blessed $record? $record->_raw : $record,
