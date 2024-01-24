@@ -169,7 +169,7 @@ package At::Lexicon::app::bsky::graph 0.08 {
         method subject   {$subject}
 
         method _raw() {
-            +{ createdAt => $createdAt->_raw, subject => $subject->_raw };
+            +{ '$type' => 'app.bsky.graph.follow', createdAt => $createdAt->_raw, subject => $subject->_raw };
         }
     }
 
@@ -253,6 +253,50 @@ package At::Lexicon::app::bsky::graph 0.08 {
 
         method _raw() {
             +{ subject => $subject->_raw, createdAt => $createdAt->_raw };
+        }
+    }
+
+    # Indicates that a handle or DID could not be resolved
+    class At::Lexicon::app::bsky::graph::notFoundActor {
+        field $actor : param;       # at, required
+        field $notFound : param;    # bool, required
+        ADJUST {
+            use URI;
+            $actor    = URI->new( uri => $actor ) unless builtin::blessed $actor;
+            $notFound = !!$notFound if builtin::blessed $notFound;
+        }
+
+        # perlclass does not have :reader yet
+        method actor    {$actor}
+        method notFound {$notFound}
+
+        method _raw() {
+            +{ actor => $actor->as_string, notFound => \!!$notFound };
+        }
+    }
+
+    # Lists the bi-directional graph relationships between one actor (not indicated in the object),
+    # and the target actors (the DID included in the object)
+    class At::Lexicon::app::bsky::graph::relationship {
+        field $did : param;                  # DID, required
+        field $following : param  //= ();    # at-uri
+        field $followedBy : param //= ();    # at-uri
+        ADJUST {
+            use URI;
+            $did        = At::Protocol::DID->new( uri => $did ) unless builtin::blessed $did;
+            $following  = URI->new( uri => $following )  if defined $following  && !builtin::blessed $following;
+            $followedBy = URI->new( uri => $followedBy ) if defined $followedBy && !builtin::blessed $followedBy;
+        }
+
+        # perlclass does not have :reader yet
+        method did        {$did}
+        method following  {$following}
+        method followedBy {$followedBy}
+
+        method _raw() {
+            +{  did => $did->_raw,
+                defined $following ? ( following => $following->_raw ) : (), defined $followedBy ? ( followedBy => $followedBy->_raw ) : ()
+            };
         }
     }
 };

@@ -43,6 +43,20 @@ isa_ok(
     ['At::Lexicon::app::bsky::graph::listItemView'],
     '::listItemView'
 );
+isa_ok(
+    At::Lexicon::app::bsky::graph::notFoundActor->new( actor => 'at://blah.no/', notFound => !!1 ),
+    ['At::Lexicon::app::bsky::graph::notFoundActor'],
+    '::notFoundActor'
+);
+isa_ok(
+    At::Lexicon::app::bsky::graph::relationship->new(
+        did        => 'did:plc:z72i7hdynmk6r22z27h6tvur',
+        following  => 'at://blah.no/',
+        followedBy => 'at://blah.no/',
+    ),
+    ['At::Lexicon::app::bsky::graph::relationship'],
+    '::relationship'
+);
 subtest 'live' => sub {
     my $bsky = At::Bluesky->new( identifier => 'atperl.bsky.social', password => 'ck2f-bqxl-h54l-xm3l' );
     subtest 'graph_getBlocks' => sub {
@@ -59,6 +73,14 @@ subtest 'live' => sub {
     subtest 'graph_getFollows' => sub {
         ok my $follows = $bsky->graph_getFollows('bsky.app'), '$bsky->graph_getFollows("bsky.app")';
         isa_ok $follows->{follows}->[0], ['At::Lexicon::app::bsky::actor::profileView'], '...contains list of profileView objects';
+    };
+    subtest 'graph_getRelationships' => sub {
+        my $todo = todo 'brand new methods might not be implemented on the service yet';
+        ok my $res = $bsky->graph_getRelationships('bsky.app'), '$bsky->graph_getRelationships("bsky.app")';
+        ok $res->{relationships}, 'contains relationships';
+
+        # TODO: might be ::graph::relationship or ::graph::notFoundActor
+        isa_ok $res->{relationships}->[0], ['At::Lexicon::app::bsky::graph::relationship'], '...contains list of relationship objects';
     };
     subtest 'graph_getSuggestedFollowsByActor' => sub {
         ok my $res = $bsky->graph_getSuggestedFollowsByActor('bsky.app'), '$bsky->graph_getSuggestedFollowsByActor("bsky.app")';

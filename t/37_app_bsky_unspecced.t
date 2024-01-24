@@ -15,6 +15,11 @@ subtest 'live' => sub {
         ok my $res = $bsky->unspecced_getPopularFeedGenerators(), '$bsky->unspecced_getPopularFeedGenerators()';
         isa_ok $res->{feeds}->[0], ['At::Lexicon::app::bsky::feed::generatorView'], '...returns a list of ::bsky::feed::generatorView objects';
     };
+    subtest 'unspecced_getTaggedSuggestions' => sub {
+        ok my $res = $bsky->unspecced_getTaggedSuggestions(), '$bsky->unspecced_getTaggedSuggestions()';
+        isa_ok $res->{suggestions}->[0], ['At::Lexicon::app::bsky::unspecced::suggestion'],
+            '...returns a list of ::bsky::unspecced::suggestion objects';
+    };
     subtest 'unspecced_searchActorsSkeleton' => sub {
     SKIP: {
             my $res = eval { $bsky->unspecced_searchActorsSkeleton('perl'), '$bsky->unspecced_searchActorsSkeleton("perl")' };

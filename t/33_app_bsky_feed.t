@@ -80,7 +80,8 @@ subtest 'live' => sub {
         isa_ok $post, ['At::Lexicon::app::bsky::feed::postView'], '...contains list of postView objects';
     };
     subtest 'feed_getPostThread' => sub {    # hardcoded from https://bsky.app/profile/atproto.com/post/3kftlbujmfk24
-        ok my $results = $bsky->feed_getPostThread('at://did:plc:ewvi7nxzyoun6zhxrhs64oiz/app.bsky.feed.post/3kftlbujmfk24'),
+        my $todo = todo 'An invalid TLD (literally "handle.invalid") is being used by some handle in this thread';
+        ok my $results = eval { $bsky->feed_getPostThread('at://did:plc:ewvi7nxzyoun6zhxrhs64oiz/app.bsky.feed.post/3kftlbujmfk24') },
             '$bsky->feed_getPostThread("at://did:plc:ewvi...")';
         isa_ok $results->{thread}, ['At::Lexicon::app::bsky::feed::threadViewPost'], '...returns a threadViewPost object';
     };

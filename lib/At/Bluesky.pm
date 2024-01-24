@@ -289,12 +289,11 @@ package At::Bluesky {
     #~ class At::Lexicon::Bluesky::Graph
     {
 
-        method graph_getFollows ( $actor, $limit //= (), $cursor //= () ) {
+        method graph_getBlocks ( $limit //= (), $cursor //= () ) {
             $self->http->session // Carp::confess 'requires an authenticated client';
-            my $res = $self->http->get( sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.graph.getFollows' ),
-                { content => +{ actor => $actor, defined $limit ? ( limit => $limit ) : (), defined $cursor ? ( cursor => $cursor ) : () } } );
-            $res->{subject} = At::Lexicon::app::bsky::actor::profileView->new( %{ $res->{subject} } )               if defined $res->{subject};
-            $res->{follows} = [ map { At::Lexicon::app::bsky::actor::profileView->new(%$_) } @{ $res->{follows} } ] if defined $res->{follows};
+            my $res = $self->http->get( sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.graph.getBlocks' ),
+                { content => +{ defined $limit ? ( limit => $limit ) : (), defined $cursor ? ( cursor => $cursor ) : () } } );
+            $res->{blocks} = [ map { At::Lexicon::app::bsky::actor::profileView->new(%$_) } @{ $res->{blocks} } ] if defined $res->{blocks};
             $res;
         }
 
@@ -307,11 +306,12 @@ package At::Bluesky {
             $res;
         }
 
-        method graph_getLists ( $actor, $limit //= (), $cursor //= () ) {
+        method graph_getFollows ( $actor, $limit //= (), $cursor //= () ) {
             $self->http->session // Carp::confess 'requires an authenticated client';
-            my $res = $self->http->get( sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.graph.getLists' ),
+            my $res = $self->http->get( sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.graph.getFollows' ),
                 { content => +{ actor => $actor, defined $limit ? ( limit => $limit ) : (), defined $cursor ? ( cursor => $cursor ) : () } } );
-            $res->{lists} = [ map { At::Lexicon::app::bsky::graph::listView->new(%$_) } @{ $res->{lists} } ] if defined $res->{lists};
+            $res->{subject} = At::Lexicon::app::bsky::actor::profileView->new( %{ $res->{subject} } )               if defined $res->{subject};
+            $res->{follows} = [ map { At::Lexicon::app::bsky::actor::profileView->new(%$_) } @{ $res->{follows} } ] if defined $res->{follows};
             $res;
         }
 
@@ -324,29 +324,26 @@ package At::Bluesky {
             $res;
         }
 
-        method graph_getSuggestedFollowsByActor ($actor) {
-            $self->http->session // Carp::confess 'requires an authenticated client';
-            my $res = $self->http->get( sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.graph.getSuggestedFollowsByActor' ),
-                { content => +{ actor => $actor } } );
-
-            # current lexicon incorrectly claims this is a list of profileView objects
-            $res->{suggestions} = [ map { At::Lexicon::app::bsky::actor::profileViewDetailed->new(%$_) } @{ $res->{suggestions} } ]
-                if defined $res->{suggestions};
-            $res;
-        }
-
-        method graph_getBlocks ( $limit //= (), $cursor //= () ) {
-            $self->http->session // Carp::confess 'requires an authenticated client';
-            my $res = $self->http->get( sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.graph.getBlocks' ),
-                { content => +{ defined $limit ? ( limit => $limit ) : (), defined $cursor ? ( cursor => $cursor ) : () } } );
-            $res->{blocks} = [ map { At::Lexicon::app::bsky::graph::profileView->new(%$_) } @{ $res->{blocks} } ] if defined $res->{blocks};
-            $res;
-        }
-
         method graph_getListBlocks ( $limit //= (), $cursor //= () ) {
             $self->http->session // Carp::confess 'requires an authenticated client';
             my $res = $self->http->get( sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.graph.getListBlocks' ),
                 { content => +{ defined $limit ? ( limit => $limit ) : (), defined $cursor ? ( cursor => $cursor ) : () } } );
+            $res->{lists} = [ map { At::Lexicon::app::bsky::graph::listView->new(%$_) } @{ $res->{lists} } ] if defined $res->{lists};
+            $res;
+        }
+
+        method graph_getListMutes ( $limit //= (), $cursor //= () ) {
+            $self->http->session // Carp::confess 'requires an authenticated client';
+            my $res = $self->http->get( sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.graph.getListMutes' ),
+                { content => +{ defined $limit ? ( limit => $limit ) : (), defined $cursor ? ( cursor => $cursor ) : () } } );
+            $res->{lists} = [ map { At::Lexicon::app::bsky::graph::listView->new(%$_) } @{ $res->{lists} } ] if defined $res->{lists};
+            $res;
+        }
+
+        method graph_getLists ( $actor, $limit //= (), $cursor //= () ) {
+            $self->http->session // Carp::confess 'requires an authenticated client';
+            my $res = $self->http->get( sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.graph.getLists' ),
+                { content => +{ actor => $actor, defined $limit ? ( limit => $limit ) : (), defined $cursor ? ( cursor => $cursor ) : () } } );
             $res->{lists} = [ map { At::Lexicon::app::bsky::graph::listView->new(%$_) } @{ $res->{lists} } ] if defined $res->{lists};
             $res;
         }
@@ -359,11 +356,27 @@ package At::Bluesky {
             $res;
         }
 
-        method graph_getListMutes ( $limit //= (), $cursor //= () ) {
+        method graph_getRelationships ( $actor, $others //= () ) {
             $self->http->session // Carp::confess 'requires an authenticated client';
-            my $res = $self->http->get( sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.graph.getListMutes' ),
-                { content => +{ defined $limit ? ( limit => $limit ) : (), defined $cursor ? ( cursor => $cursor ) : () } } );
-            $res->{lists} = [ map { At::Lexicon::app::bsky::graph::listView->new(%$_) } @{ $res->{lists} } ] if defined $res->{lists};
+            use URI;
+            $actor  = URI->new($actor) unless builtin::blessed $actor;
+            $others = [ map { builtin::blessed $_ ? $_ : URI->new($_) } @$others ] if defined $others;
+            my $res = $self->http->get( sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.graph.getRelationships' ),
+                { content => +{ actor => $actor->as_string, defined $others ? ( others => [ map { $_->as_string } @$others ] ) : (), } } );
+            $res->{actor}         = At::Protocol::DID->new( uri => $res->{actor} ) if defined $res->{actor};
+            $res->{relationships} = [ map { $_ = At::_topkg( $_->{'$type'} )->new( %{$_} ) if defined $_->{'$type'}; } @{ $res->{relationships} } ]
+                if defined $res->{relationships};
+            $res;
+        }
+
+        method graph_getSuggestedFollowsByActor ($actor) {
+            $self->http->session // Carp::confess 'requires an authenticated client';
+            my $res = $self->http->get( sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.graph.getSuggestedFollowsByActor' ),
+                { content => +{ actor => $actor } } );
+
+            # XXX: current lexicon incorrectly claims this is a list of profileView objects
+            $res->{suggestions} = [ map { At::Lexicon::app::bsky::actor::profileViewDetailed->new(%$_) } @{ $res->{suggestions} } ]
+                if defined $res->{suggestions};
             $res;
         }
 
@@ -373,15 +386,15 @@ package At::Bluesky {
             $res->{success};
         }
 
-        method graph_unmuteActor ($actor) {
-            $self->http->session // Carp::confess 'requires an authenticated client';
-            my $res = $self->http->post( sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.graph.unmuteActor' ), { content => +{ actor => $actor } } );
-            $res->{success};
-        }
-
         method graph_muteActorList ($list) {
             $self->http->session // Carp::confess 'requires an authenticated client';
             my $res = $self->http->post( sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.graph.muteActorList' ), { content => +{ list => $list } } );
+            $res->{success};
+        }
+
+        method graph_unmuteActor ($actor) {
+            $self->http->session // Carp::confess 'requires an authenticated client';
+            my $res = $self->http->post( sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.graph.unmuteActor' ), { content => +{ actor => $actor } } );
             $res->{success};
         }
 
@@ -447,6 +460,14 @@ package At::Bluesky {
                 }
             );
             $res->{feeds} = [ map { At::Lexicon::app::bsky::feed::generatorView->new(%$_) } @{ $res->{feeds} } ] if defined $res->{feeds};
+            $res;
+        }
+
+        method unspecced_getTaggedSuggestions ( ) {
+            $self->http->session // Carp::confess 'requires an authenticated client';
+            my $res = $self->http->get( sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.unspecced.getTaggedSuggestions' ), );
+            $res->{suggestions} = [ map { At::Lexicon::app::bsky::unspecced::suggestion->new(%$_) } @{ $res->{suggestions} } ]
+                if defined $res->{suggestions};
             $res;
         }
 
@@ -992,17 +1013,15 @@ Expected parameters include:
 On success, returns feed containing a list of C<At::Lexicon::app::bsky::feed::feedViewPost> objects and (optionally) a
 cursor.
 
-=head2 C<graph_getFollows( ..., [ ... ] )>
+=head2 C<graph_getBlocks( [ ... ] )>
 
-    $bsky->graph_getFollows('sankor.bsky.social');
+    $bsky->graph_getBlocks( );
 
-Get a list of who the actor follows.
+Get a list of who the actor is blocking.
 
 Expected parameters include:
 
 =over
-
-=item C<actor>
 
 =item C<limit>
 
@@ -1012,8 +1031,7 @@ Maximum of 100, minimum of 1, and 50 is the default.
 
 =back
 
-On success, returns a list of follows as C<At::Lexicon::app::bsky::actor::profileView> objects and the original actor
-as the subject, and, potentially, a cursor.
+On success, returns a list of C<At::Lexicon::app::bsky::actor::profileView> objects.
 
 =head2 C<graph_getFollowers( ..., [ ... ] )>
 
@@ -1038,11 +1056,11 @@ Maximum of 100, minimum of 1, and 50 is the default.
 On success, returns a list of followers as C<At::Lexicon::app::bsky::actor::profileView> objects and the original actor
 as the subject, and, potentially, a cursor.
 
-=head2 C<graph_getLists( ..., [ ... ] )>
+=head2 C<graph_getFollows( ..., [ ... ] )>
 
-    $bsky->graph_getLists('sankor.bsky.social');
+    $bsky->graph_getFollows('sankor.bsky.social');
 
-Get a list of lists that belong to an actor.
+Get a list of who the actor follows.
 
 Expected parameters include:
 
@@ -1058,7 +1076,8 @@ Maximum of 100, minimum of 1, and 50 is the default.
 
 =back
 
-On success, returns a list of C<At::Lexicon::app::bsky::graph::listView> objects and, potentially, a cursor.
+On success, returns a list of follows as C<At::Lexicon::app::bsky::actor::profileView> objects and the original actor
+as the subject, and, potentially, a cursor.
 
 =head2 C<graph_getList( ..., [ ... ] )>
 
@@ -1085,27 +1104,11 @@ Maximum of 100, minimum of 1, and 50 is the default.
 On success, returns a list of C<At::Lexicon::app::bsky::graph::listItemView> objects, the original list as a
 C<At::Lexicon::app::bsky::graph::listView> object and, potentially, a cursor.
 
-=head2 C<graph_getSuggestedFollowsByActor( ... )>
+=head2 C<graph_getListBlocks( [ ... ] )>
 
-    $bsky->graph_getSuggestedFollowsByActor('sankor.bsky.social');
+    $bsky->graph_getListBlocks( );
 
-Get suggested follows related to a given actor.
-
-Expected parameters include:
-
-=over
-
-=item C<actor>
-
-=back
-
-On success, returns a list of C<At::Lexicon::app::bsky::actor::profileViewDetailed> objects.
-
-=head2 C<graph_getBlocks( [ ... ] )>
-
-    $bsky->graph_getBlocks( );
-
-Get a list of who the actor is blocking.
+Get lists that the actor is blocking.
 
 Expected parameters include:
 
@@ -1119,17 +1122,39 @@ Maximum of 100, minimum of 1, and 50 is the default.
 
 =back
 
-On success, returns a list of C<At::Lexicon::app::bsky::actor::profileView> objects.
+On success, returns a list of C<At::Lexicon::app::bsky::graph::listView> objects and, potentially, a cursor.
 
-=head2 C<graph_getListBlocks( [ ... ] )>
+=head2 C<graph_getListMutes( [ ... ] )>
 
-    $bsky->graph_getListBlocks( );
+    $bsky->graph_getListMutes( );
 
-Get lists that the actor is blocking.
+Get lists that the actor is muting.
 
 Expected parameters include:
 
 =over
+
+=item C<limit>
+
+Maximum of 100, minimum of 1, and 50 is the default.
+
+=item C<cursor>
+
+=back
+
+On success, returns a list of C<At::Lexicon::app::bsky::graph::listView> objects and, potentially, a cursor.
+
+=head2 C<graph_getLists( ..., [ ... ] )>
+
+    $bsky->graph_getLists('sankor.bsky.social');
+
+Get a list of lists that belong to an actor.
+
+Expected parameters include:
+
+=over
+
+=item C<actor>
 
 =item C<limit>
 
@@ -1161,31 +1186,11 @@ Maximum of 100, minimum of 1, and 50 is the default.
 
 On success, returns a list of C<At::Lexicon::app::bsky::actor::profileView> objects.
 
-=head2 C<graph_getListMutes( [ ... ] )>
+=head2 C<graph_getRelationships( ... )>
 
-    $bsky->graph_getListMutes( );
+    $bsky->graph_getRelationships('sankor.bsky.social');
 
-Get lists that the actor is muting.
-
-Expected parameters include:
-
-=over
-
-=item C<limit>
-
-Maximum of 100, minimum of 1, and 50 is the default.
-
-=item C<cursor>
-
-=back
-
-On success, returns a list of C<At::Lexicon::app::bsky::graph::listView> objects and, potentially, a cursor.
-
-=head2 C<graph_muteActor( ... )>
-
-    $bsky->graph_muteActor( 'sankor.bsky.social' );
-
-Mute an actor by DID or handle.
+Enumerates public relationships between one account, and a list of other accounts.
 
 Expected parameters include:
 
@@ -1193,15 +1198,32 @@ Expected parameters include:
 
 =item C<actor>
 
-Person to mute.
+=back
+
+On success, returns a list of C<At::Lexicon::app::bsky::graph::relationship> objects and, optionally, the primary
+actor.
+
+=head2 C<graph_getSuggestedFollowsByActor( ... )>
+
+    $bsky->graph_getSuggestedFollowsByActor('sankor.bsky.social');
+
+Get suggested follows related to a given actor.
+
+Expected parameters include:
+
+=over
+
+=item C<actor>
 
 =back
 
-=head2 C<graph_unmuteActor( ... )>
+On success, returns a list of C<At::Lexicon::app::bsky::actor::profileViewDetailed> objects.
 
-    $bsky->graph_unmuteActor( 'sankor.bsky.social' );
+=head2 C<graph_muteActor( ... )>
 
-Unmute an actor by DID or handle.
+    $bsky->graph_muteActor( 'at://...' );
+
+Mute an actor by DID or handle.
 
 Expected parameters include:
 
@@ -1224,6 +1246,24 @@ Expected parameters include:
 =over
 
 =item C<list>
+
+List of people to mute.
+
+=back
+
+=head2 C<graph_unmuteActor( ... )>
+
+    $bsky->graph_unmuteActor( 'at://...' );
+
+Unmute an actor by DID or handle.
+
+Expected parameters include:
+
+=over
+
+=item C<actor>
+
+Person to mute.
 
 =back
 
@@ -1346,6 +1386,14 @@ Maximum of 100, minimum of 1, and 50 is the default.
 
 On success, returns a list of feeds as C<At::Lexicon::app::bsky::feed::generatorView> objects and, optionally, a
 cursor.
+
+=head2 C<unspecced_getTaggedSuggestions( )>
+
+    $bsky->unspecced_getTaggedSuggestions( );
+
+Get a list of suggestions (feeds and users) tagged with categories.
+
+On success, returns a list of suggestions as C<At::Lexicon::app::bsky::unspecced::suggestion> objects.
 
 =head2 C<unspecced_searchActorsSkeleton( ..., [...] )>
 
