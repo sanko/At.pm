@@ -411,9 +411,16 @@ package At::Bluesky {
 
         method notification_listNotifications ( $seenAt //= (), $limit //= 50, $cursor //= () ) {
             $self->http->session // Carp::confess 'requires an authenticated client';
-            $seenAt = At::Protocol::Timestamp->new( timestamp => $seenAt ) if defined $seenAt && builtin::blessed $seenAt;
-            my $res = $self->http->get( sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.notification.listNotifications' ),
-                { content => +{ limit => $limit, cursor => $cursor, seenAt => defined $seenAt ? $seenAt->_raw : undef } } );
+            $seenAt = At::Protocol::Timestamp->new( timestamp => $seenAt ) if defined $seenAt && !builtin::blessed $seenAt;
+            my $res = $self->http->get(
+                sprintf( '%s/xrpc/%s', $self->host(), 'app.bsky.notification.listNotifications' ),
+                {   content => +{
+                        defined $limit  ? ( limit  => $limit )                                             : (),
+                        defined $cursor ? ( cursor => $cursor )                                            : (),
+                        defined $seenAt ? ( seenAt => builtin::blessed $seenAt ? $seenAt->_raw : $seenAt ) : ()
+                    }
+                }
+            );
             $res->{notifications} = [ map { At::Lexicon::app::bsky::notification->new(%$_) } @{ $res->{notifications} } ]
                 if defined $res->{notifications};
             $res;

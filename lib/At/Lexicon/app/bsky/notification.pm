@@ -12,12 +12,12 @@ package At::Lexicon::app::bsky::notification 0.09 {
         field $author : param;    # app.bsky.actor.defs#profileView, required
 
         # Expected values are 'like', 'repost', 'follow', 'mention', 'reply', and 'quote'.
-        field $reason : param;                # string, enum, required
-        field $reasonSubject : param = ();    # at-uri
-        field $record : param;                # unknown in spec, required
-        field $isRead : param;                # bool, required
-        field $indexedAt : param;             # datetime, required
-        field $labels : param = ();           # array of com.atproto.label.defs#label
+        field $reason : param;                  # string, enum, required
+        field $reasonSubject : param //= ();    # at-uri
+        field $record : param;                  # unknown in spec, required
+        field $isRead : param;                  # bool, required
+        field $indexedAt : param;               # datetime, required
+        field $labels : param //= ();           # array of com.atproto.label.defs#label
         ADJUST {
             use Carp;
             $indexedAt     = At::Protocol::Timestamp->new( timestamp => $indexedAt ) unless builtin::blessed $indexedAt;
@@ -40,13 +40,13 @@ package At::Lexicon::app::bsky::notification 0.09 {
         method isRead        {$isRead}
 
         method _raw() {
-            +{  indexedAt     => $indexedAt->as_string,
+            +{  indexedAt     => $indexedAt->_raw,
                 record        => $record,
                 uri           => $uri->as_string,
                 reasonSubject => $reasonSubject->as_string,
                 reason        => $reason,
                 labels        => [ map { $_->_raw } @$labels ],
-                cid           => $cid->as_string,
+                cid           => $cid,
                 author        => $author->_raw,
                 isRead        => \!!$isRead,
             };

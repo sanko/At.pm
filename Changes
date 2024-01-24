@@ -2,6 +2,8 @@ Revision history for Perl extension At.pm
 
 {{$NEXT}}
 
+    - Minor bug sweep
+
 0.09 2024-01-24T21:30:18Z
 
     - Update according to lexicon changes in bluesky-social/atproto@dac5c9e
