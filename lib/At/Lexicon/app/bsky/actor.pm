@@ -121,7 +121,7 @@ package At::Lexicon::app::bsky::actor 0.08 {
                 defined $avatar         ? ( avatar         => $avatar )         : (), defined $banner       ? ( banner       => $banner )       : (),
                 defined $followersCount ? ( followersCount => $followersCount ) : (), defined $followsCount ? ( followsCount => $followsCount ) : (),
                 defined $postsCount     ? ( postsCount     => $postsCount )     : (), defined $indexedAt    ? ( indexedAt => $indexedAt->_raw ) : (),
-                defined $viewer         ? ( viewer => { $viewer->_raw } ) : (), defined $labels ? ( labels => [ map { $_->_raw } @$labels ] )   : ()
+                defined $viewer ? ( viewer => +{ %{ $viewer->_raw } } ) : (), defined $labels ? ( labels => [ map { $_->_raw } @$labels ] )     : ()
             };
         }
     }
