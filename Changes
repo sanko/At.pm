@@ -2,6 +2,9 @@ Revision history for Perl extension At.pm
 
 {{$NEXT}}
 
+    - Minor bug sweep as I work on a functioning client
+    - Early version of sugary API
+
 0.10 2024-01-25T05:01:45Z
 
     - Minor bug sweep as I work on a functioning client

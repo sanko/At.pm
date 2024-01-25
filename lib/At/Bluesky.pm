@@ -19,14 +19,6 @@ package At::Bluesky {
 
         # Required in subclasses of At
         method host { URI->new($_host) }
-
-        # Sugar
-        method post (%args) {
-            $args{createdAt} //= At::_now();
-            my $post = At::Bluesky::Post->new(%args);
-            Carp::confess 'text must be fewer than 300 characters' if length $args{text} > 300 || bytes::length $args{text} > 300;
-            $self->repo->createRecord( collection => 'app.bsky.feed.post', record => { '$type' => 'app.bsky.feed.post', %{ $post->_raw } } );
-        }
     }
 
     #~ class At::Lexicon::Bluesky::Actor
@@ -517,7 +509,7 @@ __END__
 
 =head1 NAME
 
-At::Bluesky - Bluesky Sugar for the AT Protocol
+At::Bluesky - Bluesky Extentions to the Core AT Protocol
 
 =head1 SYNOPSIS
 

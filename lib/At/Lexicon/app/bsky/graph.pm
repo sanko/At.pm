@@ -151,7 +151,7 @@ package At::Lexicon::app::bsky::graph 0.10 {
         method createdAt {$createdAt}
 
         method _raw() {
-            +{ subject => $subject->_raw, createdAt => $createdAt->_raw };
+            +{ '$type' => 'app.bsky.graph.block', subject => $subject->_raw, createdAt => $createdAt->_raw };
         }
     }
 
