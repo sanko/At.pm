@@ -15,8 +15,9 @@ package At 0.09 {
     class At {
 
         sub resume ( $class, %config ) {    # store $at->http->session->_raw and restore it here
-            my $at = builtin::blessed $class ? $class : $class->new();    # Expect a blessed object
-            $at->http->set_session( \%config );
+            my $at      = builtin::blessed $class ? $class : $class->new();    # Expect a blessed object
+            my $session = $at->server_refreshSession( $config{refreshJwt} );
+            $at->http->set_session($session);
             $at;
         }
         field $http //= Mojo::UserAgent->can('start') ? At::UserAgent::Mojo->new() : At::UserAgent::Tiny->new();
