@@ -962,16 +962,32 @@ package At 0.11 {
         #~ class At::Lexicon::AtProto::Temp
         {
 
-            method temp_fetchLables ( $since //= (), $limit //= () ) {
+            method temp_checkSignupQueue ( $since //= (), $limit //= () ) {
+                my $res = $self->http->get( sprintf( '%s/xrpc/%s', $self->host, 'com.atproto.temp.checkSignupQueue' ) );
+                $res;
+            }
+
+            method temp_fetchLabels ( $since //= (), $limit //= () ) {
                 my $res = $self->http->get( sprintf( '%s/xrpc/%s', $self->host, 'com.atproto.temp.fetchLabels' ),
                     { content => +{ defined $since ? ( since => $since ) : (), defined $limit ? ( limit => $limit ) : () } } );
                 $res->{labels} = [ map { At::Lexicon::com::atproto::label->new(%$_) } @{ $res->{labels} } ] if defined $res->{labels};
                 $res;
             }
 
+            method temp_importRepo ($did) {
+                my $res = $self->http->post( sprintf( '%s/xrpc/%s', $self->host, 'com.atproto.temp.importRepo' ), { content => +{ did => $did } } );
+                $res->{success};
+            }
+
             method temp_pushBlob ($did) {
                 my $res = $self->http->post( sprintf( '%s/xrpc/%s', $self->host, 'com.atproto.temp.pushBlob' ), { content => +{ did => $did } } );
                 $res;
+            }
+
+            method temp_requestPhoneVerification ($phoneNumber) {
+                my $res = $self->http->post( sprintf( '%s/xrpc/%s', $self->host, 'com.atproto.temp.requestPhoneVerification' ),
+                    { content => +{ phoneNumber => $phoneNumber } } );
+                $res->{success};
             }
 
             method temp_transferAccount ( $handle, $did, $plcOp ) {
@@ -982,17 +998,6 @@ package At 0.11 {
 
                 # TODO: Is this a fully fleshed session object?
                 $res;
-            }
-
-            method temp_importRepo ($did) {
-                my $res = $self->http->post( sprintf( '%s/xrpc/%s', $self->host, 'com.atproto.temp.importRepo' ), { content => +{ did => $did } } );
-                $res->{success};
-            }
-
-            method temp_requestPhoneVerification ($phoneNumber) {
-                my $res = $self->http->post( sprintf( '%s/xrpc/%s', $self->host, 'com.atproto.temp.requestPhoneVerification' ),
-                    { content => +{ phoneNumber => $phoneNumber } } );
-                $res->{success};
             }
         }
 
@@ -2817,6 +2822,15 @@ The last known event to backfill from.
 
 TODO
 
+=head2 C<temp_checkSignupQueue( [...] )>
+
+    $at->temp_checkSignupQueue;
+
+Check accounts location in signup queue.
+
+Returns a boolean indicating whether signups are activated and, optionally, the estimated time and place in the queue
+the account is on success.
+
 =head2 C<temp_fetchLabels( [...] )>
 
     $at->temp_fetchLabels;
@@ -2986,7 +3000,7 @@ Sanko Robinson E<lt>sanko@cpan.orgE<gt>
 
 =begin stopwords
 
-didDoc cids cid websocket emails communicationTemplates
+didDoc cids cid websocket emails communicationTemplates signup signups
 
 =end stopwords
 

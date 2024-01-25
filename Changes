@@ -2,6 +2,11 @@ Revision history for Perl extension At.pm
 
 {{$NEXT}}
 
+    - Update according to lexicon changes in bluesky-social/atproto@4171c04
+       - add interest tags to preferences
+    - Update according to lexicon changes in bluesky-social/atproto@8994d36
+       - signup queueing
+
 0.11 2024-01-25T20:06:55Z
 
     - Minor bug sweep as I work on a functioning client

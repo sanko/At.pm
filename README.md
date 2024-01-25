@@ -1413,6 +1413,17 @@ Expected parameters include:
 
 TODO
 
+## `temp_checkSignupQueue( [...] )`
+
+```
+$at->temp_checkSignupQueue;
+```
+
+Check accounts location in signup queue.
+
+Returns a boolean indicating whether signups are activated and, optionally, the estimated time and place in the queue
+the account is on success.
+
 ## `temp_fetchLabels( [...] )`
 
 ```

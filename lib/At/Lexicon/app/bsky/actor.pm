@@ -300,6 +300,22 @@ package At::Lexicon::app::bsky::actor 0.11 {
         }
     }
 
+    class At::Lexicon::app::bsky::actor::interestsPref {
+        field $type : param($type);    # record field
+        field $tags : param;           # array requiredm
+        ADJUST {
+            Carp::cluck q[too many tags; 100 max] if scalar @$tags > 100;
+            grep { Carp::cluck q[tag "] . $_ . q[" is too long] if length $_ > 640 || At::_glength($_) > 64; } @$tags;
+        }
+
+        # perlclass does not have :reader yet
+        method tags {$tags}
+
+        method _raw() {
+            +{ '$type' => $type, tags => $tags };
+        }
+    }
+
     # A declaration of a profile.
     class At::Lexicon::app::bsky::actor::profile {
         field $displayName : param //= ();    # string, 64 graphemes max, 640 bytes max

@@ -28,7 +28,8 @@ subtest 'coerced prefs' => sub {
             { pinned    => [],                      saved      => [],     '$type' => 'app.bsky.actor.defs#savedFeedsPref' },
             { birthDate => '2023-12-01T14:12:40Z',  '$type'    => 'app.bsky.actor.defs#personalDetailsPref' },
             { feed      => 'https://fun.com/feed/', '$type'    => 'app.bsky.actor.defs#feedViewPref' },
-            { sort      => 'newest',                '$type'    => 'app.bsky.actor.defs#threadViewPref' }
+            { sort      => 'newest',                '$type'    => 'app.bsky.actor.defs#threadViewPref' },
+            { tags      => [ 'perl', 'software' ],  '$type'    => 'app.bsky.actor.defs#interestsPref' }
         ]
     );
     isa_ok( $prefs->items->[0], ['At::Lexicon::app::bsky::actor::adultContentPref'],    '::preferences coerce (adultContentPref)' );
@@ -37,6 +38,7 @@ subtest 'coerced prefs' => sub {
     isa_ok( $prefs->items->[3], ['At::Lexicon::app::bsky::actor::personalDetailsPref'], '::preferences coerce (personalDetailsPref)' );
     isa_ok( $prefs->items->[4], ['At::Lexicon::app::bsky::actor::feedViewPref'],        '::preferences coerce (feedViewPref)' );
     isa_ok( $prefs->items->[5], ['At::Lexicon::app::bsky::actor::threadViewPref'],      '::preferences coerce (threadViewPref)' );
+    isa_ok( $prefs->items->[6], ['At::Lexicon::app::bsky::actor::interestsPref'],       '::preferences coerce (interestsPref)' );
 };
 #
 subtest 'live' => sub {
