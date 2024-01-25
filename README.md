@@ -892,15 +892,16 @@ Expected parameters include:
 
 Returns the record's uri and cid on success.
 
-## `repo_uploadBlob( ... )`
+## `repo_uploadBlob( ..., [...] )`
 
 Upload a new blob to be added to repo in a later request.
 
 Expected parameters include:
 
 - `blob` - required
+- `type` - optional `Content-type` header value
 
-Returns the blob on success.
+On success, the mime type, size, and a link reference are returned.
 
 ## `server_createSession( ... )`
 
@@ -1490,6 +1491,8 @@ Returns a true value on success.
 # See Also
 
 [https://atproto.com/](https://atproto.com/)
+
+[https://bsky.app/profile/atperl.bsky.social](https://bsky.app/profile/atperl.bsky.social)
 
 [Bluesky on Wikipedia.org](https://en.wikipedia.org/wiki/Bluesky_\(social_network\))
 

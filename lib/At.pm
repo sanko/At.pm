@@ -513,7 +513,7 @@ package At 0.09 {
                 $args{repo}          // confess 'repo is required';
                 $args{collection}    // confess 'collection is required';
                 $args{record}        // confess 'record is required';
-                $self->http->session // confess 'creating a post requires an authenticated client';
+                $self->http->session // confess 'requires an authenticated client';
                 confess 'rkey is too long' if defined $args{rkey} && length $args{rkey} > 15;
                 $args{repo}   = At::Protocol::DID->new( uri => $args{repo} ) unless builtin::blessed $args{repo};
                 $args{record} = At::_topkg( $args{record}{'$type'} )->new( %{ $args{record} } )
@@ -537,7 +537,7 @@ package At 0.09 {
                 $args{repo}          // confess 'repo is required';
                 $args{collection}    // confess 'collection is required';
                 $args{rkey}          // confess 'rkey is required';
-                $self->http->session // confess 'creating a post requires an authenticated client';
+                $self->http->session // confess 'requires an authenticated client';
                 confess 'rkey is too long' if length $args{rkey} > 15;
                 $args{repo} = At::Protocol::DID->new( uri => $args{repo} ) unless builtin::blessed $args{repo};
                 my $res = $self->http->post(
@@ -555,7 +555,7 @@ package At 0.09 {
             }
 
             method repo_describeRepo ($repo) {
-                $self->http->session // confess 'creating a post requires an authenticated client';
+                $self->http->session // confess 'requires an authenticated client';
                 $repo = At::Protocol::DID->new( uri => $repo ) unless builtin::blessed $repo;
                 my $res = $self->http->get( sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.repo.describeRepo' ),
                     { content => +{ repo => $repo->_raw } } );
@@ -568,7 +568,7 @@ package At 0.09 {
                 $args{repo}          // confess 'repo is required';
                 $args{collection}    // confess 'collection is required';
                 $args{rkey}          // confess 'rkey is required';
-                $self->http->session // confess 'creating a post requires an authenticated client';
+                $self->http->session // confess 'requires an authenticated client';
                 $args{repo} = At::Protocol::DID->new( uri => $args{repo} ) unless builtin::blessed $args{repo};
                 my $res = $self->http->get(
                     sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.repo.getRecord' ),
@@ -587,7 +587,7 @@ package At 0.09 {
             }
 
             method repo_listRecords ( $repo, $collection, $limit //= (), $reverse //= (), $cursor //= () ) {
-                $self->http->session // confess 'creating a post requires an authenticated client';
+                $self->http->session // confess 'requires an authenticated client';
                 $repo = At::Protocol::DID->new( uri => $repo ) unless builtin::blessed $repo;
                 my $res = $self->http->get(
                     sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.repo.listRecords' ),
@@ -609,7 +609,7 @@ package At 0.09 {
                 $args{collection}    // confess 'collection is required';
                 $args{rkey}          // confess 'rkey is required';
                 $args{record}        // confess 'record is required';
-                $self->http->session // confess 'creating a post requires an authenticated client';
+                $self->http->session // confess 'requires an authenticated client';
                 confess 'rkey is too long' if length $args{rkey} > 15;
                 $args{repo}   = At::Protocol::DID->new( uri => $args{repo} ) unless builtin::blessed $args{repo};
                 $args{record} = At::_topkg( $args{record}{'$type'} )->new( %{ $args{record} } )
@@ -631,10 +631,12 @@ package At 0.09 {
                 $res;
             }
 
-            method repo_uploadBlob ($blob) {
-                $self->http->session // confess 'creating a post requires an authenticated client';
-                my $res
-                    = $self->http->post( sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.repo.uploadBlob' ), { content => +{ blob => $blob } } );
+            method repo_uploadBlob ( $blob, $type //= () ) {    # TODO: I should allow the user to pass a content type
+                $self->http->session // confess 'requires an authenticated client';
+                my $res = $self->http->post(
+                    sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.repo.uploadBlob' ),
+                    { defined $type ? ( headers => +{ 'Content-type' => $type } ) : (), content => $blob }
+                );
                 $res;
             }
         }
@@ -1106,7 +1108,7 @@ package At 0.09 {
                 #~ use Data::Dump;
                 #~ warn $url . ( defined $req->{content} && keys %{ $req->{content} } ? '?' . _build_query_string( $req->{content} ) : '' );
                 #~ ddx $res;
-                return $res->{content} = decode_json $res->{content} if $res->{content};
+                return $res->{content} = decode_json $res->{content} if $res->{content} && $res->{headers}{'content-type'} =~ m[application/json];
                 return $res;
             }
 
@@ -1114,16 +1116,17 @@ package At 0.09 {
 
                 #~ use Data::Dump;
                 #~ warn $url;
-                #~ ddx encode_json $req->{content} if defined $req->{content};
+                #~ ddx $req;
+                #~ ddx encode_json $req->{content} if defined $req->{content} && ref $req->{content};
                 my $res = $agent->post(
                     $url,
-                    {   defined $req->{headers} ? ( headers => $req->{headers} )             : (),
-                        defined $req->{content} ? ( content => encode_json $req->{content} ) : ()
+                    {   defined $req->{headers} ? ( headers => $req->{headers} )                                                     : (),
+                        defined $req->{content} ? ( content => ref $req->{content} ? encode_json $req->{content} : $req->{content} ) : ()
                     }
                 );
 
                 #~ ddx $res;
-                return $res->{content} = decode_json $res->{content} if $res->{content};
+                return $res->{content} = decode_json $res->{content} if $res->{content} && $res->{headers}{'content-type'} =~ m[application/json];
                 return $res;
             }
             method websocket ( $url, $req = () ) {...}
@@ -1156,7 +1159,9 @@ package At 0.09 {
                 $res = $res->result;
 
                 # todo: error handling
-                if    ( $res->is_success )  { return $res->content ? $res->json : () }
+                if ( $res->is_success ) {
+                    return $res->content ? $res->headers->content_type =~ m[application/json] ? $res->json : $res->content : ();
+                }
                 elsif ( $res->is_error )    { say $res->message }
                 elsif ( $res->code == 301 ) { say $res->headers->location }
                 else                        { say 'Whatever...' }
@@ -1167,12 +1172,14 @@ package At 0.09 {
                 #~ warn $url;
                 my $res = $agent->post(
                     $url,
-                    defined $auth           ? { Authorization => $auth, defined $req->{headers} ? %{ $req->{headers} } : () } : (),
-                    defined $req->{content} ? ( json => $req->{content} )                                                     : ()
+                    defined $auth ? { Authorization => $auth, defined $req->{headers} ? %{ $req->{headers} } : () } : (),
+                    defined $req->{content} ? ref $req->{content} ? ( json => $req->{content} ) : $req->{content} : ()
                 )->result;
 
                 # todo: error handling
-                if    ( $res->is_success )  { return $res->content ? $res->json : () }
+                if ( $res->is_success ) {
+                    return $res->content ? $res->headers->content_type =~ m[application/json] ? $res->json : $res->content : ();
+                }
                 elsif ( $res->is_error )    { say $res->message }
                 elsif ( $res->code == 301 ) { say $res->headers->location }
                 else                        { say 'Whatever...' }
@@ -2232,7 +2239,7 @@ Compare and swap with the previous commit by CID.
 
 Returns the record's uri and cid on success.
 
-=head2 C<repo_uploadBlob( ... )>
+=head2 C<repo_uploadBlob( ..., [...] )>
 
 Upload a new blob to be added to repo in a later request.
 
@@ -2242,9 +2249,11 @@ Expected parameters include:
 
 =item C<blob> - required
 
+=item C<type> - optional C<Content-type> header value
+
 =back
 
-Returns the blob on success.
+On success, the mime type, size, and a link reference are returned.
 
 =head2 C<server_createSession( ... )>
 
@@ -2959,6 +2968,8 @@ atproto/simplify-pds branch.
 =head1 See Also
 
 L<https://atproto.com/>
+
+L<https://bsky.app/profile/atperl.bsky.social>
 
 L<Bluesky on Wikipedia.org|https://en.wikipedia.org/wiki/Bluesky_(social_network)>
 
