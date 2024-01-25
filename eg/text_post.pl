@@ -10,8 +10,11 @@ $|++;
 #
 my $config = Config::Tiny->read('bluesky.conf');
 my $at     = At->new( host => 'https://bsky.social', %{ $config->{_} } );
-$at->repo_createRecord( $at->did, 'app.bsky.feed.post',
-    { '$type' => 'app.bsky.feed.post', text => 'Hello world! I posted this via the API.', createdAt => gmtime->datetime . 'Z' } );
+$at->repo_createRecord(
+    repo       => $at->did,
+    collection => 'app.bsky.feed.post',
+    record     => { '$type' => 'app.bsky.feed.post', text => 'Hello world! I posted this via the API.', createdAt => gmtime->datetime . 'Z' }
+);
 __END__
 Create a config file named bluesky.conf with contents that look like this:
 

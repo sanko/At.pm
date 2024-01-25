@@ -509,19 +509,23 @@ package At 0.09 {
             }
 
             # https://atproto.com/blog/create-post
-            method repo_createRecord ( $repo, $collection, $record, $validate //= (), $swapCommit //= (), $rkey //= () ) {
+            method repo_createRecord (%args) {
+                $args{repo}          // confess 'repo is required';
+                $args{collection}    // confess 'collection is required';
+                $args{record}        // confess 'record is required';
                 $self->http->session // confess 'creating a post requires an authenticated client';
-                confess 'rkey is too long' if defined $rkey && length $rkey > 15;
-                $repo   = At::Protocol::DID->new( uri => $repo ) unless builtin::blessed $repo;
-                $record = At::_topkg( $record->{'$type'} )->new(%$record) if !builtin::blessed $record && defined $record->{'$type'};
+                confess 'rkey is too long' if defined $args{rkey} && length $args{rkey} > 15;
+                $args{repo}   = At::Protocol::DID->new( uri => $args{repo} ) unless builtin::blessed $args{repo};
+                $args{record} = At::_topkg( $args{record}{'$type'} )->new( %{ $args{record} } )
+                    if !builtin::blessed $args{record} && defined $args{record}{'$type'};
                 my $res = $self->http->post(
                     sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.repo.createRecord' ),
                     {   content => +{
-                            repo       => $repo->_raw,
-                            collection => $collection,
-                            record     => builtin::blessed $record? $record->_raw : $record,
-                            defined $validate ? ( validate => $validate ) : (), defined $swapCommit ? ( swapCommit => $swapCommit ) : (),
-                            defined $rkey ? ( rkey => $rkey ) : ()
+                            repo       => $args{repo}->_raw,
+                            collection => $args{collection},
+                            record     => builtin::blessed $args{record} ? $args{record}->_raw : $args{record},
+                            defined $args{validate} ? ( validate => $args{validate} ) : (),
+                            defined $args{swapCommit} ? ( swapCommit => $args{swapCommit} ) : (), defined $args{rkey} ? ( rkey => $args{rkey} ) : ()
                         }
                     }
                 );
@@ -529,17 +533,21 @@ package At 0.09 {
                 $res;
             }
 
-            method repo_deleteRecord ( $repo, $collection, $rkey, $swapRecord //= (), $swapCommit //= () ) {
+            method repo_deleteRecord (%args) {
+                $args{repo}          // confess 'repo is required';
+                $args{collection}    // confess 'collection is required';
+                $args{rkey}          // confess 'rkey is required';
                 $self->http->session // confess 'creating a post requires an authenticated client';
-                confess 'rkey is too long' if length $rkey > 15;
-                $repo = At::Protocol::DID->new( uri => $repo ) unless builtin::blessed $repo;
+                confess 'rkey is too long' if length $args{rkey} > 15;
+                $args{repo} = At::Protocol::DID->new( uri => $args{repo} ) unless builtin::blessed $args{repo};
                 my $res = $self->http->post(
                     sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.repo.deleteRecord' ),
                     {   content => +{
-                            repo       => $repo->_raw,
-                            collection => $collection,
-                            rkey       => $rkey,
-                            defined $swapRecord ? ( swapRecord => $swapRecord ) : (), defined $swapCommit ? ( swapCommit => $swapCommit ) : ()
+                            repo       => $args{repo}->_raw,
+                            collection => $args{collection},
+                            rkey       => $args{rkey},
+                            defined $args{swapRecord} ? ( swapRecord => $args{swapRecord} ) : (),
+                            defined $args{swapCommit} ? ( swapCommit => $args{swapCommit} ) : ()
                         }
                     }
                 );
@@ -556,11 +564,22 @@ package At 0.09 {
                 $res;
             }
 
-            method repo_getRecord ( $repo, $collection, $rkey, $cid //= () ) {
+            method repo_getRecord (%args) {
+                $args{repo}          // confess 'repo is required';
+                $args{collection}    // confess 'collection is required';
+                $args{rkey}          // confess 'rkey is required';
                 $self->http->session // confess 'creating a post requires an authenticated client';
-                $repo = At::Protocol::DID->new( uri => $repo ) unless builtin::blessed $repo;
-                my $res = $self->http->get( sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.repo.getRecord' ),
-                    { content => +{ repo => $repo->_raw, collection => $collection, rkey => $rkey, defined $cid ? ( cid => $cid ) : () } } );
+                $args{repo} = At::Protocol::DID->new( uri => $args{repo} ) unless builtin::blessed $args{repo};
+                my $res = $self->http->get(
+                    sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.repo.getRecord' ),
+                    {   content => +{
+                            repo       => $args{repo}->_raw,
+                            collection => $args{collection},
+                            rkey       => $args{rkey},
+                            defined $args{cid} ? ( cid => $args{cid} ) : ()
+                        }
+                    }
+                );
                 $res->{uri}   = URI->new( $res->{uri} ) if defined $res->{uri};
                 $res->{value} = At::_topkg( $res->{value}{'$type'} )->new( %{ $res->{value} } )
                     if defined $res->{value} && defined $res->{value}{'$type'};
@@ -585,20 +604,26 @@ package At 0.09 {
                 $res;
             }
 
-            method repo_putRecord ( $repo, $collection, $rkey, $record, $validate //= (), $swapRecord //= (), $swapCommit //= () ) {
+            method repo_putRecord (%args) {
+                $args{repo}          // confess 'repo is required';
+                $args{collection}    // confess 'collection is required';
+                $args{rkey}          // confess 'rkey is required';
+                $args{record}        // confess 'record is required';
                 $self->http->session // confess 'creating a post requires an authenticated client';
-                confess 'rkey is too long' if length $rkey > 15;
-                $repo   = At::Protocol::DID->new( uri => $repo ) unless builtin::blessed $repo;
-                $record = At::_topkg( $record->{'$type'} )->new(%$record) if !builtin::blessed $record && defined $record->{'$type'};
+                confess 'rkey is too long' if length $args{rkey} > 15;
+                $args{repo}   = At::Protocol::DID->new( uri => $args{repo} ) unless builtin::blessed $args{repo};
+                $args{record} = At::_topkg( $args{record}{'$type'} )->new( %{ $args{record} } )
+                    if !builtin::blessed $args{record} && defined $args{record}{'$type'};
                 my $res = $self->http->post(
                     sprintf( '%s/xrpc/%s', $self->host(), 'com.atproto.repo.putRecord' ),
                     {   content => +{
-                            repo       => $repo->_raw,
-                            collection => $collection,
-                            rkey       => $rkey,
-                            record     => builtin::blessed $record? $record->_raw : $record,
-                            defined $validate ? ( validate => $validate ) : (), defined $swapRecord ? ( swapRecord => $swapRecord ) : (),
-                            defined $swapCommit ? ( swapCommit => $swapCommit ) : ()
+                            repo       => $args{repo}->_raw,
+                            collection => $args{collection},
+                            rkey       => $args{rkey},
+                            record     => builtin::blessed $args{record} ? $args{record}->_raw : $args{record},
+                            defined $args{validate}   ? ( validate   => $args{validate} )   : (),
+                            defined $args{swapRecord} ? ( swapRecord => $args{swapRecord} ) : (),
+                            defined $args{swapCommit} ? ( swapCommit => $args{swapCommit} ) : ()
                         }
                     }
                 );
@@ -972,8 +997,8 @@ package At 0.09 {
         class At::Protocol::DID {    # https://atproto.com/specs/did
             field $uri : param;
             ADJUST {
-                use Carp qw[carp croak];
-                croak 'malformed DID URI: ' . $uri unless $uri =~ /^did:([a-z]+:[a-zA-Z0-9._:%-]*[a-zA-Z0-9._-])$/;
+                use Carp qw[carp confess];
+                confess 'malformed DID URI: ' . $uri unless $uri =~ /^did:([a-z]+:[a-zA-Z0-9._:%-]*[a-zA-Z0-9._-])$/;
                 use URI;
                 $uri = URI->new($1) unless builtin::blessed $uri;
                 my $scheme = $uri->scheme;
@@ -988,7 +1013,7 @@ package At 0.09 {
         class At::Protocol::Timestamp {    # Internal; standardize around Zulu
             field $timestamp : param;
             ADJUST {
-                $timestamp // Carp::croak 'missing timestamp';
+                $timestamp // Carp::confess 'missing timestamp';
                 use Time::Moment;
                 return if builtin::blessed $timestamp;
                 $timestamp = $timestamp =~ /\D/ ? Time::Moment->from_string($timestamp) : Time::Moment->from_epoch($timestamp);
@@ -1002,10 +1027,10 @@ package At 0.09 {
         class At::Protocol::Handle {    # https://atproto.com/specs/handle
             field $id : param;
             ADJUST {
-                use Carp qw[croak carp];
-                croak 'malformed handle: ' . $id
+                use Carp qw[confess carp];
+                confess 'malformed handle: ' . $id
                     unless $id =~ /^([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$/;
-                croak 'disallowed TLD in handle: ' . $id if $id =~ /\.(arpa|example|internal|invalid|local|localhost|onion)$/;
+                confess 'disallowed TLD in handle: ' . $id if $id =~ /\.(arpa|example|internal|invalid|local|localhost|onion)$/;
                 CORE::state $warned //= 0;
                 if ( $id =~ /\.(test)$/ && !$warned ) {
                     carp 'development or testing TLD used in handle: ' . $id;
@@ -1086,6 +1111,10 @@ package At 0.09 {
             }
 
             method post ( $url, $req = () ) {
+
+                #~ use Data::Dump;
+                #~ warn $url;
+                #~ ddx encode_json $req->{content} if defined $req->{content};
                 my $res = $agent->post(
                     $url,
                     {   defined $req->{headers} ? ( headers => $req->{headers} )             : (),
@@ -1093,9 +1122,6 @@ package At 0.09 {
                     }
                 );
 
-                #~ use Data::Dump;
-                #~ warn $url;
-                #~ ddx encode_json $req->{content};
                 #~ ddx $res;
                 return $res->{content} = decode_json $res->{content} if $res->{content};
                 return $res;
@@ -2007,14 +2033,14 @@ Flag for validating the records.
 
 Returns a true value on success.
 
-=head2 C<repo_createRecord( ..., [...] )>
+=head2 C<repo_createRecord( ... )>
 
 Create a new record.
 
     $at->repo_createRecord(
-        $at->did,
-        'app.bsky.feed.post',
-        { '$type' => 'app.bsky.feed.post', text => "Hello world! I posted this via the API.", createdAt => gmtime->datetime . 'Z' }
+        repo       => $at->did,
+        collection => 'app.bsky.feed.post',
+        record     => { '$type' => 'app.bsky.feed.post', text => "Hello world! I posted this via the API.", createdAt => gmtime->datetime . 'Z' }
     );
 
 Expected parameters include:
@@ -2049,11 +2075,11 @@ The key of the record.
 
 Returns the uri and cid of the newly created record on success.
 
-=head2 C<repo_deleteRecord( ..., [...] )>
+=head2 C<repo_deleteRecord( ... )>
 
 Create a new record.
 
-    $at->repo_deleteRecord( $at->did, 'app.bsky.feed.post', '3kiburrigys27' );
+    $at->repo_deleteRecord( repo => $at->did, collection => 'app.bsky.feed.post', rkey => '3kiburrigys27' );
 
 Expected parameters include:
 
@@ -2102,9 +2128,9 @@ The handle or DID of the repo.
 On success, returns the repo's handle, did, a didDoc, a list of supported collections, a flag indicating whether or not
 the handle is correct.
 
-=head2 C<repo_getRecord( ..., [...] )>
+=head2 C<repo_getRecord( ... )>
 
-    $at->repo_getRecord( $at->did, 'app.bsky.feed.post', '3kiburrigys27' );
+    $at->repo_getRecord( repo => $at->did, collection => 'app.bsky.feed.post', rkey => '3kiburrigys27' );
 
 Get a record.
 
@@ -2164,9 +2190,9 @@ Flag to reverse the order of the returned records.
 
 =back
 
-=head2 C<repo_putRecord( ..., [...] )>
+=head2 C<repo_putRecord( ... )>
 
-    $at->repo_putRecord( $at->did, 'app.bsky.feed.post', 'aaaaaaaaaaaaaaa', {...} );
+    $at->repo_putRecord( repo => $at->did, collection => 'app.bsky.feed.post', rkey => 'aaaaaaaaaaaaaaa', ... );
 
 Write a record, creating or updating it as needed.
 

@@ -12,8 +12,12 @@ subtest 'live' => sub {
     my $at = At->new( host => 'https://bsky.social', identifier => 'atperl.bsky.social', password => 'ck2f-bqxl-h54l-xm3l' );
     use At::Lexicon::app::bsky::feed;
     my $msg = 'Hello world! I posted this via the API. Today is ' . localtime;
-    ok my $newpost = $at->repo_createRecord( $at->did, 'app.bsky.feed.post', { '$type' => 'app.bsky.feed.post', text => $msg, createdAt => time } ),
-        'repo_createRecord';
+    ok my $newpost = $at->repo_createRecord(
+        repo       => $at->did,
+        collection => 'app.bsky.feed.post',
+        record     => { '$type' => 'app.bsky.feed.post', text => $msg, createdAt => time }
+        ),
+        'repo_createRecord( ... )';
     isa_ok $newpost->{uri}, ['URI'];
     my ($rkey) = ( $newpost->{uri}->as_string =~ m[at://did:plc:.+?/app.bsky.feed.post/(.+)] );
     diag '$rkey == ' . $rkey;
@@ -21,20 +25,24 @@ subtest 'live' => sub {
     SKIP:
         {
             skip 'Bluesky is only accepting updates for app.bsky.actor.profile, app.bsky.graph.list, app.bsky.feed.generator';
-            ok my $editpost
-                = $at->repo_putRecord( $at->did, 'app.bsky.feed.post', $rkey,
-                { '$type' => 'app.bsky.feed.post', text => join( ' ', reverse split( ' ', $msg ) ), createdAt => time } ),
-                sprintf '$at->repo_putRecord( "%s", ... )', $rkey;
+            ok my $editpost = $at->repo_putRecord(
+                repo       => $at->did,
+                collection => 'app.bsky.feed.post',
+                rkey       => $rkey,
+                record     => { '$type' => 'app.bsky.feed.post', text => join( ' ', reverse split( ' ', $msg ) ), createdAt => time }
+                ),
+                sprintf '$at->repo_putRecord( rkey => "%s", ... )', $rkey;
             isa_ok $editpost->{uri}, ['URI'];
             ($rkey) = ( $editpost->{uri}->as_string =~ m[at://did:plc:.+?/app.bsky.feed.post/(.+)] );
             diag '$rkey == ' . $rkey;
         }
     };
     subtest 'repo_getRecord' => sub {
-        my $record = $at->repo_getRecord( $at->did, 'app.bsky.feed.post', $rkey );
+        ok my $record = $at->repo_getRecord( repo => $at->did, collection => 'app.bsky.feed.post', rkey => $rkey ), '$at->repo_getRecord( ... )';
         is $record->{value}->text, $msg, ' ->{value}->text';
     };
-    ok $at->repo_deleteRecord( $at->did, 'app.bsky.feed.post', $rkey ), sprintf '$at->repo_deleteRecord( "%s", ... )', $rkey;
+    ok $at->repo_deleteRecord( repo => $at->did, collection => 'app.bsky.feed.post', rkey => $rkey ), sprintf '$at->repo_deleteRecord( "%s", ... )',
+        $rkey;
     subtest 'repo_describeRepo' => sub {
         ok my $desc = $at->repo_describeRepo( $at->did ), sprintf '$at->repo_describeRepo( "%s", ... )', $at->did->_raw;
         todo 'updating things might give us unexpected access to new collections and this list will be incomplete' => sub {

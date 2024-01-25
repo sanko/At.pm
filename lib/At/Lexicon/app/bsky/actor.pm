@@ -325,10 +325,9 @@ package At::Lexicon::app::bsky::actor 0.09 {
         method labels      {$labels}
 
         method _raw() {
-            +{  defined $displayName ? ( displayName => $displayName )  : (),
-                defined $description ? ( description => $description )  : (),
-                defined $avatar      ? ( avatar      => $avatar )       : (),
-                defined $banner      ? ( banner      => $banner )       : (),
+            +{  '$type' => 'app.bsky.actor.profile',
+                defined $displayName ? ( displayName => $displayName )  : (), defined $description ? ( description => $description ) : (),
+                defined $avatar      ? ( avatar      => $avatar )       : (), defined $banner      ? ( banner      => $banner )      : (),
                 defined $labels      ? ( labels      => $labels->_raw ) : ()
             };
         }

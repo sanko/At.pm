@@ -705,15 +705,15 @@ Expected parameters include:
 
 Returns a true value on success.
 
-## `repo_createRecord( ..., [...] )`
+## `repo_createRecord( ... )`
 
 Create a new record.
 
 ```perl
 $at->repo_createRecord(
-    $at->did,
-    'app.bsky.feed.post',
-    { '$type' => 'app.bsky.feed.post', text => "Hello world! I posted this via the API.", createdAt => gmtime->datetime . 'Z' }
+    repo       => $at->did,
+    collection => 'app.bsky.feed.post',
+    record     => { '$type' => 'app.bsky.feed.post', text => "Hello world! I posted this via the API.", createdAt => gmtime->datetime . 'Z' }
 );
 ```
 
@@ -745,12 +745,12 @@ Expected parameters include:
 
 Returns the uri and cid of the newly created record on success.
 
-## `repo_deleteRecord( ..., [...] )`
+## `repo_deleteRecord( ... )`
 
 Create a new record.
 
-```
-$at->repo_deleteRecord( $at->did, 'app.bsky.feed.post', '3kiburrigys27' );
+```perl
+$at->repo_deleteRecord( repo => $at->did, collection => 'app.bsky.feed.post', rkey => '3kiburrigys27' );
 ```
 
 Expected parameters include:
@@ -794,10 +794,10 @@ Expected parameters include:
 On success, returns the repo's handle, did, a didDoc, a list of supported collections, a flag indicating whether or not
 the handle is correct.
 
-## `repo_getRecord( ..., [...] )`
+## `repo_getRecord( ... )`
 
-```
-$at->repo_getRecord( $at->did, 'app.bsky.feed.post', '3kiburrigys27' );
+```perl
+$at->repo_getRecord( repo => $at->did, collection => 'app.bsky.feed.post', rkey => '3kiburrigys27' );
 ```
 
 Get a record.
@@ -852,10 +852,10 @@ Expected parameters include:
 
 - `cursor`
 
-## `repo_putRecord( ..., [...] )`
+## `repo_putRecord( ... )`
 
-```
-$at->repo_putRecord( $at->did, 'app.bsky.feed.post', 'aaaaaaaaaaaaaaa', {...} );
+```perl
+$at->repo_putRecord( repo => $at->did, collection => 'app.bsky.feed.post', rkey => 'aaaaaaaaaaaaaaa', ... );
 ```
 
 Write a record, creating or updating it as needed.
