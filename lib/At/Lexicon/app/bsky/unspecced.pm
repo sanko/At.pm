@@ -1,4 +1,4 @@
-package At::Lexicon::app::bsky::unspecced 0.09 {
+package At::Lexicon::app::bsky::unspecced 0.10 {
     use v5.38;
     no warnings 'experimental::class', 'experimental::builtin';    # Be quiet.
     use feature 'class';

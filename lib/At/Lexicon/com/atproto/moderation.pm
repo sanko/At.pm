@@ -1,4 +1,4 @@
-package At::Lexicon::com::atproto::moderation 0.09 {
+package At::Lexicon::com::atproto::moderation 0.10 {
 
     #~ https://github.com/bluesky-social/atproto/blob/main/lexicons/com/atproto/moderation/defs.json
     use v5.38;

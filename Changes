@@ -2,6 +2,8 @@ Revision history for Perl extension At.pm
 
 {{$NEXT}}
 
+0.10 2024-01-25T05:01:45Z
+
     - Minor bug sweep as I work on a functioning client
 
 0.09 2024-01-24T21:30:18Z
