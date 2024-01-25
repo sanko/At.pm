@@ -1,4 +1,4 @@
-package At 0.10 {
+package At 0.11 {
     use v5.38;
     no warnings 'experimental::class', 'experimental::builtin', 'experimental::for_list';    # Be quiet.
     use feature 'class';
@@ -1262,7 +1262,7 @@ __END__
 
 =head1 NAME
 
-At - The Bluesky Protocol for Social Networking
+At - The AT Protocol for Social Networking
 
 =head1 SYNOPSIS
 

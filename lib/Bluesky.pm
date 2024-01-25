@@ -1,4 +1,4 @@
-package Bluesky 0.10 {
+package Bluesky 0.11 {
     use v5.38;
     no warnings 'experimental::class', 'experimental::builtin';    # Be quiet.
     use feature 'class';
@@ -47,7 +47,7 @@ __END__
 
 =head1 NAME
 
-Bluesky - Extra Sweet Bluesky Client Library
+Bluesky - Extra Sweet Bluesky Client Library in Perl
 
 =head1 SYNOPSIS
 
@@ -55,6 +55,7 @@ Bluesky - Extra Sweet Bluesky Client Library
     my $bsky = Bluesky->new( identifier => 'sanko', password => '1111-2222-3333-4444');
     $bsky->block( 'sankor.bsky.social' );
     $bsky->unblock( 'sankor.bsky.social' );
+    # To be continued...
 
 =head1 DESCRIPTION
 

@@ -1,4 +1,4 @@
-package At::Lexicon::app::bsky::feed 0.10 {
+package At::Lexicon::app::bsky::feed 0.11 {
     use v5.38;
     no warnings 'experimental::class', 'experimental::builtin';    # Be quiet.
     use feature 'class';

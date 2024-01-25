@@ -1,6 +1,6 @@
 {
    "X_No_Archive" : "Yes",
-   "abstract" : "The Bluesky Protocol for Social Networking",
+   "abstract" : "The AT Protocol for Social Networking",
    "author" : [
       "Sanko Robinson <sanko@cpan.org>"
    ],
@@ -102,7 +102,7 @@
          "web" : "https://github.com/sanko/At.pm"
       }
    },
-   "version" : "0.10",
+   "version" : "0.11",
    "x_serialization_backend" : "JSON::PP version 4.16",
    "x_static_install" : 1
 }
