@@ -5,6 +5,7 @@ requires 'Path::Tiny';
 requires 'Net::SSLeay',     1.49;
 requires 'IO::Socket::SSL', 1.42;
 requires 'URI';
+requires 'MIME::Base64';
 recommends 'Mojo::UserAgent';
 feature 'websockets', 'Websocket based streaming services' => sub {
     requires 'Mojo::UserAgent';

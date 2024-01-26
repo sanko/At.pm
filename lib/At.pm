@@ -14,10 +14,27 @@ package At 0.12 {
     #~ |---------------------335---33----------|
     class At {
 
+        sub _decode_token ($token) {
+            use MIME::Base64 qw[decode_base64];
+            use JSON::Tiny   qw[decode_json];
+            my ( $header, $payload, $sig ) = split /\./, $token;
+            $payload =~ tr[-_][+/];    # Replace Base64-URL characters with standard Base64
+            decode_json decode_base64 $payload;
+        }
+
         sub resume ( $class, %config ) {    # store $at->http->session->_raw and restore it here
             my $at      = builtin::blessed $class ? $class : $class->new();    # Expect a blessed object
-            my $session = $at->server_refreshSession( $config{refreshJwt} );
-            $at->http->set_session($session);
+            my $access  = _decode_token $config{accessJwt};
+            my $refresh = _decode_token $config{refreshJwt};
+            if ( time > $access->{exp} && time < $refresh->{exp} ) {
+
+                # Attempt to use refresh token which has a 90 day life span as of Jan. 2024
+                my $session = $at->server_refreshSession( $config{refreshJwt} );
+                $at->http->set_session($session);
+            }
+            else {
+                $at->http->set_session( \%config );
+            }
             $at;
         }
         field $http //= Mojo::UserAgent->can('start') ? At::UserAgent::Mojo->new() : At::UserAgent::Tiny->new();
