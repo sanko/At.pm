@@ -1,4 +1,4 @@
-package At::Lexicon::app::bsky::actor 0.11 {
+package At::Lexicon::app::bsky::actor 0.12 {
     use v5.38;
     no warnings 'experimental::class', 'experimental::builtin';    # Be quiet.
     use feature 'class';

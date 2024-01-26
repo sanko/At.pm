@@ -2,6 +2,8 @@ Revision history for Perl extension At.pm
 
 {{$NEXT}}
 
+0.12 2024-01-26T03:45:00Z
+
     - Update according to lexicon changes in bluesky-social/atproto@4171c04
        - add interest tags to preferences
     - Update according to lexicon changes in bluesky-social/atproto@8994d36
