@@ -14,7 +14,7 @@ package Bluesky 0.13 {
                 repo       => $self->session->{did},
                 collection => 'app.bsky.graph.block',
                 record     => At::Lexicon::app::bsky::graph::block->new( createdAt => time, subject => $profile->did )
-            ) ? $self->actor_getProfile($actor) : ();
+            ) ? $self->actor_getProfile($actor)->_raw : ();
         }
 
         method unblock ($actor) {
@@ -23,7 +23,27 @@ package Bluesky 0.13 {
             return unless $profile->viewer->blocking;
             my ($rkey) = $profile->viewer->blocking =~ m[app.bsky.graph.block/(.*)$];
             $self->repo_deleteRecord( repo => $self->session->{did}, collection => 'app.bsky.graph.block', rkey => $rkey ) ?
-                $self->actor_getProfile($actor) :
+                $self->actor_getProfile($actor)->_raw :
+                ();
+        }
+
+        method follow ($actor) {
+            my $profile = $self->actor_getProfile($actor);
+            builtin::blessed $profile or return;
+            $self->repo_createRecord(
+                repo       => $self->session->{did},
+                collection => 'app.bsky.graph.follow',
+                record     => At::Lexicon::app::bsky::graph::follow->new( createdAt => time, subject => $profile->did )
+            ) ? $self->actor_getProfile($actor)->_raw : ();
+        }
+
+        method unfollow ($actor) {
+            my $profile = $self->actor_getProfile($actor);
+            builtin::blessed $profile or return;
+            return unless $profile->viewer->following;
+            my ($rkey) = $profile->viewer->following =~ m[app.bsky.graph.follow/(.*)$];
+            $self->repo_deleteRecord( repo => $self->session->{did}, collection => 'app.bsky.graph.follow', rkey => $rkey ) ?
+                $self->actor_getProfile($actor)->_raw :
                 ();
         }
 
@@ -32,12 +52,17 @@ package Bluesky 0.13 {
             my $repo = delete $args{repo} // $self->session->{did};
             Carp::confess 'text must be fewer than 300 characters' if length $args{text} > 300 || bytes::length $args{text} > 300;
             my $record = At::Lexicon::app::bsky::feed::post->new( '$type' => 'app.bsky.feed.post', %args );
-            $self->repo_createRecord( repo => $repo, collection => 'app.bsky.feed.post', record => $record );
+            $self->repo_createRecord( repo => $repo, collection => 'app.bsky.feed.post', record => $record )->_raw;
         }
 
         method delete ( $rkey, $repo //= () ) {
             $rkey = $1 if $rkey =~ m[app.bsky.feed.post/(.*)$];
-            $self->repo_deleteRecord( repo => $repo // $self->session->{did}, collection => 'app.bsky.feed.post', rkey => $rkey );
+            $self->repo_deleteRecord( repo => $repo // $self->session->{did}, collection => 'app.bsky.feed.post', rkey => $rkey )->_raw;
+        }
+
+        method profile ($actor) {
+            my $res = $self->actor_getProfile($actor);
+            builtin::blessed $res? $res->_raw : ();
         }
     }
 }
@@ -122,6 +147,42 @@ Handle or DID of the person you'd like to block.
 
 Returns a true value on success.
 
+=head2 C<follow( ... )>
+
+    $bsky->follow( 'sankor.bsky.social' );
+
+Follow a user.
+
+Expected parameters include:
+
+=over
+
+=item C<identifier> - required
+
+Handle or DID of the person you'd like to follow.
+
+=back
+
+Returns a true value on success.
+
+=head2 C<unfollow( ... )>
+
+    $bsky->unfollow( 'sankor.bsky.social' );
+
+Unfollows a user.
+
+Expected parameters include:
+
+=over
+
+=item C<identifier> - required
+
+Handle or DID of the person you'd like to unfollow.
+
+=back
+
+Returns a true value on success.
+
 =head2 C<post( ... )>
 
     $bsky->post( text => 'Hello, world!' );
@@ -160,6 +221,24 @@ The AT-URI of the post.
 
 Returns a true value on success.
 
+=head2 C<profile( ... )>
+
+    $bsky->profile( 'sankor.bsky.social' );
+
+Gathers profile data.
+
+Expected parameters include:
+
+=over
+
+=item C<identifier> - required
+
+Handle or DID of the person you'd like information on.
+
+=back
+
+Returns a hash of data on success.
+
 =head1 See Also
 
 L<App::bsky> - Bluesky client on the command line
@@ -177,7 +256,7 @@ Sanko Robinson E<lt>sanko@cpan.orgE<gt>
 
 =begin stopwords
 
-Bluesky
+Bluesky unfollow
 
 =end stopwords
 
