@@ -160,6 +160,10 @@ The AT-URI of the post.
 
 Returns a true value on success.
 
+=head1 See Also
+
+L<App::bsky> - Bluesky client on the command line
+
 =head1 LICENSE
 
 Copyright (C) Sanko Robinson.

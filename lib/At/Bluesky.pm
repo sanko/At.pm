@@ -1454,6 +1454,10 @@ Optional pagination mechanism; may not necessarily allow scrolling through entir
 On success, returns a list of posts as C<At::Lexicon::app::bsky::unspecced::skeletonSearchPost> objects and,
 optionally, an approximate count of all search hits and a cursor.
 
+=head1 See Also
+
+L<App::bsky> - Bluesky client on the command line
+
 =head1 LICENSE
 
 Copyright (C) Sanko Robinson.

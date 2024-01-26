@@ -1501,6 +1501,8 @@ Returns a true value on success.
 
 # See Also
 
+[App::bsky](https://metacpan.org/pod/App%3A%3Absky) - Bluesky client on the command line
+
 [https://atproto.com/](https://atproto.com/)
 
 [https://bsky.app/profile/atperl.bsky.social](https://bsky.app/profile/atperl.bsky.social)

@@ -2981,6 +2981,8 @@ atproto/simplify-pds branch.
 
 =head1 See Also
 
+L<App::bsky> - Bluesky client on the command line
+
 L<https://atproto.com/>
 
 L<https://bsky.app/profile/atperl.bsky.social>
