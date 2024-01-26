@@ -52,12 +52,12 @@ package Bluesky 0.13 {
             my $repo = delete $args{repo} // $self->session->{did};
             Carp::confess 'text must be fewer than 300 characters' if length $args{text} > 300 || bytes::length $args{text} > 300;
             my $record = At::Lexicon::app::bsky::feed::post->new( '$type' => 'app.bsky.feed.post', %args );
-            $self->repo_createRecord( repo => $repo, collection => 'app.bsky.feed.post', record => $record )->_raw;
+            $self->repo_createRecord( repo => $repo, collection => 'app.bsky.feed.post', record => $record );
         }
 
         method delete ( $rkey, $repo //= () ) {
             $rkey = $1 if $rkey =~ m[app.bsky.feed.post/(.*)$];
-            $self->repo_deleteRecord( repo => $repo // $self->session->{did}, collection => 'app.bsky.feed.post', rkey => $rkey )->_raw;
+            $self->repo_deleteRecord( repo => $repo // $self->session->{did}, collection => 'app.bsky.feed.post', rkey => $rkey );
         }
 
         method profile ($actor) {
