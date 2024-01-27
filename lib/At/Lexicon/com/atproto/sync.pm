@@ -1,4 +1,4 @@
-package At::Lexicon::com::atproto::sync 0.14 {
+package At::Lexicon::com::atproto::sync 0.15 {
     use v5.38;
     use lib '../../../../../lib';
     no warnings 'experimental::class', 'experimental::builtin', 'experimental::try';    # Be quiet.
