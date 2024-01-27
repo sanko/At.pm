@@ -159,7 +159,8 @@ package At::Lexicon::app::bsky::feed 0.13 {
         method _raw() {
             +{  '$type' => $type,
                 post    => $post->_raw,
-                defined $parent ? ( parent => $parent->_raw ) : (), defined $replies ? ( replies => [ map { $_->_raw } @$replies ] ) : ()
+                defined $parent  ? ( parent  => builtin::blessed $parent ? $parent->_raw : $parent ) : (),
+                defined $replies ? ( replies => [ map { $_->_raw } @$replies ] )                     : ()
             };
         }
     }
@@ -484,9 +485,9 @@ package At::Lexicon::app::bsky::feed 0.13 {
         method _raw() {
             +{  '$type' => $type,
                 text    => $text,
-                defined $facets ? ( facets => [ map { $_->_raw } @$facets ] ) : (), defined $reply ? ( reply => $reply->_raw )                : (),
-                defined $embed  ? ( embed  => $embed->_raw )                  : (), defined $langs ? ( langs => $langs )                      : (),
-                defined $labels ? ( labels => $labels->_raw )                 : (), defined $tags  ? ( tags  => [ map { $_->_raw } @$tags ] ) : (),
+                defined $facets ? ( facets => [ map { $_->_raw } @$facets ] ) : (), defined $reply ? ( reply => $reply->_raw )        : (),
+                defined $embed  ? ( embed  => $embed->_raw )                  : (), defined $langs ? ( langs => $langs )              : (),
+                defined $labels ? ( labels => $labels->_raw )                 : (), defined $tags  ? ( tags  => [ map {$_} @$tags ] ) : (),
                 createdAt => $createdAt->_raw,
                 defined $via ? ( via => $via ) : (), defined $length ? ( length => $length ) : ()
             };
