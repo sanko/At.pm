@@ -1,4 +1,4 @@
-package At::Lexicon::com::atproto::server 0.13 {
+package At::Lexicon::com::atproto::server 0.14 {
     use v5.38;
     no warnings 'experimental::class', 'experimental::builtin';    # Be quiet.
     use feature 'class';
@@ -32,7 +32,7 @@ package At::Lexicon::com::atproto::server 0.13 {
                 code       => $code,
                 available  => \$available,
                 disabled   => $disabled,
-                forAccount => $forAccount->_raw,
+                forAccount => $forAccount,
                 createdBy  => $createdBy,
                 uses       => [ map { $_->_raw } @$uses ]
             };

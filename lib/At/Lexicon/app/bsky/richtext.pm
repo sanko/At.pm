@@ -1,4 +1,4 @@
-package At::Lexicon::app::bsky::richtext 0.13 {
+package At::Lexicon::app::bsky::richtext 0.14 {
     use v5.38;
     no warnings 'experimental::class', 'experimental::builtin';    # Be quiet.
     use feature 'class';

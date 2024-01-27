@@ -1,4 +1,4 @@
-package At::Lexicon::app::bsky::feed 0.13 {
+package At::Lexicon::app::bsky::feed 0.14 {
     use v5.38;
     no warnings 'experimental::class', 'experimental::builtin';    # Be quiet.
     use feature 'class';
@@ -428,8 +428,9 @@ package At::Lexicon::app::bsky::feed 0.13 {
     }
 
     class At::Lexicon::app::bsky::feed::like {
-        field $subject : param;      # ::repo::strongRef, required
-        field $createdAt : param;    # datetime, required
+        field $type : param($type) //= 'app.bsky.feed.like';    # record field
+        field $subject : param;                                 # ::repo::strongRef, required
+        field $createdAt : param;                               # datetime, required
         ADJUST {
             $subject   = At::Lexicon::com::atproto::repo::strongRef->new(%$subject) unless builtin::blessed $subject;
             $createdAt = At::Protocol::Timestamp->new( timestamp => $createdAt )    unless builtin::blessed $createdAt;
@@ -440,26 +441,26 @@ package At::Lexicon::app::bsky::feed 0.13 {
         method createdAt {$createdAt}
 
         method _raw() {
-            +{ subject => $subject->_raw, createdAt => $createdAt->_raw };
+            +{ '$type' => $type, subject => $subject->_raw, createdAt => $createdAt->_raw };
         }
     }
 
     class At::Lexicon::app::bsky::feed::post {
-        field $type : param($type);      # record field
-        field $text : param;             # string, required, max 300 graphemes, max length 3000
-        field $facets : param //= ();    # array of app.bsky.richtext.facet
-        field $reply : param  //= ();    # #replyRef
-        field $embed : param  //= ();    # union
-        field $langs : param  //= ();    # array, 3 elements max
-        field $labels : param //= ();    # array of ::com::atproto::label::selfLabels
-        field $tags : param   //= ();    # array
-        field $createdAt : param;        # timestamp, required
+        field $type : param($type) //= 'app.bsky.feed.post';    # record field
+        field $text : param;                                    # string, required, max 300 graphemes, max length 3000
+        field $facets : param //= ();                           # array of app.bsky.richtext.facet
+        field $reply : param  //= ();                           # #replyRef
+        field $embed : param  //= ();                           # union
+        field $langs : param  //= ();                           # array, 3 elements max
+        field $labels : param //= ();                           # array of ::com::atproto::label::selfLabels
+        field $tags : param   //= ();                           # array
+        field $createdAt : param;                               # timestamp, required
 
         # Bluesky is returning this from time to time as of Dec. 14, 2023
-        field $via : param //= ();       # string
+        field $via : param //= ();                              # string
 
         # API is returning this but it's not in the lexicon as of Dec. 20th, 2023
-        field $length : param //= ();    # int
+        field $length : param //= ();                           # int
         ADJUST {
             Carp::confess 'text is too long' if length $text > 3000 || At::_glength($text) > 300;
             $facets = [ map { $_ = At::Lexicon::app::bsky::richtext::facet->new(%$_) unless builtin::blessed $_ } @$facets ] if defined $facets;

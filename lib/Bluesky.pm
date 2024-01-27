@@ -1,4 +1,4 @@
-package Bluesky 0.13 {
+package Bluesky 0.14 {
     use v5.38;
     no warnings 'experimental::class', 'experimental::builtin';    # Be quiet.
     use feature 'class';
@@ -58,6 +58,28 @@ package Bluesky 0.13 {
         method delete ( $rkey, $repo //= () ) {
             $rkey = $1 if $rkey =~ m[app.bsky.feed.post/(.*)$];
             $self->repo_deleteRecord( repo => $repo // $self->session->{did}, collection => 'app.bsky.feed.post', rkey => $rkey );
+        }
+
+        method like ( $uri, $repo //= () ) {
+            $repo //= $self->session->{did};
+            my $res = $self->feed_getPosts($uri);
+            $res->{posts} // return;
+            $self->repo_createRecord(
+                repo       => $repo,
+                collection => 'app.bsky.feed.like',
+                record => At::Lexicon::app::bsky::feed::like->new( createdAt => At::_now(), subject => { cid => $res->{posts}[0]->cid, uri => $uri } )
+            );
+        }
+
+        method unlike ( $rkey, $repo //= () ) {
+            if ( $rkey =~ m[app.bsky.feed.post] ) {
+                my $res = $self->feed_getPosts($rkey);
+                $rkey = $res->{posts}[0]->viewer->like;
+            }
+            if ( $rkey =~ m[app.bsky.feed.like/(.*)$] ) {
+                $rkey = $1;
+            }
+            $self->repo_deleteRecord( repo => $repo // $self->session->{did}, collection => 'app.bsky.feed.like', rkey => $rkey );
         }
 
         method profile ($actor) {
