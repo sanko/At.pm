@@ -513,8 +513,9 @@ package At::Lexicon::app::bsky::feed 0.14 {
     }
 
     class At::Lexicon::app::bsky::feed::repost {
-        field $subject : param;      # ::repo::strongRef, required
-        field $createdAt : param;    # datetime, required
+        field $type : param($type) //= 'app.bsky.feed.repost';    # record field
+        field $subject : param;                                   # ::repo::strongRef, required
+        field $createdAt : param;                                 # datetime, required
         ADJUST {
             $subject   = At::Lexicon::com::atproto::repo::strongRef->new(%$subject) unless builtin::blessed $subject;
             $createdAt = At::Protocol::Timestamp->new( timestamp => $createdAt )    unless builtin::blessed $createdAt;
@@ -525,7 +526,7 @@ package At::Lexicon::app::bsky::feed 0.14 {
         method createdAt {$createdAt}
 
         method _raw() {
-            +{ subject => $subject->_raw, createdAt => $createdAt->_raw };
+            +{ '$type' => $type, subject => $subject->_raw, createdAt => $createdAt->_raw };
         }
     }
 

@@ -56,8 +56,8 @@ package Bluesky 0.14 {
         }
 
         method delete ( $rkey, $repo //= () ) {
-            $rkey = $1 if $rkey =~ m[app.bsky.feed.post/(.*)$];
-            $self->repo_deleteRecord( repo => $repo // $self->session->{did}, collection => 'app.bsky.feed.post', rkey => $rkey );
+            ( my $collection, $rkey ) = ( $1, $2 ) if $rkey =~ m[.+/(.+?)/(.{13})$];
+            $self->repo_deleteRecord( repo => $repo // $self->session->{did}, collection => $collection, rkey => $rkey );
         }
 
         method like ( $uri, $repo //= () ) {
@@ -80,6 +80,18 @@ package Bluesky 0.14 {
                 $rkey = $1;
             }
             $self->repo_deleteRecord( repo => $repo // $self->session->{did}, collection => 'app.bsky.feed.like', rkey => $rkey );
+        }
+
+        method repost ( $uri, $repo //= () ) {
+            $repo //= $self->session->{did};
+            my $res = $self->feed_getPosts($uri);
+            $res->{posts} // return;
+            $self->repo_createRecord(
+                repo       => $repo,
+                collection => 'app.bsky.feed.repost',
+                record     =>
+                    At::Lexicon::app::bsky::feed::repost->new( createdAt => At::_now(), subject => { cid => $res->{posts}[0]->cid, uri => $uri } )
+            );
         }
 
         method profile ($actor) {
