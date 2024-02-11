@@ -1,4 +1,4 @@
-package At::Lexicon::com::atproto::admin 0.15 {
+package At::Lexicon::com::atproto::admin 0.16 {
 
     #~ https://github.com/bluesky-social/atproto/blob/main/lexicons/com/atproto/admin/defs.json
     use v5.38;
