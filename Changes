@@ -2,6 +2,8 @@ Revision history for Perl extension At.pm
 
 {{$NEXT}}
 
+0.17 2024-02-13T19:46:37Z
+
     - Work in progress: Refactor methods with more than one optional parameter to accept a hash
     - Update according to lexicon changes in bluesky-social/atproto@9579bec
         - temp_fetchLabels(...) has been deprecated; use label_queryLabels(...) or label_subscribeLabels(...) instead
