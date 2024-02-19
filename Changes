@@ -2,8 +2,10 @@ Revision history for Perl extension At.pm
 
 {{$NEXT}}
 
-    - Update according to lexicon changes in bluesky-social/atproto@8c94979f73
+    - Update according to lexicon changes in bluesky-social/atproto@8c94979
         - add timeline index pref to bsky::actor::savedFeedsPref
+    - Update according to lexicon changes in bluesky-social/atproto@15f3856
+        - manage communication templates for moderation purposes
 
 0.17 2024-02-13T19:46:37Z
 
