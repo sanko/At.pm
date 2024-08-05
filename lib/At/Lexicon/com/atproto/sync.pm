@@ -1,4 +1,5 @@
 package At::Lexicon::com::atproto::sync 0.18 {
+    use v5.40.0;
     use Object::Pad;
     use lib '../../../../../lib';
     no warnings 'experimental::builtin', 'experimental::try';    # Be quiet.

@@ -1,4 +1,5 @@
 package At::Lexicon::app::bsky::graph 0.18 {
+    use v5.40.0;
     use Object::Pad;
     no warnings 'experimental::builtin';    # Be quiet.
     use Carp;

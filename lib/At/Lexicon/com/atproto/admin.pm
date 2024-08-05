@@ -1,6 +1,7 @@
 package At::Lexicon::com::atproto::admin 0.18 {
 
     #~ https://github.com/bluesky-social/atproto/blob/main/lexicons/com/atproto/admin/defs.json
+    use v5.40.0;
     use Object::Pad;
     use lib '../../../../../lib';
     no warnings 'experimental::builtin', 'experimental::try';    # Be quiet.
