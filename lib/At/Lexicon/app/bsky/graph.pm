@@ -1,7 +1,6 @@
 package At::Lexicon::app::bsky::graph 0.18 {
-    use v5.38;
-    no warnings 'experimental::class', 'experimental::builtin';    # Be quiet.
-    use feature 'class';
+    use Object::Pad;
+    no warnings 'experimental::builtin';    # Be quiet.
     use Carp;
     use Path::Tiny;
     use URI;

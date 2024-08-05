@@ -5,7 +5,7 @@
       "Sanko Robinson <sanko@cpan.org>"
    ],
    "dynamic_config" : 0,
-   "generated_by" : "Minilla/v3.1.23, CPAN::Meta::Converter version 2.150010",
+   "generated_by" : "Minilla/v3.1.24, CPAN::Meta::Converter version 2.150010",
    "license" : [
       "artistic_2"
    ],
@@ -79,10 +79,10 @@
             "JSON::Tiny" : "0",
             "MIME::Base64" : "0",
             "Net::SSLeay" : "1.49",
+            "Object::Pad" : "0",
             "Path::Tiny" : "0",
             "Time::Moment" : "0",
-            "URI" : "0",
-            "perl" : "v5.38.0"
+            "URI" : "0"
          }
       },
       "test" : {

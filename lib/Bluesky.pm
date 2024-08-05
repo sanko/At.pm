@@ -1,5 +1,5 @@
 package Bluesky 0.18 {
-    use v5.38;
+    use Object::Pad;
     no warnings 'experimental::class', 'experimental::builtin';    # Be quiet.
     use feature 'class';
     use At::Bluesky;

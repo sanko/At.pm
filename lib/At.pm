@@ -1,5 +1,5 @@
 package At 0.18 {
-    use v5.38;
+    use Object::Pad;
     no warnings 'experimental::class', 'experimental::builtin', 'experimental::for_list';    # Be quiet.
     use feature 'class';
     use experimental 'try';
@@ -469,7 +469,7 @@ package At 0.18 {
                         $tx->on( finish => sub { $promise->resolve } );
                         $tx->on(
                             message => sub ( $tx, $msg ) {
-                                state $decoder //= CBOR::Free::SequenceDecoder->new()->set_tag_handlers( 42 => sub { } );
+                                CORE::state $decoder //= CBOR::Free::SequenceDecoder->new()->set_tag_handlers( 42 => sub { } );
                                 my $head = $decoder->give($msg);
                                 my $body = $decoder->get;
                                 $cb->( $promise, $$body );
@@ -962,7 +962,7 @@ package At 0.18 {
                         $tx->on( finish => sub { $promise->resolve } );
                         $tx->on(
                             message => sub ( $tx, $msg ) {
-                                state $decoder //= CBOR::Free::SequenceDecoder->new()->set_tag_handlers( 42 => sub { } );
+                                CORE::state $decoder //= CBOR::Free::SequenceDecoder->new()->set_tag_handlers( 42 => sub { } );
                                 my $head = $decoder->give($msg);
                                 my $body = $decoder->get;
                                 $cb->( $promise, $$body );
@@ -1033,8 +1033,9 @@ package At 0.18 {
             field $timestamp : param;
             ADJUST {
                 use Time::Moment;
-                return if builtin::blessed $timestamp;
-                $timestamp = $timestamp =~ /\D/ ? Time::Moment->from_string($timestamp) : Time::Moment->from_epoch($timestamp);
+                if ( !builtin::blessed $timestamp ) {
+                    $timestamp = $timestamp =~ /\D/ ? Time::Moment->from_string($timestamp) : Time::Moment->from_epoch($timestamp);
+                }
             };
 
             method _raw {
@@ -1074,6 +1075,7 @@ package At 0.18 {
             method handle     {$handle}
             #
             ADJUST {
+                # warn "ADJUST";
                 $did            = At::Protocol::DID->new( uri => $did ) unless builtin::blessed $did;
                 $handle         = At::Protocol::Handle->new( id => $handle ) if defined $handle && !builtin::blessed $handle;
                 $emailConfirmed = !!$emailConfirmed                          if defined $emailConfirmed;
@@ -1178,9 +1180,9 @@ package At 0.18 {
                 if ( $res->is_success ) {
                     return $res->content ? $res->headers->content_type =~ m[application/json] ? $res->json : $res->content : ();
                 }
-                elsif ( $res->is_error )    { say $res->message }
-                elsif ( $res->code == 301 ) { say $res->headers->location }
-                else                        { say 'Whatever...' }
+                elsif ( $res->is_error )    { CORE::say $res->message }
+                elsif ( $res->code == 301 ) { CORE::say $res->headers->location }
+                else                        { CORE::say 'Whatever...' }
             }
 
             method post ( $url, $req = () ) {
@@ -1196,9 +1198,9 @@ package At 0.18 {
                 if ( $res->is_success ) {
                     return $res->content ? $res->headers->content_type =~ m[application/json] ? $res->json : $res->content : ();
                 }
-                elsif ( $res->is_error )    { say $res->message }
-                elsif ( $res->code == 301 ) { say $res->headers->location }
-                else                        { say 'Whatever...' }
+                elsif ( $res->is_error )    { CORE::say $res->message }
+                elsif ( $res->code == 301 ) { CORE::say $res->headers->location }
+                else                        { CORE::say 'Whatever...' }
             }
 
             method websocket ( $url, $cb, $req = () ) {
@@ -1208,18 +1210,18 @@ package At 0.18 {
 
                         #~ use Data::Dump;
                         #~ ddx $tx;
-                        say 'WebSocket handshake failed!' and return unless $tx->is_websocket;
+                        CORE::say 'WebSocket handshake failed!' and return unless $tx->is_websocket;
 
-                        #~ say 'Subprotocol negotiation failed!' and return unless $tx->protocol;
+                        #~ CORE::say 'Subprotocol negotiation failed!' and return unless $tx->protocol;
                         #~ $tx->send({json => {test => [1, 2, 3]}});
                         $tx->on(
                             finish => sub ( $tx, $code, $reason ) {
-                                say "WebSocket closed with status $code.";
+                                CORE::say "WebSocket closed with status $code.";
                             }
                         );
-                        state $decoder //= CBOR::Free::SequenceDecoder->new()->set_tag_handlers( 42 => sub { } );
+                        CORE::state $decoder //= CBOR::Free::SequenceDecoder->new()->set_tag_handlers( 42 => sub { } );
 
-                        #~ $tx->on(json => sub ($ws, $hash) { say "Message: $hash->{msg}" });
+                        #~ $tx->on(json => sub ($ws, $hash) { CORE::say "Message: $hash->{msg}" });
                         $tx->on(
                             message => sub ( $tx, $msg ) {
                                 my $head = $decoder->give($msg);
@@ -1229,10 +1231,10 @@ package At 0.18 {
                                 $$body->{blocks} = length $$body->{blocks} if defined $$body->{blocks};
 
                                 #~ use Data::Dumper;
-                                #~ say Dumper $$body;
+                                #~ CORE::say Dumper $$body;
                                 $cb->($$body);
 
-                                #~ say "WebSocket message: $msg";
+                                #~ CORE::say "WebSocket message: $msg";
                                 #~ $tx->finish;
                             }
                         );

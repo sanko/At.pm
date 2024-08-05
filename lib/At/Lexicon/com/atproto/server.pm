@@ -1,7 +1,7 @@
 package At::Lexicon::com::atproto::server 0.18 {
-    use v5.38;
-    no warnings 'experimental::class', 'experimental::builtin';    # Be quiet.
-    use feature 'class';
+    use Object::Pad;
+    no warnings 'experimental::builtin';    # Be quiet.
+
     #
     class At::Lexicon::com::atproto::server::inviteCode {
         field $type : param($type) //= ();    # record field

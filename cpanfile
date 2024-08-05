@@ -1,4 +1,5 @@
-requires 'perl', '5.038000';    # class syntax
+# requires 'perl', '5.038000';    # class syntax
+requires 'Object::Pad';    # https://github.com/Perl-Apollo/Corinna/issues/110
 requires 'Time::Moment';
 requires 'JSON::Tiny';
 requires 'Path::Tiny';

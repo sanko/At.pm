@@ -1,7 +1,6 @@
 package At::Lexicon::app::bsky::richtext 0.18 {
-    use v5.38;
-    no warnings 'experimental::class', 'experimental::builtin';    # Be quiet.
-    use feature 'class';
+    use Object::Pad;
+    no warnings 'experimental::builtin';    # Be quiet.
     use Carp;
     #
     class At::Lexicon::app::bsky::richtext::facet {

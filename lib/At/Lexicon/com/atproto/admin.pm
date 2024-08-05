@@ -1,10 +1,10 @@
 package At::Lexicon::com::atproto::admin 0.18 {
 
     #~ https://github.com/bluesky-social/atproto/blob/main/lexicons/com/atproto/admin/defs.json
-    use v5.38;
+    use Object::Pad;
     use lib '../../../../../lib';
-    no warnings 'experimental::class', 'experimental::builtin', 'experimental::try';    # Be quiet.
-    use feature 'class', 'try';
+    no warnings 'experimental::builtin', 'experimental::try';    # Be quiet.
+    use feature 'try';
     #
     class At::Lexicon::com::atproto::admin::statusAttr 1 {
         field $applied : param;

@@ -10,7 +10,11 @@ use At;
 #
 subtest 'live' => sub {
     my $at = At->new( host => 'bsky.social' );
-    isa_ok $at->sync_listRepos->{repos}[0], ['At::Lexicon::com::atproto::sync::repo'];
+SKIP:
+    {
+        skip 'Endpoint is no longer open', 1;
+        isa_ok $at->sync_listRepos->{repos}[0], ['At::Lexicon::com::atproto::sync::repo'];
+    }
 
     # Do not run these tests; they might not be supported upstream...
     can_ok $at, $_ for qw[

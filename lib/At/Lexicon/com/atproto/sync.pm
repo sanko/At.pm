@@ -1,8 +1,8 @@
 package At::Lexicon::com::atproto::sync 0.18 {
-    use v5.38;
+    use Object::Pad;
     use lib '../../../../../lib';
-    no warnings 'experimental::class', 'experimental::builtin', 'experimental::try';    # Be quiet.
-    use feature 'class', 'try';
+    no warnings 'experimental::builtin', 'experimental::try';    # Be quiet.
+    use feature 'try';
     #
     class At::Lexicon::com::atproto::sync::repo 1 {
         field $did : param;     # did, required

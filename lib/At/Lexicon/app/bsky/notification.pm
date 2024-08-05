@@ -1,7 +1,6 @@
 package At::Lexicon::app::bsky::notification 0.18 {
-    use v5.38;
-    no warnings 'experimental::class', 'experimental::builtin';    # Be quiet.
-    use feature 'class';
+    use Object::Pad;
+    no warnings 'experimental::builtin';    # Be quiet.
     use bytes;
     our @CARP_NOT;
     #
