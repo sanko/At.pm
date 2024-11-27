@@ -223,8 +223,8 @@ package At v1.0.0 {
 
                         # TODO: verify that data fills schema requirements
                         #~ ddx $schema;
-                        use Data::Dump;
-                        ddx $s;
+                        #~ use Data::Dump;
+                        #~ ddx $s;
                         for my $property ( keys %{ $schema->{properties} } ) {
                             $ret{$property}
                                 = ref $s->{$property} eq 'HASH'     ? { map { $_ => $s->{$property}{$_}->_raw } keys %{ $s->{$property} } } :
@@ -365,8 +365,8 @@ package At v1.0.0 {
             method _coerce ( $namespace, $schema, $data ) {
                 $data // return ();
                 return $coercions{ $schema->{type} }->( $self, $namespace, $schema, $data ) if defined $coercions{ $schema->{type} };
-                use Data::Dump;
-                ddx $schema;
+                #~ use Data::Dump;
+                #~ ddx $schema;
                 die 'Unknown coercion: ' . $schema->{type};
             }
         }

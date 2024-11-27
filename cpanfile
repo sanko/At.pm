@@ -1,3 +1,4 @@
+requires 'File::ShareDir::Tiny';
 requires 'IO::Socket::SSL', '1.42';
 requires 'JSON::Tiny';
 requires 'MIME::Base64';
@@ -8,15 +9,12 @@ requires 'Time::Moment';
 requires 'URI';
 requires 'perl', 'v5.40.0';
 recommends 'Mojo::UserAgent';
-
 on configure => sub {
     requires 'Module::Build::Tiny', '0.035';
 };
-
 on test => sub {
     requires 'Test2::V0';
 };
-
 on develop => sub {
     requires 'CPAN::Uploader';
     requires 'Minilla';
@@ -24,9 +22,9 @@ on develop => sub {
     requires 'Software::License::Artistic_2_0';
     requires 'Test::CPAN::Meta';
     requires 'Test::MinimumVersion::Fast', '0.04';
-    requires 'Test::PAUSE::Permissions', '0.07';
-    requires 'Test::Pod', '1.41';
-    requires 'Test::Spellunker', 'v0.2.7';
+    requires 'Test::PAUSE::Permissions',   '0.07';
+    requires 'Test::Pod',                  '1.41';
+    requires 'Test::Spellunker',           'v0.2.7';
     requires 'Version::Next';
     recommends 'Code::TidyAll';
     recommends 'Code::TidyAll::Plugin::PodTidy';

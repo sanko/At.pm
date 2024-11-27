@@ -33,9 +33,8 @@ subtest live => sub {    # Public and totally worthless auth info
         subtest login => sub {
             skip_all 'resumed session; no login required' if $login;
             skip_all 'no auth info found' unless keys %{ $auth->{login} };
-
-            #~ my $todo = todo 'Working with live services here. Things might not go as we expect or hope...';
-            #~ ok $login = $bsky->login( $auth->{login}{identifier}, $auth->{login}{password} ), 'logging in for the following tests';
+            my $todo = todo 'Working with live services here. Things might not go as we expect or hope...';
+            ok $login = $bsky->login( $auth->{login}{identifier}, $auth->{login}{password} ), 'logging in for the following tests';
             if ($login) {
                 $auth->{resume} = { accessJwt => $bsky->session->{accessJwt}, refreshJwt => $bsky->session->{refreshJwt} };
                 $path->spew_raw( encode_json $auth );
