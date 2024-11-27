@@ -300,7 +300,8 @@ package At v1.0.0 {
             }
 
             sub _namespace ( $l, $r ) {
-                return $r      if $r =~ m[.+#];
+                #~ Carp::carp( sprintf 'l: %s, r: %s', $l, $r );
+                return $r if $r =~ m[.+#] || $r !~ m[^#];
                 return $` . $r if $l =~ m[#.+];
                 $l . $r;
             }
@@ -365,6 +366,7 @@ package At v1.0.0 {
             method _coerce ( $namespace, $schema, $data ) {
                 $data // return ();
                 return $coercions{ $schema->{type} }->( $self, $namespace, $schema, $data ) if defined $coercions{ $schema->{type} };
+
                 #~ use Data::Dump;
                 #~ ddx $schema;
                 die 'Unknown coercion: ' . $schema->{type};
