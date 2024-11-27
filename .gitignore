@@ -37,3 +37,4 @@ eg/lib/*.pm
 
 *.session
 
+test_auth.json

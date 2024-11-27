@@ -8,11 +8,14 @@ package At v1.0.0 {
     use JSON::Tiny           qw[decode_json];
     use Path::Tiny           qw[path];
     use Time::Moment;                                                                        # Internal; standardize around Zulu
-
+    use warnings::register;
     #
-    #~ use At::UserAgent;
+    use At::Error;
+    use At::Protocol::URI;
+    #
     class At {
-        field $lexicons : reader : param = dist_dir(__CLASS__);
+        field $share : reader : param //= dist_dir(__CLASS__);
+        field %lexicons : reader;
         use URI;
 
         sub _decode_token ($token) {
@@ -28,7 +31,7 @@ package At v1.0.0 {
         #
         field $session = ();
         #
-        field %ratelimits;    # https://docs.bsky.app/docs/advanced-guides/rate-limits
+        field %ratelimits : reader;    # https://docs.bsky.app/docs/advanced-guides/rate-limits
 
         #~ global        => {},
         #~ updateHandle  => {},    # per DID
@@ -38,18 +41,14 @@ package At v1.0.0 {
         #~ resetPassword => {}     # by IP
         #
         ADJUST {
-            $lexicons = path($lexicons)    unless builtin::blessed $lexicons;
-            $host     = 'https://' . $host unless $host =~ /^https?:/;
-            $host     = URI->new($host)    unless builtin::blessed $host;
+            $share = path($share)       unless builtin::blessed $share;
+            $host  = 'https://' . $host unless $host =~ /^https?:/;
+            $host  = URI->new($host)    unless builtin::blessed $host;
         }
 
         method login( $identifier, $password ) {
-            $session = At::Protocol::Session->new(
-                %{ $self->post( 'com.atproto.server.createSession' => { identifier => $identifier, password => $password } ) } );
-            if ( defined $session->accessJwt && defined $session->refreshJwt ) {
-                return $http->set_tokens( $session->accessJwt, $session->refreshJwt );
-            }
-            Carp::carp 'Error creating session' . ( defined $session->{message} ? ': ' . $session->{message} : '' );
+            $session = $self->post( 'com.atproto.server.createSession' => { identifier => $identifier, password => $password } );
+            return $session ? $http->set_tokens( $session->{accessJwt}, $session->{refreshJwt} ) : $session;
         }
 
         method resume ( $accessJwt, $refreshJwt ) {
@@ -58,8 +57,8 @@ package At v1.0.0 {
             if ( time > $access->{exp} && time < $refresh->{exp} ) {
 
                 # Attempt to use refresh token which has a 90 day life span as of Jan. 2024
-                $session = At::Protocol::Session->new( %{ $self->post( 'com.atproto.server.refreshSession' => { refreshJwt => $refreshJwt } ) } );
-                return $http->set_tokens( $session->accessJwt, $session->refreshJwt );
+                $session = $self->post( 'com.atproto.server.refreshSession' => { refreshJwt => $refreshJwt } );
+                return $session ? $http->set_tokens( $session->accessJwt, $session->refreshJwt ) : $session;
             }
 
             #~ $session = $self->post( 'com.atproto.server.refreshSession' => { refreshJwt => $refreshJwt } );
@@ -67,7 +66,7 @@ package At v1.0.0 {
         }
 
         method did() {
-            $self->session->did;
+            $self->session->{did};
         }
 
         method session() {
@@ -75,79 +74,76 @@ package At v1.0.0 {
             $session;
         }
         ## Internals
-        sub _now {
-            At::Protocol::Timestamp->new( timestamp => time );
+        sub _now                            { Time::Moment->now }
+        sub _percent ( $limit, $remaining ) { $remaining && $limit ? ( ( $limit / $remaining ) * 100 ) : 0 }
+        sub _plural( $count, $word )        { $count ? sprintf '%d %s%s', $count, $word, $count == 1 ? '' : 's' : () }
+
+        sub _duration ($seconds) {
+            $seconds || return '0 seconds';
+            $seconds = abs $seconds;                                                                        # just in case
+            my ( $time, @times ) = reverse grep {defined} _plural( int( $seconds / 31536000 ), 'year' ),    # assume 365 days and no leap seconds
+                _plural( int( ( $seconds % 31536000 ) / 604800 ), 'week' ), _plural( int( ( $seconds % 604800 ) / 86400 ), 'day' ),
+                _plural( int( ( $seconds % 86400 ) / 3600 ),      'hour' ), _plural( int( ( $seconds % 3600 ) / 60 ),      'minute' ),
+                _plural( $seconds % 60,                           'second' );
+            join ' and ', @times ? join( ', ', reverse @times ) : (), $time;
         }
-        my %known;
+
+        method _locate_lexicon($fqdn) {
+            unless ( defined $lexicons{$fqdn} ) {
+                my $fqdn      = $fqdn;
+                my ($tag)     = $fqdn =~ s[#(.+)$][];
+                my @namespace = split /\./, $fqdn;
+                my $lex       = $share->child( 'lexicons', @namespace[ 0 .. $#namespace - 1 ], $namespace[-1] . '.json' );
+                $lex->exists || return;
+                my $json = decode_json $lex->slurp_raw;    # Hope for the best
+                for my $def ( keys %{ $json->{defs} } ) {
+                    $lexicons{ $fqdn . ( $def eq 'main' ? '' : '#' . $def ) } = $json->{defs}{$def};
+                }
+            }
+            $lexicons{$fqdn};
+        }
 
         method get( $fqdn, $args = () ) {
             my @namespace = split /\./, $fqdn;
+            my $lexicon   = $self->_locate_lexicon($fqdn);
 
-            #~ no strict 'refs';
-            #~ At::Error::register( $_->{name}, $_->{description} // '' )
-            #~ for grep { !__PACKAGE__->can( $_->{name} ) } @{ $schema->{errors} };
+            #~ use Data::Dump;
+            #~ ddx $lexicon;
             $self->_ratecheck('global');
 
             # ddx $schema;
             my ( $content, $headers ) = $http->get( sprintf( '%s/xrpc/%s', $self->host, $fqdn ), defined $args ? { content => $args } : () );
 
+            #~ use Data::Dump;
+            #~ ddx $content;
             #~ https://docs.bsky.app/docs/advanced-guides/rate-limits
             $self->ratelimit_( { map { $_ => $headers->{ 'ratelimit-' . $_ } } qw[limit remaining reset] }, 'global' );
             $self->_ratecheck('global');
-            warn $fqdn;
-            if ( $fqdn eq 'com.atproto.server.getSession' ) {
-                $content = builtin::blessed $content? $content : _coerce(
-                    $fqdn,
-                    {   "type"       => "object",
-                        "required"   => [ "handle", "did" ],
-                        "properties" => {
-                            "handle"          => { "type" => "string", "format" => "handle" },
-                            "did"             => { "type" => "string", "format" => "did" },
-                            "email"           => { "type" => "string" },
-                            "emailConfirmed"  => { "type" => "boolean" },
-                            "emailAuthFactor" => { "type" => "boolean" },
-                            "didDoc"          => { "type" => "unknown" },
-                            "active"          => { "type" => "boolean" },
-                            "status"          => {
-                                "type"        => "string",
-                                "description" =>
-                                    "If active=false, this optional field indicates a possible reason for why the account is not active. If active=false and no status is supplied, then the host makes no claim for why the repository is no longer being hosted.",
-                                "knownValues" => [ "takendown", "suspended", "deactivated" ]
-                            }
-                        }
-                    },
-                    $content
-                );
+            if ( $lexicon && !builtin::blessed $content ) {
+                $content = $self->_coerce( $fqdn, $lexicon->{output}{schema}, $content );
             }
-
-            #~ $content = builtin::blessed $content? $content : _coerce( $fqdn, $schema->{output}{schema}, $content );
             wantarray ? ( $content, $headers ) : $content;
-
-            #~ _set_capture( $fqdn, $schema->{output}{schema} );
         }
 
         method post( $fqdn, $args = () ) {
             my @namespace = split /\./, $fqdn;
-            no strict 'refs';
-
-            #~ At::Error::register( $_->{name}, $_->{description} // '' ) for grep { !__PACKAGE__->can( $_->{name} ) } @{ $schema->{errors} };
+            my $lexicon   = $self->_locate_lexicon($fqdn);
             my $rate_category
                 = $namespace[-1] =~ m[^(updateHandle|createAccount|createSession|deleteAccount|resetPassword)$] ? $namespace[-1] : 'global';
             my $_rate_meta = $rate_category eq 'createSession' ? $args->{identifier} : $rate_category eq 'updateHandle' ? $args->{did} : ();
             $self->_ratecheck( $rate_category, $_rate_meta );
             my ( $content, $headers ) = $http->post( sprintf( '%s/xrpc/%s', $self->host, $fqdn ), defined $args ? { content => $args } : () );
 
+            #~ use Data::Dump;
+            #~ ddx $headers;
+            #~ ddx $content;
             #~ https://docs.bsky.app/docs/advanced-guides/rate-limits
             $self->ratelimit_( { map { $_ => $headers->{ 'ratelimit-' . $_ } } qw[limit remaining reset] }, $rate_category, $_rate_meta );
             $self->_ratecheck( $rate_category, $_rate_meta );
-
-            #~ $content = builtin::blessed $content? $content : _coerce( $fqdn, $schema->{output}{schema}, $content );
+            if ( $lexicon && !builtin::blessed $content ) {
+                $content = $self->_coerce( $fqdn, $lexicon->{output}{schema}, $content );
+            }
             return wantarray ? ( $content, $headers ) : $content;
-
-            #~ _set_capture( $fqdn, $schema->{output}{schema} );
-            #~ use Data::Dump;
-            #~ ddx $args;
-            #~ ddx $res;
         }
 
         method subscribe( $id, $args = () ) {
@@ -302,37 +298,44 @@ package At v1.0.0 {
                     }
                 }
             }
+
+            sub _namespace ( $l, $r ) {
+                return $r      if $r =~ m[.+#];
+                return $` . $r if $l =~ m[#.+];
+                $l . $r;
+            }
             my %coercions = (
-                array => sub ( $namespace, $schema, $data ) {
-                    [ map { _coerce( $namespace, $schema->{items}, $_ ) } @$data ]
+                array => method( $namespace, $schema, $data ) {
+                    [ map { $self->_coerce( $namespace, $schema->{items}, $_ ) } @$data ]
                 },
-                boolean => sub ( $namespace, $schema, $data ) { !!$data },
-                bytes   => sub ( $namespace, $schema, $data ) {$data},
-                blob    => sub ( $namespace, $schema, $data ) {$data},
-                integer => sub ( $namespace, $schema, $data ) { int $data },
-                object  => sub ( $namespace, $schema, $data ) {
+                boolean => method( $namespace, $schema, $data ) { !!$data },
+                bytes   => method( $namespace, $schema, $data ) {$data},
+                blob    => method( $namespace, $schema, $data ) {$data},
+                integer => method( $namespace, $schema, $data ) { int $data },
+                object  => method( $namespace, $schema, $data ) {
 
                     # TODO: warn about missing properties first
                     for my ( $name, $subschema )( %{ $schema->{properties} } ) {
-                        $data->{$name} = _coerce( $namespace, $subschema, $data->{$name} );
+                        $data->{$name} = $self->_coerce( $namespace, $subschema, $data->{$name} );
                     }
 
                     #~ namespace2package($namespace)->new(%$data);
                     $data;
                 },
-                ref => sub ( $namespace, $schema, $data ) {
+                ref => method( $namespace, $schema, $data ) {
                     $namespace = _namespace( $namespace, $schema->{ref} );
-                    my $ref_schema = _get_capture($namespace);
-                    $ref_schema // Carp::carp( 'Unknown type: ' . $namespace ) && return $data;
-                    _coerce( $namespace, $ref_schema, $data );
+                    my $lexicon = $self->_locate_lexicon($namespace);
+                    $lexicon // Carp::carp( 'Unknown type: ' . $namespace ) && return $data;
+                    $self->_coerce( $namespace, $lexicon, $data );
                 },
-                union => sub ( $namespace, $schema, $data ) {
+                union => method( $namespace, $schema, $data ) {
                     my @namespaces = map { _namespace( $namespace, $_ ) } @{ $schema->{refs} };
                     Carp::cluck 'Incorrect union type: ' . $data->{'$type'} unless grep { $data->{'$type'} eq $_ } @namespaces;
-                    bless _coerce( $data->{'$type'}, _get_capture( $data->{'$type'} ), $data ), namespace2package( $data->{'$type'} );
+                    bless $self->_coerce( $data->{'$type'}, $self->_locate_lexicon( $data->{'$type'} ), $data ),
+                        namespace2package( $data->{'$type'} );
                 },
-                unknown => sub ( $namespace, $schema, $data ) {$data},
-                string  => sub ( $namespace, $schema, $data ) {
+                unknown => method( $namespace, $schema, $data ) {$data},
+                string  => method( $namespace, $schema, $data ) {
                     $data // return ();
                     if ( defined $schema->{format} ) {
                         if    ( $schema->{format} eq 'uri' )    { return URI->new($data); }
@@ -342,10 +345,10 @@ package At v1.0.0 {
                             return $data =~ /\D/ ? Time::Moment->from_string($data) : Time::Moment->from_epoch($data);
                         }
                         elsif ( $schema->{format} eq 'did' ) {
-                            return At::Protocol::DID->new( uri => $data );
+                            return At::Protocol::DID->new($data);
                         }
                         elsif ( $schema->{format} eq 'handle' ) {
-                            return At::Protocol::Handle->new( id => $data );
+                            return At::Protocol::Handle->new($data);
                         }
                         elsif ( $schema->{format} eq 'language' ) {
                             return $data;
@@ -359,64 +362,15 @@ package At v1.0.0 {
                 }
             );
 
-            sub _coerce ( $namespace, $schema, $data ) {
+            method _coerce ( $namespace, $schema, $data ) {
                 $data // return ();
-                return $coercions{ $schema->{type} }->( $namespace, $schema, $data ) if defined $coercions{ $schema->{type} };
+                return $coercions{ $schema->{type} }->( $self, $namespace, $schema, $data ) if defined $coercions{ $schema->{type} };
                 use Data::Dump;
                 ddx $schema;
                 die 'Unknown coercion: ' . $schema->{type};
             }
         }
     };
-
-    class At::Protocol::DID {    # https://atproto.com/specs/did
-        use overload '""' => sub { shift->_raw };
-        field $uri : param;
-        ADJUST {
-            use Carp qw[carp confess];
-            confess 'malformed DID URI: ' . $uri unless $uri =~ /^did:([a-z]+:[a-zA-Z0-9._:%-]*[a-zA-Z0-9._-])$/;
-            use URI;
-            $uri = URI->new($1) unless builtin::blessed $uri;
-            my $scheme = $uri->scheme;
-            carp 'unsupported method: ' . $scheme if $scheme ne 'plc' && $scheme ne 'web';
-        };
-
-        method _raw {
-            'did:' . $uri->as_string;
-        }
-    }
-
-    class At::Protocol::Timestamp {    # Internal; standardize around Zulu
-        use overload '""' => sub { shift->_raw };
-        field $timestamp : param;
-        ADJUST {
-            use Time::Moment;
-            if ( !builtin::blessed $timestamp ) {
-                $timestamp = $timestamp =~ /\D/ ? Time::Moment->from_string($timestamp) : Time::Moment->from_epoch($timestamp);
-            }
-        };
-
-        method _raw {
-            $timestamp->to_string;
-        }
-    }
-
-    class At::Protocol::Handle {    # https://atproto.com/specs/handle
-        use overload '""' => sub { shift->_raw };
-        field $id : param;
-        ADJUST {
-            use Carp qw[confess carp];
-            confess 'malformed handle: ' . $id
-                unless $id =~ /^([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$/;
-            confess 'disallowed TLD in handle: ' . $id if $id =~ /\.(arpa|example|internal|invalid|local|localhost|onion)$/;
-            CORE::state $warned //= 0;
-            if ( $id =~ /\.(test)$/ && !$warned ) {
-                carp 'development or testing TLD used in handle: ' . $id;
-                $warned = 1;
-            }
-        };
-        method _raw { $id; }
-    }
 
     class At::Protocol::Session {
         field $accessJwt : param : reader //= ();    # only found on createSession, not getSession
@@ -428,13 +382,13 @@ package At v1.0.0 {
         field $refreshJwt : param : reader //= ();    # only found on createSession, not getSession
         field $active : param = ();                   # bool
         field $emailAuthFactor : param //= ();        # bool
-
+        field $status : param          //= ();
         #
         ADJUST {
             # warn "ADJUST";
-            $did            = At::Protocol::DID->new( uri => $did ) unless builtin::blessed $did;
-            $handle         = At::Protocol::Handle->new( id => $handle ) if defined $handle && !builtin::blessed $handle;
-            $emailConfirmed = !!$emailConfirmed                          if defined $emailConfirmed;
+            $did            = At::Protocol::DID->new($did) unless builtin::blessed $did;
+            $handle         = At::Protocol::Handle->new($handle) if defined $handle && !builtin::blessed $handle;
+            $emailConfirmed = !!$emailConfirmed                  if defined $emailConfirmed;
         }
 
         # This could be used as part of a session resume system
@@ -499,8 +453,9 @@ package At v1.0.0 {
             #~ use Data::Dump;
             #~ warn $url . ( defined $req->{content} && keys %{ $req->{content} } ? '?' . _build_query_string( $req->{content} ) : '' );
             #~ ddx $res;
-            return $res->{content} = decode_json $res->{content} if $res->{content} && $res->{headers}{'content-type'} =~ m[application/json];
-            return $res;
+            $res->{content} = decode_json $res->{content} if $res->{content} && $res->{headers}{'content-type'} =~ m[application/json];
+            $res->{content} = At::Error->new( message => $res->{content}{message}, fatal => 1 ) unless $res->{success};
+            wantarray ? ( $res->{content}, $res->{headers} ) : $res->{content};
         }
 
         method post ( $url, $req = () ) {
@@ -515,10 +470,9 @@ package At v1.0.0 {
                     defined $req->{content} ? ( content => ref $req->{content} ? encode_json $req->{content} : $req->{content} ) : ()
                 }
             );
-
-            #~ ddx $res;
-            return $res->{content} = decode_json $res->{content} if $res->{content} && $res->{headers}{'content-type'} =~ m[application/json];
-            return $res;
+            $res->{content} = decode_json $res->{content} if $res->{content} && $res->{headers}{'content-type'} =~ m[application/json];
+            $res->{content} = At::Error->new( message => $res->{content}{message}, fatal => 1 ) unless $res->{success};
+            wantarray ? ( $res->{content}, $res->{headers} ) : $res->{content};
         }
         method websocket ( $url, $req = () ) {...}
 
@@ -631,40 +585,6 @@ package At v1.0.0 {
             $auth = $token;
         }
     }
-
-    class At::Error {
-        use Carp qw[];
-        use overload
-            bool => sub {0},
-            '""' => sub ( $s, $u, $q ) { $s->message };
-        field $message : param : reader;
-        field $description : param : reader //= ();
-        field $fatal : param : reader = 0;
-        field @stack : reader;
-        ADJUST {
-            my $i = 1;    # Skip one
-            while ( my %i = Carp::caller_info( $i++ ) ) {
-                next if $i{pack} eq __CLASS__;
-                push @stack, \%i;
-            }
-        }
-
-        method throw() {
-            my ( undef, $file, $line ) = caller();
-            my $out = join "\n\t", sprintf( qq[%s at %s line %d\n], $message, $file, $line ),
-                map { sprintf q[%s called at %s line %d], $_->{sub_name}, $_->{file}, $_->{line} } @stack;
-            $fatal ? die $out : warn $out;
-        }
-
-        sub register( $class, $description //= () ) {
-            my ($from) = caller;
-            no strict 'refs';
-            *{ $from . '::' . $class } = sub ( $message, $description //= (), $fatal //= 0 ) {
-                ($class)->new( message => $message, descrtiption => $description, fatal => $fatal );
-            };
-            push @{ $class . '::ISA' }, __PACKAGE__;
-        }
-    };
 };
 1;
 __END__
