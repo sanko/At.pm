@@ -300,6 +300,7 @@ package At v1.0.0 {
             }
 
             sub _namespace ( $l, $r ) {
+
                 #~ Carp::carp( sprintf 'l: %s, r: %s', $l, $r );
                 return $r if $r =~ m[.+#] || $r !~ m[^#];
                 return $` . $r if $l =~ m[#.+];
