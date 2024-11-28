@@ -132,7 +132,8 @@ package At v1.0.0 {
                 = $namespace[-1] =~ m[^(updateHandle|createAccount|createSession|deleteAccount|resetPassword)$] ? $namespace[-1] : 'global';
             my $_rate_meta = $rate_category eq 'createSession' ? $args->{identifier} : $rate_category eq 'updateHandle' ? $args->{did} : ();
             $self->_ratecheck( $rate_category, $_rate_meta );
-            my ( $content, $headers ) = $http->post( sprintf( '%s/xrpc/%s', $self->host, $fqdn ), defined $args ? { content => $args } : () );
+            my ( $content, $headers ) = $http->post( sprintf( '%s/xrpc/%s', $self->host, $fqdn ),
+                defined $args ? defined $args->{content} ? $args : { content => $args } : () );
 
             #~ use Data::Dump;
             #~ ddx $headers;
