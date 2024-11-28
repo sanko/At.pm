@@ -29,7 +29,7 @@ package At::Error {
 
         method throw() {
             my ( undef, $file, $line ) = caller();
-            my $msg = join "\n\t", sprintf( qq[%s at %s line %d\n], $message, $file, $line ),
+            my $msg = join "\n\t", sprintf( qq[%s at %s line %d], $message, $file, $line ),
                 map { sprintf q[%s called at %s line %d], $_->{sub_name}, $_->{file}, $_->{line} } @stack;
             $fatal ? die "$msg\n" : warn "$msg\n";
         }
