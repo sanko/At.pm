@@ -1,4 +1,4 @@
-package At v1.0.0 {
+package At 0.20 {
     use v5.40;
     use Carp qw[];
     no warnings 'experimental::class', 'experimental::builtin', 'experimental::for_list';    # Be quiet.
@@ -12,6 +12,11 @@ package At v1.0.0 {
     #
     use At::Error;
     use At::Protocol::URI;
+
+    #~ |---------------------------------------|
+    #~ |------3-33-----------------------------|
+    #~ |-5-55------4-44-5-55----353--3-33-/1~--|
+    #~ |---------------------335---33----------|
     #
     class At {
         field $share : reader : param //= dist_dir(__CLASS__);
@@ -74,7 +79,7 @@ package At v1.0.0 {
             $session;
         }
         ## Internals
-        sub _now                            { Time::Moment->now }
+        sub now                             { Time::Moment->now }
         sub _percent ( $limit, $remaining ) { $remaining && $limit ? ( ( $limit / $remaining ) * 100 ) : 0 }
         sub _plural( $count, $word )        { $count ? sprintf '%d %s%s', $count, $word, $count == 1 ? '' : 's' : () }
 
@@ -601,11 +606,19 @@ At - The AT Protocol for Social Networking
 =head1 SYNOPSIS
 
     use At;
-    ...;
+    my $at = At->new( host => 'https://your.atproto.service.example.com/' ); }
+    $at->login( 'your.identifier.here', 'hunter2' );
+    $at->post(
+        'com.atproto.repo.createRecord' => {
+            repo       => $at->did,
+            collection => 'app.bsky.feed.post',
+            record     => { '$type' => 'app.bsky.feed.post', text => 'Hello world! I posted this via the API.', createdAt => $at->now->as_string }
+        }
+    );
 
 =head1 DESCRIPTION
 
-
+This is probably not what you're looking for.
 
 =head1 See Also
 

@@ -20,6 +20,6 @@ jobs:
           - macos-latest
           - windows-latest
         perl:
-          - 5.38
+          - "5.40"
 name: CPAN CI
 on: workflow_dispatch

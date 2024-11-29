@@ -169,7 +169,7 @@ subtest live => sub {    # Public and totally worthless auth info
                                 uri => $post->{uri},
                                 cid => $post->{cid}
                             },
-                            createdAt => At::_now->to_string
+                            createdAt => $bsky->now
                         }
                     }
                     ),
@@ -212,7 +212,7 @@ subtest live => sub {    # Public and totally worthless auth info
                                 uri => $post->{uri},
                                 cid => $post->{cid}
                             },
-                            createdAt => At::_now->to_string
+                            createdAt => At::now
                         }
                     }
                     ),
@@ -284,7 +284,7 @@ subtest live => sub {    # Public and totally worthless auth info
                 'com.atproto.repo.createRecord' => {
                     repo       => $bsky->did,
                     collection => 'app.bsky.feed.follow',
-                    record     => { '$type' => 'app.bsky.feed.follow', subject => $bsky->did, createdAt => At::_now->to_string }
+                    record     => { '$type' => 'app.bsky.feed.follow', subject => $bsky->did, createdAt => At::now }
                 }
                 ),
                 hash {
