@@ -665,9 +665,75 @@ failure or if the client is not authenticated.
 
 Gather the current AT Protocol session info. You should store the accessJwt and refreshJwt tokens securely.
 
+=head2 C<get( ... )>
+
+    $at->get(
+        'com.atproto.repo.getRecord' => {
+            repo       => $at->did,
+            collection => 'app.bsky.actor.profile',
+            rkey       => 'self'
+        }
+    );
+
+Sends an HTTP get request to the service.
+
+Expected parameters include:
+
+=over
+
+=item C<identifier> - required
+
+Lexicon endpoint.
+
+=item C<content>
+
+This will be passed along to the endpoint as query parameters.
+
+=back
+
+On success, the content is returned. If the lexicon is known, the returned data is coerced into simple (blessed)
+objects.
+
+On failure, a throwable error object is returned which will have a false boolean value.
+
+In array context, the resonse headers are also returned.
+
+=head2 C<post( ... )>
+
+    $at->post(
+        'com.atproto.repo.createRecord' => {
+            repo       => $at->did,
+            collection => 'app.bsky.feed.post',
+            record     => { '$type' => 'app.bsky.feed.post', text => 'Hello world! I posted this via the API.', createdAt => $at->now->as_string }
+        }
+    );
+
+Sends an HTTP POST request to the service.
+
+Expected parameters include:
+
+=over
+
+=item C<identifier> - required
+
+Lexicon endpoint.
+
+=item C<content>
+
+This will be passed along to the endpoint as encoded JSON.
+
+=back
+
+On success, the content is returned. If the lexicon is known, the returned data is coerced into simple (blessed)
+objects.
+
+On failure, a throwable error object is returned which will have a false boolean value.
+
+In array context, the resonse headers are also returned.
+
 =head1 Error Handling
 
-Exception handling is carried out by returning objects with untrue boolean values.
+Exception handling is carried out by returning L<At::Error> objects which have untrue boolean values.
 
 =head1 See Also
 

@@ -5,7 +5,7 @@ package At::Error {
     use feature 'class';
     use overload
         bool => sub {0},
-        '""' => sub ( $s, $u, $q ) { $s->[0] };
+        '""' => sub ( $s, $u, $q ) { $s->message };
 
     class At::Error 1.0 {
         use Exporter 'import';
@@ -13,7 +13,7 @@ package At::Error {
         BEGIN {
             our @EXPORT = qw[throw register];
         }
-        field $message : param;
+        field $message : param : reader;
         field $description : param //= ();
         field $fatal : param       //= 0;
         field @stack;
