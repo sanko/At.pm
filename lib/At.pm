@@ -19,7 +19,7 @@ package At 0.20 {
     #~ |---------------------335---33----------|
     #
     class At {
-        field $lexicon : reader : param //= dist_dir(__CLASS__);
+        field $lexicon : reader : param //= dist_dir(__CLASS__) . '/lexicons';
         field %lexicons : reader;
         use URI;
 
@@ -98,7 +98,7 @@ package At 0.20 {
                 my $fqdn      = $fqdn;
                 my ($tag)     = $fqdn =~ s[#(.+)$][];
                 my @namespace = split /\./, $fqdn;
-                my $lex       = $lexicon->child( 'lexicons', @namespace[ 0 .. $#namespace - 1 ], $namespace[-1] . '.json' );
+                my $lex       = $lexicon->child( @namespace[ 0 .. $#namespace - 1 ], $namespace[-1] . '.json' );
                 $lex->exists || return;
                 my $json = decode_json $lex->slurp_raw;    # Hope for the best
                 for my $def ( keys %{ $json->{defs} } ) {
@@ -242,66 +242,6 @@ package At 0.20 {
                         }
                         %ret;
                     };
-                }
-            }
-
-            sub load_lexicon (%imports) {
-                use Path::Tiny;
-                my $lexicon;    # Allow user to define where lexicon snapshots are to be found
-                try {
-                    $lexicon = delete $imports{'-lexicons'} // dist_dir(__PACKAGE__);
-                }
-                catch ($error) {
-                    $lexicon = './share'
-                }
-                finally {
-                    $lexicon = path($lexicon) unless builtin::blessed $lexicon;
-                    $lexicon = $lexicon->child('lexicons')->realpath
-                }
-                warn $lexicon;
-                #
-                my $iter = $lexicon->iterator( { recurse => 1 } );
-                while ( my $next = $iter->() ) {
-                    if ( $next->is_file ) {
-                        warn $next->absolute;
-                        my $raw = decode_json $next->slurp_utf8;
-                        for my ( $name, $schema )( %{ $raw->{defs} } ) {
-                            my $fqdn = $raw->{id} . ( $name eq 'main' ? '' : '#' . $name );    # RDN
-                            if ( $schema->{type} eq 'array' ) {
-                                _set_capture( $fqdn, $schema );
-                            }
-                            elsif ( $schema->{type} eq 'object' ) {
-                                _set_capture( $fqdn, $schema );
-                            }
-                            elsif ( $schema->{type} eq 'procedure' ) {
-                            }
-                            elsif ( $schema->{type} eq 'query' ) {
-                            }
-                            elsif ( $schema->{type} eq 'record' ) {
-                                _set_capture( join( '.', $raw->{id}, ( $name eq 'main' ? () : $name ) ), $schema );
-                            }
-                            elsif ( $schema->{type} eq 'string' ) { _set_capture( $fqdn, $schema ); }
-                            elsif ( $schema->{type} eq 'subscription' ) {
-
-                                #~ use Data::Dump;
-                                #~ ddx $schema;
-                            }
-                            elsif ( $schema->{type} eq 'token' ) {    # Generally just a string
-                                my $namespace = $fqdn =~ s[[#\.]][::]gr;
-                                my $package   = namespace2package($fqdn);
-                                no strict 'refs';
-
-                                #~ *{ $package . "::(\"\"" } = sub ( $s, $u, $q ) { $fqdn };
-                                #~ *{ $package . "::((" }  = sub {$fqdn};
-                                *{$package} = sub ( ) { $fqdn; };
-                            }
-                            else {
-                                ...;
-                            }
-                        }
-
-                        # $lexicon{ $raw->{id} } = $raw;
-                    }
                 }
             }
 
@@ -661,7 +601,7 @@ Host for the service.
 Location of lexicons. This allows new L<AT Protocol Lexicons|https://atproto.com/specs/lexicon> to be referenced
 without installing a new version of this module.
 
-Defaults to the dist's share directory.
+Defaults to F</lexicons> under the dist's share directory.
 
 =back
 

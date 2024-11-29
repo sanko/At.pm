@@ -16,7 +16,7 @@ my $share = -d 'share' ? 'share' : '../share';
 #
 my $bsky;
 subtest 'should build the client' => sub {
-    isa_ok $bsky = At->new( service => 'https://bsky.social', lexicon => $share ), ['At'];
+    isa_ok $bsky = At->new( service => 'https://bsky.social', lexicon => $share . '/lexicons' ), ['At'];
 };
 #
 subtest live => sub {    # Public and totally worthless auth info

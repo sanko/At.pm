@@ -54,9 +54,10 @@ Expected parameters include:
 
 - `lexicon`
 
-    Location of lexicons. This allows new [AT Protocol Lexicons](https://atproto.com/specs/lexicon) to be referenced without installing a new version of this module.
+    Location of lexicons. This allows new [AT Protocol Lexicons](https://atproto.com/specs/lexicon) to be referenced
+    without installing a new version of this module.
 
-    Defaults to the dist's share directory.
+    Defaults to `/lexicons` under the dist's share directory.
 
 A new object is returned on success.
 
@@ -106,7 +107,8 @@ The new session is returned on success.
 
 ## `did( )`
 
-Gather the [DID](https://atproto.com/specs/did) (Decentralized Identifiers) of the current user. Returns `undef` on failure or if the client is not authenticated.
+Gather the [DID](https://atproto.com/specs/did) (Decentralized Identifiers) of the current user. Returns `undef` on
+failure or if the client is not authenticated.
 
 ## `session( )`
 
