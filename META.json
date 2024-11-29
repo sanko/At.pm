@@ -228,6 +228,11 @@
       "tsinghuacoder <tsinghuacoder@icloud.com>",
       "zhuowei <zhuoweizhang@yahoo.com>"
    ],
+   "x_ignore" : [
+      "github",
+      ".gitignore",
+      ".tidyallrc"
+   ],
    "x_serialization_backend" : "JSON::PP version 4.16",
    "x_static_install" : 1
 }
