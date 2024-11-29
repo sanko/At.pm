@@ -36,14 +36,14 @@ package At 0.20 {
         #
         field $session = ();
         #
-        field %ratelimits : reader;    # https://docs.bsky.app/docs/advanced-guides/rate-limits
-
-        #~ global        => {},
-        #~ updateHandle  => {},    # per DID
-        #~ updateHandle  => {},    # per DID
-        #~ createSession => {},    # per handle
-        #~ deleteAccount => {},    # by IP
-        #~ resetPassword => {}     # by IP
+        field %ratelimits : reader = (    # https://docs.bsky.app/docs/advanced-guides/rate-limits
+            global        => {},
+            updateHandle  => {},          # per DID
+            updateHandle  => {},          # per DID
+            createSession => {},          # per handle
+            deleteAccount => {},          # by IP
+            resetPassword => {}           # by IP
+        );
         #
         ADJUST {
             $lexicon = path($lexicon)        unless builtin::blessed $lexicon;
@@ -560,7 +560,14 @@ At - The AT Protocol for Social Networking
 
 Unless you're designing a new client arount the AT Protocol, this is probably not what you're looking for.
 
-Try L<Bluesky|Bluesky.pm>.
+Try L<Bluesky.pm|Bluesky>.
+
+=head2 Rate Limits
+
+At.pm attempts to keep track of rate limits according to the protocol's specs. Right now, we simply C<carp> about
+nearing the limit but a future release will allow for devs to query these limits.
+
+See also: L<https://docs.bsky.app/docs/advanced-guides/rate-limits>
 
 =head2 Session Management
 
@@ -626,7 +633,7 @@ Handle or other identifier supported by the server for the authenticating user.
 
 =item C<password> - required
 
-This is the app password not the account's password. App passwords are generated at
+This is the app password not the account's password. App passwords for Blueskyare generated at
 L<https://bsky.app/settings/app-passwords>.
 
 =item C<authFactorToken>
@@ -663,7 +670,7 @@ failure or if the client is not authenticated.
 
 =head2 C<session( )>
 
-Gather the current AT Protocol session info. You should store the accessJwt and refreshJwt tokens securely.
+Gather the current AT Protocol session info. You should store the C<accessJwt> and C<refreshJwt> tokens securely.
 
 =head2 C<get( ... )>
 

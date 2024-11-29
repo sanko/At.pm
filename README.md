@@ -21,7 +21,14 @@ $at->post(
 
 Unless you're designing a new client arount the AT Protocol, this is probably not what you're looking for.
 
-Try [Bluesky](https://metacpan.org/pod/Bluesky.pm).
+Try [Bluesky.pm](https://metacpan.org/pod/Bluesky).
+
+## Rate Limits
+
+At.pm attempts to keep track of rate limits according to the protocol's specs. Right now, we simply `carp` about
+nearing the limit but a future release will allow for devs to query these limits.
+
+See also: [https://docs.bsky.app/docs/advanced-guides/rate-limits](https://docs.bsky.app/docs/advanced-guides/rate-limits)
 
 ## Session Management
 
@@ -80,7 +87,7 @@ Expected parameters include:
 
 - `password` - required
 
-    This is the app password not the account's password. App passwords are generated at
+    This is the app password not the account's password. App passwords for Blueskyare generated at
     [https://bsky.app/settings/app-passwords](https://bsky.app/settings/app-passwords).
 
 - `authFactorToken`
@@ -112,7 +119,7 @@ failure or if the client is not authenticated.
 
 ## `session( )`
 
-Gather the current AT Protocol session info. You should store the accessJwt and refreshJwt tokens securely.
+Gather the current AT Protocol session info. You should store the `accessJwt` and `refreshJwt` tokens securely.
 
 ## `get( ... )`
 
