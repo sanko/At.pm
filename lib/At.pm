@@ -19,7 +19,7 @@ package At 0.20 {
     #~ |---------------------335---33----------|
     #
     class At {
-        field $share : reader : param //= dist_dir(__CLASS__);
+        field $lexicon : reader : param //= dist_dir(__CLASS__);
         field %lexicons : reader;
         use URI;
 
@@ -32,7 +32,7 @@ package At 0.20 {
         }
         field $http //= Mojo::UserAgent->can('start') ? At::UserAgent::Mojo->new() : At::UserAgent::Tiny->new();
         method http {$http}
-        field $host : param : reader;
+        field $service : param : reader;
         #
         field $session = ();
         #
@@ -46,9 +46,9 @@ package At 0.20 {
         #~ resetPassword => {}     # by IP
         #
         ADJUST {
-            $share = path($share)       unless builtin::blessed $share;
-            $host  = 'https://' . $host unless $host =~ /^https?:/;
-            $host  = URI->new($host)    unless builtin::blessed $host;
+            $lexicon = path($lexicon)        unless builtin::blessed $lexicon;
+            $service = 'https://' . $service unless $service =~ /^https?:/;
+            $service = URI->new($service)    unless builtin::blessed $service;
         }
 
         method login( $identifier, $password ) {
@@ -98,7 +98,7 @@ package At 0.20 {
                 my $fqdn      = $fqdn;
                 my ($tag)     = $fqdn =~ s[#(.+)$][];
                 my @namespace = split /\./, $fqdn;
-                my $lex       = $share->child( 'lexicons', @namespace[ 0 .. $#namespace - 1 ], $namespace[-1] . '.json' );
+                my $lex       = $lexicon->child( 'lexicons', @namespace[ 0 .. $#namespace - 1 ], $namespace[-1] . '.json' );
                 $lex->exists || return;
                 my $json = decode_json $lex->slurp_raw;    # Hope for the best
                 for my $def ( keys %{ $json->{defs} } ) {
@@ -117,7 +117,7 @@ package At 0.20 {
             $self->_ratecheck('global');
 
             # ddx $schema;
-            my ( $content, $headers ) = $http->get( sprintf( '%s/xrpc/%s', $self->host, $fqdn ), defined $args ? { content => $args } : () );
+            my ( $content, $headers ) = $http->get( sprintf( '%s/xrpc/%s', $self->service, $fqdn ), defined $args ? { content => $args } : () );
 
             #~ use Data::Dump;
             #~ ddx $content;
@@ -137,7 +137,7 @@ package At 0.20 {
                 = $namespace[-1] =~ m[^(updateHandle|createAccount|createSession|deleteAccount|resetPassword)$] ? $namespace[-1] : 'global';
             my $_rate_meta = $rate_category eq 'createSession' ? $args->{identifier} : $rate_category eq 'updateHandle' ? $args->{did} : ();
             $self->_ratecheck( $rate_category, $_rate_meta );
-            my ( $content, $headers ) = $http->post( sprintf( '%s/xrpc/%s', $self->host, $fqdn ),
+            my ( $content, $headers ) = $http->post( sprintf( '%s/xrpc/%s', $self->service, $fqdn ),
                 defined $args ? defined $args->{content} ? $args : { content => $args } : () );
 
             #~ use Data::Dump;
@@ -606,7 +606,7 @@ At - The AT Protocol for Social Networking
 =head1 SYNOPSIS
 
     use At;
-    my $at = At->new( host => 'https://your.atproto.service.example.com/' ); }
+    my $at = At->new( service => 'https://your.atproto.service.example.com/' ); }
     $at->login( 'your.identifier.here', 'hunter2' );
     $at->post(
         'com.atproto.repo.createRecord' => {
@@ -618,28 +618,139 @@ At - The AT Protocol for Social Networking
 
 =head1 DESCRIPTION
 
-This is probably not what you're looking for.
+Unless you're designing a new client arount the AT Protocol, this is probably not what you're looking for.
+
+Try L<Bluesky|Bluesky.pm>.
+
+=head2 Session Management
+
+You'll need an authenticated session for most API calls. There are two ways to manage sessions:
+
+=over
+
+=item 1. Username/password based (deprecated)
+
+=item 2. OAuth based (still being rolled out)
+
+=back
+
+Developers of new code should be aware that the AT protocol will be L<transitioning to OAuth in over the next year or
+so (2024-2025)|https://github.com/bluesky-social/atproto/discussions/2656> and this distribution will comply with this
+change.
+
+=head1 Methods
+
+This module is based on perl's new (as of writing) class system which means it's (obviously) object oriented.
+
+=head2 C<new( ... )>
+
+    my $at = At->new( service => ... );
+
+Create a new At object. Easy.
+
+Expected parameters include:
+
+=over
+
+=item C<service> - required
+
+Host for the service.
+
+=item C<lexicon>
+
+Location of lexicons. This allows new L<AT Protocol Lexicons|https://atproto.com/specs/lexicon> to be referenced
+without installing a new version of this module.
+
+Defaults to the dist's share directory.
+
+=back
+
+A new object is returned on success.
+
+=head2 C<login( ... )>
+
+Create an app password backed authentication session.
+
+    my $session = $bsky->login(
+        identifier => 'john@example.com',
+        password   => '1111-2222-3333-4444'
+    );
+
+Expected parameters include:
+
+=over
+
+=item C<identifier> - required
+
+Handle or other identifier supported by the server for the authenticating user.
+
+=item C<password> - required
+
+This is the app password not the account's password. App passwords are generated at
+L<https://bsky.app/settings/app-passwords>.
+
+=item C<authFactorToken>
+
+=back
+
+Returns an authorized session on success.
+
+=head3 C<resume( ... )>
+
+Resumes an app password based session.
+
+    $bsky->resume( '...', '...' );
+
+Expected parameters include:
+
+=over
+
+=item C<accessJwt> - required
+
+=item C<refreshJwt> - required
+
+=back
+
+If the C<accessJwt> token has expired, we attempt to use the C<refreshJwt> to continue the session with a new token. If
+that also fails, well, that's kinda it.
+
+The new session is returned on success.
+
+=head2 C<did( )>
+
+Gather the L<DID|https://atproto.com/specs/did> (Decentralized Identifiers) of the current user. Returns C<undef> on
+failure or if the client is not authenticated.
+
+=head2 C<session( )>
+
+Gather the current AT Protocol session info. You should store the accessJwt and refreshJwt tokens securely.
+
+=head1 Error Handling
+
+Exception handling is carried out by returning objects with untrue boolean values.
 
 =head1 See Also
 
-TODO
+L<Bluesky> - Bluesky client library
+
+L<App::bsky> - Bluesky client on the command line
+
+L<https://docs.bsky.app/docs/api/>
 
 =head1 LICENSE
 
-This software is Copyright (c) 2024 by Sanko Robinson E<lt>sanko@cpan.orgE<gt>.
+Copyright (C) Sanko Robinson.
 
-This is free software, licensed under:
-
-  The Artistic License 2.0 (GPL Compatible)
-
-See the F<LICENSE> file for full text.
+This library is free software; you can redistribute it and/or modify it under the terms found in the Artistic License
+2. Other copyrights, terms, and conditions may apply to data transmitted through this module.
 
 =head1 AUTHOR
 
-Sanko Robinson <sanko@cpan.org>
+Sanko Robinson E<lt>sanko@cpan.orgE<gt>
 
 =begin stopwords
 
+atproto Bluesky auth authed login
 
 =end stopwords
 
