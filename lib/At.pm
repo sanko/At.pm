@@ -1,4 +1,4 @@
-package At 0.20 {
+package At 0.19 {
     use v5.40;
     use Carp qw[];
     no warnings 'experimental::class', 'experimental::builtin', 'experimental::for_list';    # Be quiet.
@@ -334,7 +334,6 @@ package At 0.20 {
         field $status : param          //= ();
         #
         ADJUST {
-            # warn "ADJUST";
             $did            = At::Protocol::DID->new($did) unless builtin::blessed $did;
             $handle         = At::Protocol::Handle->new($handle) if defined $handle && !builtin::blessed $handle;
             $emailConfirmed = !!$emailConfirmed                  if defined $emailConfirmed;

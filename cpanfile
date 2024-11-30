@@ -8,9 +8,6 @@ requires 'Time::Moment';
 requires 'URI';
 requires 'perl', 'v5.40.0';
 recommends 'Mojo::UserAgent';
-on configure => sub {
-    requires 'Module::Build::Tiny', '0.035';
-};
 on test => sub {
     requires 'Test2::V0';
 };

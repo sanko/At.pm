@@ -6,7 +6,7 @@
    ],
    "description" : "AT Protocol in Perl",
    "dynamic_config" : 0,
-   "generated_by" : "App::mii v2.0.0",
+   "generated_by" : "App::mii v1.0.0",
    "keywords" : [],
    "license" : [
       "artistic_2"
@@ -42,9 +42,7 @@
    },
    "prereqs" : {
       "configure" : {
-         "requires" : {
-            "Module::Build::Tiny" : "0.035"
-         }
+         "requires" : {}
       },
       "develop" : {
          "recommends" : {
@@ -97,7 +95,7 @@
    "provides" : {
       "At" : {
          "file" : "lib/At.pm",
-         "version" : "0.20"
+         "version" : "0.19"
       },
       "At::Error" : {
          "file" : "lib/At/Error.pm",
@@ -141,7 +139,7 @@
          "web" : "https://github.com/sanko/At.pm"
       }
    },
-   "version" : "0.20",
+   "version" : "0.19",
    "x_contributors" : [
       "@wwwjim <send@jimmy.email>",
       "Akiomi Kamakura <akiomik@gmail.com>",
