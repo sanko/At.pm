@@ -1,6 +1,11 @@
-use v5.40;
+use v5.42;
 use feature 'class';
 no warnings 'experimental::class', 'experimental::builtin', 'experimental::for_list';
+
+#~ |---------------------------------------|
+#~ |------3-33-----------------------------|
+#~ |-5-55------4-44-5-55----353--3-33-/1~--|
+#~ |---------------------335---33----------|
 class At v1.1.0 {
     use Carp qw[];
     use experimental 'try';
@@ -18,23 +23,39 @@ class At v1.1.0 {
     use At::Protocol::URI;
     use At::Protocol::Session;
     use At::UserAgent;
-    field $share : reader : param //= eval { dist_dir('At') } // 'share';
+    field $share    : reader : param = ();
     field %lexicons : reader;
-    field $http //= eval { require Mojo::UserAgent } ? At::UserAgent::Mojo->new() : At::UserAgent::Tiny->new();
-    method http {$http}
-    field $host : param : reader //= 'bsky.social';
+    field $http     : reader = ();
+    field $host     : param : reader //= 'bsky.social';
     method set_host ($new) { $host = $new }
     field $session = ();
     field $oauth_state;
     field $dpop_key;
-    field %ratelimits : reader;
+    field %ratelimits : reader = (    # https://docs.bsky.app/docs/advanced-guides/rate-limits
+        global        => {},
+        updateHandle  => {},          # per DID
+        updateHandle  => {},          # per DID
+        createSession => {},          # per handle
+        deleteAccount => {},          # by IP
+        resetPassword => {}           # by IP
+    );
     ADJUST {
-        $share = path($share)       unless builtin::blessed $share;
-        $host  = 'https://' . $host unless $host =~ /^https?:/;
-        $host  = URI->new($host)    unless builtin::blessed $host;
+        if ( !defined $share ) {
+            try { $share = dist_dir('At') }
+            catch ($e) { $share = 'share' }
+        }
+        $share = path($share) unless builtin::blessed $share;
+        if ( !defined $http ) {
+            my $has_mojo = 0;
+            try { require Mojo::UserAgent; $has_mojo = 1; }
+            catch ($e) { }
+            $http = $has_mojo ? At::UserAgent::Mojo->new() : At::UserAgent::Tiny->new();
+        }
+        $host = 'https://' . $host unless $host =~ /^https?:/;
+        $host = URI->new($host)    unless builtin::blessed $host;
     }
 
-    # --- OAuth Implementation ---
+    # OAuth Implementation
     method _get_dpop_key() {
         unless ($dpop_key) {
             $dpop_key = Crypt::PK::ECC->new();
@@ -73,7 +94,7 @@ class At v1.1.0 {
             redirect_uri  => $redirect_uri,
             client_id     => $client_id,
             handle        => $handle,
-            scope         => $scope,
+            scope         => $scope
         };
 
         # Prepare UA for DPoP
@@ -95,14 +116,14 @@ class At v1.1.0 {
                 }
             }
         );
-        die "PAR failed: " . ( $par_res . "" ) if builtin::blessed $par_res;
+        die 'PAR failed: ' . ( $par_res . "" ) if builtin::blessed $par_res;
         my $auth_uri = URI->new( $discovery->{metadata}{authorization_endpoint} );
         $auth_uri->query_form( client_id => $client_id, request_uri => $par_res->{request_uri} );
         return $auth_uri->as_string;
     }
 
     method oauth_callback ( $code, $state ) {
-        die "OAuth state mismatch" unless $oauth_state && $state eq $oauth_state->{state};
+        die 'OAuth state mismatch' unless $oauth_state && $state eq $oauth_state->{state};
         my $token_endpoint = $oauth_state->{discovery}{metadata}{token_endpoint};
         my $key            = $self->_get_dpop_key();
         my ($token_res)    = $http->post(
@@ -115,11 +136,11 @@ class At v1.1.0 {
                     client_id     => $oauth_state->{client_id},
                     redirect_uri  => $oauth_state->{redirect_uri},
                     code_verifier => $oauth_state->{code_verifier},
-                    aud           => $oauth_state->{discovery}{pds},
+                    aud           => $oauth_state->{discovery}{pds}
                 }
             }
         );
-        die "Token exchange failed: " . ( $token_res . "" ) if builtin::blessed $token_res;
+        die 'Token exchange failed: ' . ( $token_res . "" ) if builtin::blessed $token_res;
         $session = At::Protocol::Session->new(
             did          => $token_res->{sub},
             accessJwt    => $token_res->{access_token},
@@ -128,10 +149,10 @@ class At v1.1.0 {
             token_type   => 'DPoP',
             dpop_key_jwk => $key->export_key_jwk('private'),
             client_id    => $oauth_state->{client_id},
-            scope        => $token_res->{scope},
+            scope        => $token_res->{scope}
         );
         $self->set_host( $oauth_state->{discovery}{pds} );
-        return $http->set_tokens( $token_res->{access_token}, $token_res->{refresh_token}, 'DPoP', $key );
+        $http->set_tokens( $token_res->{access_token}, $token_res->{refresh_token}, 'DPoP', $key );
     }
 
     method oauth_refresh() {
@@ -170,7 +191,7 @@ class At v1.1.0 {
         return "repo:$collection?action=$action";
     }
 
-    # --- Legacy Auth ---
+    # Legacy Auth
     method login( $identifier, $password ) {
         warnings::warnif( At => 'login() (com.atproto.server.createSession) is deprecated. Please use OAuth instead.' );
         my $res = $self->post( 'com.atproto.server.createSession' => { identifier => $identifier, password => $password } );
@@ -215,7 +236,7 @@ class At v1.1.0 {
         decode_json decode_base64 $payload;
     }
 
-    # --- XRPC & Lexicons ---
+    # XRPC & Lexicons
     method _locate_lexicon($fqdn) {
         unless ( defined $lexicons{$fqdn} ) {
             my $base_fqdn = $fqdn =~ s[#(.+)$][]r;
@@ -260,11 +281,13 @@ class At v1.1.0 {
     }
 
     method get( $fqdn, $args = (), $headers = {} ) {
-        my $lexicon = $self->_locate_lexicon($fqdn);
-        $self->_ratecheck('global');
+        my $lexicon  = $self->_locate_lexicon($fqdn);
+        my $category = $fqdn =~ /^com\.atproto\.repo\./ ? 'repo'                          : 'global';
+        my $meta     = $category eq 'repo'              ? ( $args->{repo} // $self->did ) : ();
+        $self->_ratecheck( $category, $meta );
         my ( $content, $res_headers )
             = $http->get( sprintf( '%s/xrpc/%s', $host, $fqdn ), { defined $args ? ( content => $args ) : (), headers => $headers } );
-        $self->ratelimit_( { map { $_ => $res_headers->{ 'ratelimit-' . $_ } } qw[limit remaining reset] }, 'global' );
+        $self->ratelimit_( $res_headers, $category, $meta );
         if ( $lexicon && !builtin::blessed $content ) {
             $content = $self->_coerce( $fqdn, $lexicon->{output}{schema}, $content );
         }
@@ -272,14 +295,28 @@ class At v1.1.0 {
     }
 
     method post( $fqdn, $args = (), $headers = {} ) {
-        my @namespace     = split /\./, $fqdn;
-        my $lexicon       = $self->_locate_lexicon($fqdn);
-        my $rate_category = $namespace[-1] =~ m[^(updateHandle|createAccount|createSession|deleteAccount|resetPassword)$] ? $namespace[-1] : 'global';
-        my $_rate_meta    = $rate_category eq 'createSession' ? $args->{identifier} : $rate_category eq 'updateHandle' ? $args->{did} : ();
-        $self->_ratecheck( $rate_category, $_rate_meta );
+        my @namespace = split /\./, $fqdn;
+        my $lexicon   = $self->_locate_lexicon($fqdn);
+
+        # Categorize according to bsky specs
+        my $category = 'global';
+        my $meta     = ();
+        if ( $fqdn =~ /^com\.atproto\.server\.createSession$/ ) {
+            $category = 'auth';
+            $meta     = $args->{identifier};
+        }
+        elsif ( $fqdn =~ /^com\.atproto\.repo\./ ) {
+            $category = 'repo';
+            $meta     = $args->{repo} // $self->did;
+        }
+        elsif ( $namespace[-1] =~ m[^(updateHandle|createAccount|deleteAccount|resetPassword)$] ) {
+            $category = $namespace[-1];
+            $meta     = $args->{did} // $args->{handle} // $args->{email};
+        }
+        $self->_ratecheck( $category, $meta );
         my ( $content, $res_headers )
             = $http->post( sprintf( '%s/xrpc/%s', $host, $fqdn ), { defined $args ? ( content => $args ) : (), headers => $headers } );
-        $self->ratelimit_( { map { $_ => $res_headers->{ 'ratelimit-' . $_ } } qw[limit remaining reset] }, $rate_category, $_rate_meta );
+        $self->ratelimit_( $res_headers, $category, $meta );
         if ( $lexicon && !builtin::blessed $content ) {
             $content = $self->_coerce( $fqdn, $lexicon->{output}{schema}, $content );
         }
@@ -287,7 +324,7 @@ class At v1.1.0 {
     }
     method subscribe( $id, $cb ) { $self->http->websocket( sprintf( '%s/xrpc/%s', $host, $id ), $cb ); }
 
-    # --- Coercion Logic ---
+    # Coercion Logic
     my %coercions = (
         array => method( $namespace, $schema, $data ) {
             [ map { $self->_coerce( $namespace, $schema->{items}, $_ ) } @$data ]
@@ -343,7 +380,7 @@ class At v1.1.0 {
         $l . $r;
     }
 
-    # --- Identity & Helpers ---
+    # Identity & Helpers
     method did()                   { $session ? $session->did . "" : undef; }
     method resolve_handle($handle) { $self->get( 'com.atproto.identity.resolveHandle' => { handle => $handle } ); }
 
@@ -369,9 +406,244 @@ class At v1.1.0 {
         }
         return;
     }
-    method session() { $session //= $self->get('com.atproto.server.getSession'); $session; }
-    sub _now         { Time::Moment->now }
+    method session()            { $session //= $self->get('com.atproto.server.getSession'); $session; }
+    sub _now                    { Time::Moment->now }
     method _duration ($seconds) { $seconds || return '0 seconds'; $seconds = abs $seconds; return "$seconds seconds"; }
-    method ratelimit_ ( $rate, $type, $meta //= () ) { defined $meta ? $ratelimits{$type}{$meta} = $rate : $ratelimits{$type} = $rate; }
-    method _ratecheck( $type, $meta //= () ) { my $rate = defined $meta ? $ratelimits{$type}{$meta} : $ratelimits{$type}; $rate->{reset} // return; }
+
+    method ratelimit_ ( $headers, $type, $meta //= () ) {
+        my %h = map { lc($_) => $headers->{$_} } keys %$headers;
+        return unless exists $h{'ratelimit-limit'};
+        my $rate = {
+            limit     => $h{'ratelimit-limit'},
+            remaining => $h{'ratelimit-remaining'},
+            reset     => $h{'ratelimit-reset'},
+            policy    => $h{'ratelimit-policy'},
+        };
+        defined $meta ? $ratelimits{$type}{$meta} = $rate : $ratelimits{$type} = $rate;
+    }
+
+    method _ratecheck( $type, $meta //= () ) {
+        my $rate = defined $meta ? $ratelimits{$type}{$meta} : $ratelimits{$type};
+        return unless $rate && $rate->{reset};
+        if ( $rate->{remaining} <= 0 && time < $rate->{reset} ) {
+            my $wait = $rate->{reset} - time;
+            warnings::warnif( At => "Rate limit exceeded for $type. Reset in $wait seconds." );
+        }
+        elsif ( $rate->{remaining} < ( $rate->{limit} * 0.1 ) ) {
+            warnings::warnif( At => "Approaching rate limit for $type ($rate->{remaining} remaining)." );
+        }
+    }
 } 1;
+__END__
+
+=pod
+
+=encoding utf-8
+
+=head1 NAME
+
+At - The AT Protocol for Social Networking (Bluesky)
+
+=head1 SYNOPSIS
+
+    use At;
+    my $at = At->new( host => 'bsky.social' );
+
+    # Authentication (The Modern Way)
+    my $auth_url = $at->oauth_start( 'user.bsky.social', 'http://localhost', 'http://127.0.0.1:8888/' );
+    # ... Redirect user to $auth_url, then get $code and $state from callback ...
+    $at->oauth_callback( $code, $state );
+
+    # Creating a Post
+    $at->post( 'com.atproto.repo.createRecord' => {
+        repo       => $at->did,
+        collection => 'app.bsky.feed.post',
+        record     => {
+            text      => 'Hello from Perl!',
+            createdAt => At::_now->to_string
+        }
+    });
+
+=head1 DESCRIPTION
+
+At.pm is a comprehensive toolkit for interacting with the AT Protocol (authenticated transfer protocol). It powers
+decentralized social networks like Bluesky.
+
+=head2 Rate Limits
+
+At.pm attempts to keep track of rate limits according to the protocol's specs. Requests are categorized (e.g., C<auth>,
+C<repo>, C<global>) and tracked per-identifier.
+
+If you approach a limit (less than 10% remaining), a warning is issued. If you exceed a limit, a warning is issued with
+the time until reset.
+
+See also: L<https://docs.bsky.app/docs/advanced-guides/rate-limits>
+
+=head1 GETTING STARTED
+
+If you are new to the AT Protocol, the first thing to understand is that it is decentralized. Your data lives on a
+Personal Data Server (PDS), but your identity is portable.
+
+=head2 Identity (Handles and DIDs)
+
+=over 4
+
+=item * B<Handle>: A human-readable name like C<alice.bsky.social>.
+
+=item * B<DID>: A persistent, machine-readable identifier like C<did:plc:z72i7...>.
+
+=back
+
+=head1 AUTHENTICATION
+
+There are two ways to authenticate: the modern OAuth system and the legacy password system. Once  authenticated, all
+other methods (like C<get>, C<post>, and C<subscribe>) work the same way.
+
+Developers of new code should be aware that the AT protocol is transitioning to OAuth and this library strongly
+encourages its use.
+
+=head2 The OAuth System (Recommended)
+
+OAuth is the secure, modern way to authenticate. It uses DPoP (Demonstrating Proof-of-Possession) to ensure tokens
+cannot be stolen and reused.
+
+B<1. Start the flow:>
+
+    my $auth_url = $at->oauth_start(
+        'user.bsky.social',
+        'http://localhost',                  # Client ID
+        'http://127.0.0.1:8888/callback',    # Redirect URI
+        'atproto transition:generic'         # Scopes
+    );
+
+B<2. Redirect the user:> Open C<$auth_url> in a browser. After they approve, they will be redirected to your callback
+URL with C<code> and C<state> parameters.
+
+B<3. Complete the callback:>
+
+    $at->oauth_callback( $code, $state );
+
+B<Note for Local Scripts:> When using C<http://localhost> as a Client ID, you should declare your required scopes and
+redirect URI in the query string of the Client ID if you need more than the basic C<atproto> scope:
+
+    use URI;
+    my $client_id = URI->new('http://localhost');
+    $client_id->query_param(scope => 'atproto transition:generic');
+    $client_id->query_param(redirect_uri => 'http://127.0.0.1:8888/');
+
+    my $url = $at->oauth_start($handle, $client_id->as_string, ...);
+
+=head2 The Legacy System (App Passwords)
+
+Legacy authentication is simpler but less secure. It uses a single call to C<login>.  B<Never use your main password;
+always use an App Password.>
+
+    $at->login( 'user.bsky.social', 'your-app-password' );
+
+=head1 ACCOUNT MANAGEMENT
+
+=head2 Creating an Account
+
+You can create a new account using C<com.atproto.server.createAccount>. Note that most PDS instances (like Bluesky's)
+require an invite code.
+
+    my $res = $at->post( 'com.atproto.server.createAccount' => {
+        handle      => 'newuser.bsky.social',
+        email       => 'user@example.com',
+        password    => 'secure-password',
+        inviteCode  => 'bsky-social-abcde'
+    });
+
+=head1 WORKING WITH DATA (REPOSITORIES)
+
+Data in the AT Protocol is stored in "repositories" as "records". Each record belongs to a "collection" (defined by a
+Lexicon).
+
+=head2 Creating a Post
+
+Posts are records in the C<app.bsky.feed.post> collection.
+
+    $at->post( 'com.atproto.repo.createRecord' => {
+        repo       => $at->did,
+        collection => 'app.bsky.feed.post',
+        record     => {
+            '$type'   => 'app.bsky.feed.post',
+            text      => 'Content of the post',
+            createdAt => At::_now->to_string,
+        }
+    });
+
+=head2 Listing Records
+
+To see what's in a collection:
+
+    my $res = $at->get( 'com.atproto.repo.listRecords' => {
+        repo       => $at->did,
+        collection => 'app.bsky.feed.post',
+        limit      => 10
+    });
+
+    for my $record (@{$res->{records}}) {
+        say $record->{value}{text};
+    }
+
+=head1 METHODS
+
+=head2 C<new( [ host => ..., share => ... ] )>
+
+Constructor.
+
+Expected parameters include:
+
+=over
+
+=item C<host>
+
+Host for the service. Defaults to C<bsky.social>.
+
+=item C<share>
+
+Location of lexicons. Defaults to the C<share> directory under the distribution.
+
+=back
+
+=head2 C<get( $method, [ \%params ] )>
+
+Calls an XRPC query (GET). Returns the decoded JSON response.
+
+=head2 C<post( $method, [ \%data ] )>
+
+Calls an XRPC procedure (POST). Returns the decoded JSON response.
+
+=head2 C<subscribe( $method, $callback )>
+
+Connects to a WebSocket stream (Firehose).
+
+=head2 C<resolve_handle( $handle )>
+
+Resolves a handle to a DID.
+
+=head2 C<collection_scope( $collection, [ $action ] )>
+
+Helper to generate granular OAuth scopes (e.g., C<repo:app.bsky.feed.post?action=create>).
+
+=head1 ERROR HANDLING
+
+Exception handling is carried out by returning L<At::Error> objects which have untrue boolean values.
+
+=head1 SEE ALSO
+
+L<Bluesky> - Bluesky client library
+
+L<https://docs.bsky.app/docs/api/>
+
+=head1 AUTHOR
+
+Sanko Robinson E<lt>sanko@cpan.orgE<gt>
+
+=head1 LICENSE
+
+Copyright (c) 2024-2026 Sanko Robinson. License: Artistic License 2.0. Other copyrights, terms, and conditions may
+apply to data transmitted through this module.
+
+=cut

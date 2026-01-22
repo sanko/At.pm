@@ -1,4 +1,4 @@
-use v5.40;
+use v5.42;
 use feature 'class';
 no warnings 'experimental::class';
 
@@ -35,3 +35,68 @@ class At::Protocol::Session {
     }
 }
 1;
+__END__
+
+=pod
+
+=encoding utf-8
+
+=head1 NAME
+
+At::Protocol::Session - AT Protocol Session Container
+
+=head1 SYNOPSIS
+
+    my $session = At::Protocol::Session->new(
+        did       => 'did:plc:...',
+        accessJwt => '...',
+        handle    => 'user.bsky.social'
+    );
+
+    say $session->did;
+    say $session->handle;
+
+=head1 DESCRIPTION
+
+C<At::Protocol::Session> stores authentication data for an active session. It supports both legacy password-based
+sessions and modern OAuth/DPoP sessions.
+
+=head1 ATTRIBUTES
+
+=head2 C<accessJwt()>
+
+The access token for the session.
+
+=head2 C<refreshJwt()>
+
+The refresh token for the session.
+
+=head2 C<did()>
+
+The DID of the authenticated user. This is returned as an L<At::Protocol::DID> object.
+
+=head2 C<handle()>
+
+The handle of the authenticated user.
+
+=head2 C<token_type()>
+
+Typically 'Bearer' for legacy sessions or 'DPoP' for OAuth sessions.
+
+=head2 C<scope()>
+
+The scopes granted to this session.
+
+=head2 C<email()>, C<emailConfirmed()>
+
+User's email information, if available.
+
+=head1 AUTHOR
+
+Sanko Robinson E<lt>sanko@cpan.orgE<gt>
+
+=head1 LICENSE
+
+Copyright (c) 2024-2026 Sanko Robinson. License: Artistic License 2.0.
+
+=cut

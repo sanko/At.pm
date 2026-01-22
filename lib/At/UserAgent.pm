@@ -1,5 +1,6 @@
-use v5.40;
+use v5.42;
 use feature 'class';
+use experimental 'try';
 no warnings 'experimental::class';
 use URI;
 use JSON::Tiny;
@@ -156,11 +157,14 @@ class At::UserAgent::Mojo : isa(At::UserAgent) {
             }
         }
         if ( $res->is_success ) {
-            return $res->body ? ( $res->headers->content_type // '' ) =~ m[json] ? $res->json : $res->body : ();
+            my $content = $res->body ? ( $res->headers->content_type // '' ) =~ m[json] ? $res->json : $res->body : ();
+            return wantarray ? ( $content, $res->headers->to_hash ) : $content;
         }
         my $msg = $res->message;
         if ( my $body = $res->body ) {
-            my $json = eval { JSON::Tiny::decode_json($body) };
+            my $json;
+            try { $json = JSON::Tiny::decode_json($body) }
+            catch ($e) { }
             if ($json) {
                 my $details = $json->{error} // '';
                 if ( $json->{message} && $json->{message} ne $details ) {
@@ -205,11 +209,14 @@ class At::UserAgent::Mojo : isa(At::UserAgent) {
             }
         }
         if ( $res->is_success ) {
-            return $res->body ? ( $res->headers->content_type // '' ) =~ m[json] ? $res->json : $res->body : ();
+            my $content = $res->body ? ( $res->headers->content_type // '' ) =~ m[json] ? $res->json : $res->body : ();
+            return wantarray ? ( $content, $res->headers->to_hash ) : $content;
         }
         my $msg = $res->message;
         if ( my $body = $res->body ) {
-            my $json = eval { JSON::Tiny::decode_json($body) };
+            my $json;
+            try { $json = JSON::Tiny::decode_json($body) }
+            catch ($e) { }
             if ($json) {
                 my $details = $json->{error} // '';
                 if ( $json->{message} && $json->{message} ne $details ) {
@@ -227,3 +234,69 @@ class At::UserAgent::Mojo : isa(At::UserAgent) {
     method _set_auth_header ($token) { $self->set_auth($token); }
 }
 1;
+__END__
+
+=pod
+
+=encoding utf-8
+
+=head1 NAME
+
+At::UserAgent - Abstract Base Class for AT Protocol User Agents
+
+=head1 DESCRIPTION
+
+C<At::UserAgent> defines the interface for HTTP clients used by L<At>. It handles DPoP proof generation, automatic
+nonce management, and authentication headers.
+
+=head1 SUBCLASSES
+
+=over 4
+
+=item L<At::UserAgent::Mojo>
+
+Uses L<Mojo::UserAgent>. Recommended for asynchronous or high-performance applications.
+
+=item L<At::UserAgent::Tiny>
+
+Uses L<HTTP::Tiny>. A lightweight, zero-dependency alternative.
+
+=back
+
+=head1 ATTRIBUTES
+
+=head2 C<accessJwt()>
+
+The current access token.
+
+=head2 C<token_type()>
+
+The token type (e.g., 'DPoP' or 'Bearer').
+
+=head2 C<dpop_key()>
+
+The L<Crypt::PK::ECC> key used for DPoP signing.
+
+=head1 METHODS
+
+=head2 C<set_tokens( $access, $refresh, $type, $key )>
+
+Sets the current authentication tokens and keys.
+
+=head2 C<get( $url, [ \%options ] )>
+
+Performs an HTTP GET request.
+
+=head2 C<post( $url, [ \%options ] )>
+
+Performs an HTTP POST request.
+
+=head1 AUTHOR
+
+Sanko Robinson E<lt>sanko@cpan.orgE<gt>
+
+=head1 LICENSE
+
+Copyright (c) 2024-2026 Sanko Robinson. License: Artistic License 2.0.
+
+=cut

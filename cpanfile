@@ -1,3 +1,5 @@
+requires 'Crypt::JWT';
+requires 'Crypt::PK::ECC';
 requires 'File::ShareDir::Tiny';
 requires 'IO::Socket::SSL', '1.42';
 requires 'JSON::Tiny';
@@ -6,7 +8,7 @@ requires 'Net::SSLeay', '1.49';
 requires 'Path::Tiny';
 requires 'Time::Moment';
 requires 'URI';
-requires 'perl', 'v5.40.0';
+requires 'perl', 'v5.42.0';
 recommends 'Mojo::UserAgent';
 on configure => sub {
     requires 'Module::Build::Tiny', '0.035';
