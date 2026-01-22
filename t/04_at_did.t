@@ -18,8 +18,8 @@ sub expectValid($uri) {
 
 sub expectInvalid($uri) {
     subtest $uri => sub {
-        ok dies { ensureValidDid($uri) },        'ensureValidDid( ... ) dies';
-        ok dies { ensureValidAtDidRegex($uri) }, 'ensureValidAtDidRegex( ... ) dies';
+        ok dies { ensureValidDid($uri) },      'ensureValidDid( ... ) dies';
+        ok dies { ensureValidDidRegex($uri) }, 'ensureValidDidRegex( ... ) dies';
     }
 }
 subtest 'enforces spec details' => sub {

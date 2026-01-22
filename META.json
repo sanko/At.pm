@@ -6,7 +6,7 @@
    ],
    "description" : "AT Protocol in Perl",
    "dynamic_config" : 0,
-   "generated_by" : "App::mii v2.0.0",
+   "generated_by" : "App::mii v1.0.0",
    "keywords" : [],
    "license" : [
       "artistic_2"
@@ -97,11 +97,11 @@
    "provides" : {
       "At" : {
          "file" : "lib/At.pm",
-         "version" : "v1.0.0"
+         "version" : "v1.1.0"
       },
       "At::Error" : {
          "file" : "lib/At/Error.pm",
-         "version" : "1.0"
+         "version" : "1.1"
       },
       "At::Protocol::DID" : {
          "file" : "lib/At/Protocol/DID.pm",
@@ -116,14 +116,14 @@
          "version" : "1.0"
       },
       "At::Protocol::Session" : {
-         "file" : "lib/At.pm"
+         "file" : "lib/At/Protocol/Session.pm"
       },
       "At::Protocol::URI" : {
          "file" : "lib/At/Protocol/URI.pm",
          "version" : "1.0"
       },
       "At::UserAgent" : {
-         "file" : "lib/At.pm"
+         "file" : "lib/At/UserAgent.pm"
       }
    },
    "release_status" : "stable",
@@ -141,7 +141,7 @@
          "web" : "https://github.com/sanko/At.pm"
       }
    },
-   "version" : "v1.0.0",
+   "version" : "v1.1.0",
    "x_contributors" : [
       "Akiomi Kamakura <akiomik@gmail.com>",
       "Alberto Roura <mail@albertoroura.com>",
@@ -181,16 +181,16 @@
       "Jerry Chen <jerry@apache.org>",
       "Jess Porter <github@lolnerd.net>",
       "Josh Soref <2119212+jsoref@users.noreply.github.com>",
-      "Kev Ã°ÂÂÂ¶ <kevslashnull@gmail.com>",
+      "Kev 🐶 <kevslashnull@gmail.com>",
       "Kim Hallberg <hallberg.kim@gmail.com>",
       "Markus Amalthea Magnuson <markus@polyscopic.works>",
       "Mary <148872143+mary-ext@users.noreply.github.com>",
       "Matthieu Sieben <matthieu.sieben@gmail.com>",
       "Matthieu Sieben <matthieusieben@users.noreply.github.com>",
       "Max Graey <maxgraey@gmail.com>",
-      "MichaÃÂ Gibowski <gibowski@gmail.com>",
+      "Michał Gibowski <gibowski@gmail.com>",
       "Miles Zimmerman <miles@zim.dev>",
-      "Mustafa Yafes AkbaÃÂ <62028911+yafesdot@users.noreply.github.com>",
+      "Mustafa Yafes Akbaş <62028911+yafesdot@users.noreply.github.com>",
       "Patrick Linnane <patrick@linnane.io>",
       "Patryk <Matrix89@users.noreply.github.com>",
       "Paul Frazee <pfrazee@gmail.com>",
@@ -203,8 +203,8 @@
       "S. Ota <1632335+susumuota@users.noreply.github.com>",
       "Safa Safari <safasafari.ss@gmail.com>",
       "Samuel Newman <mozzius@protonmail.com>",
-      "Shinya Kato / Ã¥ÂÂ Ã¨ÂÂ¤ Ã§ÂÂÃ¤Â¹Â <contact@shinyakato.dev>",
-      "ShoshÃÂ¡na Abigail <72781354+LilahTovMoon@users.noreply.github.com>",
+      "Shinya Kato / 加藤 真也 <contact@shinyakato.dev>",
+      "Shoshána Abigail <72781354+LilahTovMoon@users.noreply.github.com>",
       "Takumi Fujiwara <jiftech.stlfy@gmail.com>",
       "Wes Bos <wesbos@gmail.com>",
       "Wes Todd <wes@wesleytodd.com>",
@@ -227,6 +227,12 @@
       "this.julio <julio.valerio2@live.lagcc.cuny.edu>",
       "tsinghuacoder <tsinghuacoder@icloud.com>",
       "zhuowei <zhuoweizhang@yahoo.com>"
+   ],
+   "x_ignore" : [
+      ".tidyallrc",
+      ".gitignore",
+      ".clang-format",
+      ".github/**"
    ],
    "x_serialization_backend" : "JSON::PP version 4.16",
    "x_static_install" : 1

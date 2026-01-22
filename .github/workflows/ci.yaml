@@ -29,7 +29,7 @@ jobs:
             pkg: pkg install -y
             version: 14.1
         perl:
-          - "5.40"
+          - 5.40
       max-parallel: 5
     uses: sanko/actions/.github/workflows/affix-cross.yml@main
     with:

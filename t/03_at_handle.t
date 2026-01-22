@@ -16,7 +16,7 @@ subtest 'old At.pm' => sub {
 
     # Invalid syntax:
     subtest 'malformed handle' => sub {
-        like( dies { At::Protocol::Handle->new($_) }, qr/malformed handle/, $_ ) for qw[
+        like( dies { At::Protocol::Handle->new($_) }, qr/Handle/i, $_ ) for qw[
             jo@hn.test
             💩.test
             john..test

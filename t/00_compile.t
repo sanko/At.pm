@@ -36,7 +36,7 @@ subtest live => sub {    # Public and totally worthless auth info
             my $todo = todo 'Working with live services here. Things might not go as we expect or hope...';
             ok $login = $bsky->login( $auth->{login}{identifier}, $auth->{login}{password} ), 'logging in for the following tests';
             if ($login) {
-                $auth->{resume} = { accessJwt => $bsky->session->{accessJwt}, refreshJwt => $bsky->session->{refreshJwt} };
+                $auth->{resume} = { accessJwt => $bsky->session->accessJwt, refreshJwt => $bsky->session->refreshJwt };
                 $path->spew_raw( encode_json $auth );
             }
         };
