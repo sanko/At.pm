@@ -9,7 +9,11 @@ requires 'Path::Tiny';
 requires 'Time::Moment';
 requires 'URI';
 requires 'perl', 'v5.42.0';
+recommends 'CBOR::Free';
+recommends 'Future';
 recommends 'Mojo::UserAgent';
+recommends 'Net::Async::HTTP';
+recommends 'Net::Async::WebSocket::Client';
 on configure => sub {
     requires 'Module::Build::Tiny', '0.035';
 };

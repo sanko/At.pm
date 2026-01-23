@@ -74,7 +74,11 @@
       },
       "runtime" : {
          "recommends" : {
-            "Mojo::UserAgent" : "0"
+            "CBOR::Free" : "0",
+            "Future" : "0",
+            "Mojo::UserAgent" : "0",
+            "Net::Async::HTTP" : "0",
+            "Net::Async::WebSocket::Client" : "0"
          },
          "requires" : {
             "Crypt::JWT" : "0",

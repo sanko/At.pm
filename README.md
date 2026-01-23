@@ -213,6 +213,11 @@ Expected parameters include:
 
     Location of lexicons. Defaults to the `share` directory under the distribution.
 
+- `http`
+
+    A pre-instantiated [At::UserAgent](https://metacpan.org/pod/At%3A%3AUserAgent) object. By default, this is auto-detected by checking for [Mojo::UserAgent](https://metacpan.org/pod/Mojo%3A%3AUserAgent) and
+    [IO::Async::Loop](https://metacpan.org/pod/IO%3A%3AAsync%3A%3ALoop) (with [Net::Async::HTTP](https://metacpan.org/pod/Net%3A%3AAsync%3A%3AHTTP)) in that order, falling back to [HTTP::Tiny](https://metacpan.org/pod/HTTP%3A%3ATiny).
+
 ## `get( $method, [ \%params ] )`
 
 Calls an XRPC query (GET). Returns the decoded JSON response.

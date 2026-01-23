@@ -34,7 +34,6 @@ class At v1.1.0 {
     field %ratelimits : reader = (    # https://docs.bsky.app/docs/advanced-guides/rate-limits
         global        => {},
         updateHandle  => {},          # per DID
-        updateHandle  => {},          # per DID
         createSession => {},          # per handle
         deleteAccount => {},          # by IP
         resetPassword => {}           # by IP
@@ -46,10 +45,22 @@ class At v1.1.0 {
         }
         $share = path($share) unless builtin::blessed $share;
         if ( !defined $http ) {
-            my $has_mojo = 0;
-            try { require Mojo::UserAgent; $has_mojo = 1; }
-            catch ($e) { }
-            $http = $has_mojo ? At::UserAgent::Mojo->new() : At::UserAgent::Tiny->new();
+            my $ua_class;
+            try {
+                require Mojo::UserAgent;
+                $ua_class = 'At::UserAgent::Mojo';
+            }
+            catch ($e) {
+                try {
+                    require IO::Async::Loop;
+                    require Net::Async::HTTP;
+                    $ua_class = 'At::UserAgent::IOAsync';
+                }
+                catch ($e) {
+                    $ua_class = 'At::UserAgent::Tiny';
+                }
+            }
+            $http = $ua_class->new();
         }
         $host = 'https://' . $host unless $host =~ /^https?:/;
         $host = URI->new($host)    unless builtin::blessed $host;
@@ -646,6 +657,11 @@ Host for the service. Defaults to C<bsky.social>.
 =item C<share>
 
 Location of lexicons. Defaults to the C<share> directory under the distribution.
+
+=item C<http>
+
+A pre-instantiated L<At::UserAgent> object. By default, this is auto-detected by checking for L<Mojo::UserAgent> and
+L<IO::Async::Loop> (with L<Net::Async::HTTP>) in that order, falling back to L<HTTP::Tiny>.
 
 =back
 

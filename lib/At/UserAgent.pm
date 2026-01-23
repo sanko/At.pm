@@ -260,6 +260,133 @@ class At::UserAgent::Mojo : isa(At::UserAgent) {
     }
     method _set_auth_header ($token) { $self->set_auth($token); }
 }
+
+class At::UserAgent::IOAsync : isa(At::UserAgent) {
+    field $loop : param //= ();
+    field $http;
+    ADJUST {
+        require IO::Async::Loop;
+        require Net::Async::HTTP;
+        if ( !defined $loop ) {
+            try { $loop = IO::Async::Loop->new; }
+            catch ($e) { die "Failed to create IO::Async::Loop: $e"; }
+        }
+        $http = Net::Async::HTTP->new( user_agent => 'At.pm/IOAsync', );
+        $loop->add($http);
+    }
+
+    method get ( $url, $req = () ) {
+        require HTTP::Request;
+        require URI;
+        my $uri = URI->new($url);
+        if ( defined $req->{content} ) {
+            $uri->query_form( $req->{content} );
+        }
+        my $headers = [ %{ $req->{headers} // {} } ];
+        push @$headers, 'Authorization' => $self->auth                                if defined $self->auth;
+        push @$headers, 'DPoP'          => $self->_generate_dpop_proof( $url, 'GET' ) if $self->token_type eq 'DPoP';
+        my $request = HTTP::Request->new( GET => $uri, $headers );
+        my $future  = $http->do_request( request => $request );
+
+        # Handle DPoP Nonce retry
+        my $res = $loop->await($future);
+        if ( my $nonce = $res->header('DPoP-Nonce') ) { $self->set_dpop_nonce($nonce); }
+        if ( ( $res->code == 401 || $res->code == 400 ) && $res->content =~ /use_dpop_nonce/i ) {
+            my $dpop = $self->_generate_dpop_proof( $url, 'GET' );
+            $request->header( DPoP => $dpop );
+            $res = $loop->await( $http->do_request( request => $request ) );
+            if ( my $nonce = $res->header('DPoP-Nonce') ) { $self->set_dpop_nonce($nonce); }
+        }
+        if ( $res->is_success ) {
+            my $body    = $res->content;
+            my $content = $body && ( $res->content_type // '' ) =~ m[json] ? JSON::Tiny::decode_json($body) : $body;
+            return wantarray ? ( $content, { map { $_ => $res->header($_) } $res->header_field_names } ) : $content;
+        }
+        return $self->_handle_error($res);
+    }
+
+    method post ( $url, $req = () ) {
+        require HTTP::Request;
+        require URI;
+        my $headers = [ %{ $req->{headers} // {} } ];
+        push @$headers, 'Authorization' => $self->auth                                 if defined $self->auth;
+        push @$headers, 'DPoP'          => $self->_generate_dpop_proof( $url, 'POST' ) if $self->token_type eq 'DPoP';
+        my $content;
+        my $content_type = 'application/json';
+        if ( defined $req->{content} ) {
+            if ( $req->{encoding} && $req->{encoding} eq 'form' ) {
+                my $uri = URI->new;
+                $uri->query_form( $req->{content} );
+                $content      = $uri->query;
+                $content_type = 'application/x-www-form-urlencoded';
+            }
+            elsif ( ref $req->{content} ) {
+                $content = JSON::Tiny::encode_json( $req->{content} );
+            }
+            else {
+                $content = $req->{content};
+            }
+        }
+        push @$headers, 'Content-Type' => $content_type;
+        my $request = HTTP::Request->new( POST => $url, $headers, $content );
+        my $future  = $http->do_request( request => $request );
+        my $res     = $loop->await($future);
+        if ( my $nonce = $res->header('DPoP-Nonce') ) { $self->set_dpop_nonce($nonce); }
+        if ( ( $res->code == 401 || $res->code == 400 ) && $res->content =~ /use_dpop_nonce/i ) {
+            my $dpop = $self->_generate_dpop_proof( $url, 'POST' );
+            $request->header( DPoP => $dpop );
+            $res = $loop->await( $http->do_request( request => $request ) );
+            if ( my $nonce = $res->header('DPoP-Nonce') ) { $self->set_dpop_nonce($nonce); }
+        }
+        if ( $res->is_success ) {
+            my $body    = $res->content;
+            my $content = $body && ( $res->content_type // '' ) =~ m[json] ? JSON::Tiny::decode_json($body) : $body;
+            return wantarray ? ( $content, { map { $_ => $res->header($_) } $res->header_field_names } ) : $content;
+        }
+        return $self->_handle_error($res);
+    }
+
+    method websocket ( $url, $cb ) {
+        require Net::Async::WebSocket::Client;
+        my $ws = Net::Async::WebSocket::Client->new(
+            on_frame => sub ( $self, $frame ) {
+                $cb->( $frame, undef );
+            },
+        );
+        $loop->add($ws);
+        $ws->connect( url => $url )->on_done(
+            sub {
+                # Connected
+            }
+        )->on_fail(
+            sub ($err) {
+                $cb->( undef, At::Error->new( message => "WebSocket failed: $err", fatal => 1 ) );
+            }
+        );
+    }
+
+    method _handle_error ($res) {
+        my $msg = $res->message;
+        if ( my $body = $res->content ) {
+            my $json;
+            try { $json = JSON::Tiny::decode_json($body) }
+            catch ($e) { }
+            if ($json) {
+                my $details = $json->{error} // '';
+                if ( $json->{message} && $json->{message} ne $details ) {
+                    $details .= ( $details ? ': ' : '' ) . $json->{message};
+                }
+                $msg .= ": " . $details                    if $details;
+                $msg .= " - " . $json->{error_description} if $json->{error_description};
+            }
+            else {
+                $msg .= " ($body)";
+            }
+        }
+        return At::Error->new( message => $msg, fatal => 1 );
+    }
+    method _set_auth_header ($token) { $self->set_auth($token); }
+}
 1;
 __END__
 
@@ -278,15 +405,19 @@ nonce management, and authentication headers.
 
 =head1 SUBCLASSES
 
-=over
+=over 4
 
 =item L<At::UserAgent::Mojo>
 
 Uses L<Mojo::UserAgent>. Recommended for asynchronous or high-performance applications.
 
+=item L<At::UserAgent::IOAsync>
+
+Uses L<Net::Async::HTTP> and L<IO::Async::Loop>. Recommended for projects already using L<IO::Async>.
+
 =item L<At::UserAgent::Tiny>
 
-Uses L<HTTP::Tiny>. A lightweight, zero-dependency alternative.
+Uses L<HTTP::Tiny>. A lightweight, zero-dependency alternative. Does not support firehose/WebSockets.
 
 =back
 
