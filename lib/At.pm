@@ -25,7 +25,7 @@ class At 1.0 {
     use At::UserAgent;
     field $share    : reader : param = ();
     field %lexicons : reader;
-    field $http : reader = ();
+    field $http     : reader : param = ();
     field $lexicon_paths_param : param(lexicon_paths) = [];
     field @lexicon_paths;
     field $host : param : reader //= 'bsky.social';
@@ -54,14 +54,7 @@ class At 1.0 {
                 $ua_class = 'At::UserAgent::Mojo';
             }
             catch ($e) {
-                try {
-                    require IO::Async::Loop;
-                    require Net::Async::HTTP;
-                    $ua_class = 'At::UserAgent::IOAsync';
-                }
-                catch ($e) {
-                    $ua_class = 'At::UserAgent::Tiny';
-                }
+                $ua_class = 'At::UserAgent::Tiny';
             }
             $http = $ua_class->new();
         }
@@ -214,7 +207,7 @@ class At 1.0 {
         my $res = $self->post( 'com.atproto.server.createSession' => { identifier => $identifier, password => $password } );
         if   ( $res && !builtin::blessed($res) ) { $session = At::Protocol::Session->new(%$res); }
         else                                     { $session = $res; }
-        return $session ? $http->set_tokens( $session->accessJwt, $session->refreshJwt ) : $session;
+        return $session ? $http->set_tokens( $session->accessJwt, $session->refreshJwt, undef, undef ) : $session;
     }
 
     method resume ( $accessJwt, $refreshJwt, $token_type = 'Bearer', $dpop_key_jwk = (), $client_id = (), $handle = (), $pds = () ) {
@@ -303,7 +296,7 @@ class At 1.0 {
             $cache_dir->mkpath;
             my $lex_file = $cache_dir->child( @namespace[ 0 .. $#namespace - 1 ], $namespace[-1] . '.json' );
             $lex_file->parent->mkpath;
-            $lex_file->spew_raw( builtin::blessed($content) ? JSON::PP::encode_json($content) : $content );
+            $lex_file->spew_raw( builtin::blessed($content) ? encode_json($content) : $content );
             return $lex_file;
         }
         return;
@@ -732,8 +725,7 @@ for local development with a checkout of the C<atproto> repository.
 
 =item C<http>
 
-A pre-instantiated L<At::UserAgent> object. By default, this is auto-detected by checking for L<Mojo::UserAgent> and
-L<IO::Async::Loop> (with L<Net::Async::HTTP>) in that order, falling back to L<HTTP::Tiny>.
+A pre-instantiated L<At::UserAgent> object. By default, this is auto-detected by checking for L<Mojo::UserAgent>, falling back to L<HTTP::Tiny>.
 
 =back
 

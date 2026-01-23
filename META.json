@@ -61,7 +61,6 @@
          },
          "requires" : {
             "CPAN::Uploader" : "0",
-            "Minilla" : "0",
             "Pod::Markdown::Github" : "0",
             "Software::License::Artistic_2_0" : "0",
             "Test::CPAN::Meta" : "0",
@@ -75,10 +74,7 @@
       "runtime" : {
          "recommends" : {
             "CBOR::Free" : "0",
-            "Future" : "0",
-            "Mojo::UserAgent" : "0",
-            "Net::Async::HTTP" : "0",
-            "Net::Async::WebSocket::Client" : "0"
+            "Mojo::UserAgent" : "0"
          },
          "requires" : {
             "Crypt::JWT" : "0",
@@ -103,7 +99,7 @@
    "provides" : {
       "At" : {
          "file" : "lib/At.pm",
-         "version" : "1.0"
+         "version" : "v1.1.0"
       },
       "At::Error" : {
          "file" : "lib/At/Error.pm",
@@ -151,7 +147,7 @@
          "web" : "https://github.com/sanko/At.pm"
       }
    },
-   "version" : "1.0",
+   "version" : "v1.1.0",
    "x_contributors" : [
       "Akiomi Kamakura <akiomik@gmail.com>",
       "Alberto Roura <mail@albertoroura.com>",

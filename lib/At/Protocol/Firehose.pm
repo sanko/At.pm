@@ -35,20 +35,26 @@ class At::Protocol::Firehose 1.0 {
                 }
                 try {
                     my @objects;
+                    {
+                        local $SIG{__WARN__} = sub {
+                            return if $_[0] =~ /Ignoring unrecognized CBOR tag #42/;
+                            warn $_[0];
+                        };
 
-                    # Try functional interface first (CBOR::Free 0.32+)
-                    try {
-                        @objects = CBOR::Free::decode_sequence($msg);
-                    }
-                    catch ($e) {
-
-                        # Fallback to SequenceDecoder
-                        my $decoder = CBOR::Free::SequenceDecoder->new();
-                        if ( my $sr = $decoder->give($msg) ) {
-                            push @objects, $$sr;
+                        # Try functional interface first (CBOR::Free 0.32+)
+                        try {
+                            @objects = CBOR::Free::decode_sequence($msg);
                         }
-                        while ( my $sr = $decoder->get() ) {
-                            push @objects, $$sr;
+                        catch ($e) {
+
+                            # Fallback to SequenceDecoder
+                            my $decoder = CBOR::Free::SequenceDecoder->new();
+                            if ( my $sr = $decoder->give($msg) ) {
+                                push @objects, $$sr;
+                            }
+                            while ( my $sr = $decoder->get() ) {
+                                push @objects, $$sr;
+                            }
                         }
                     }
                     if ( @objects >= 2 ) {
@@ -120,7 +126,7 @@ Sanko Robinson E<lt>sanko@cpan.orgE<gt>
 
 =head1 LICENSE
 
-Copyright (c) 2024-2026 Sanko Robinson. License: Artistic License 2.0.
+Copyright (c) 2026 Sanko Robinson. License: Artistic License 2.0.
 
 =cut
 
