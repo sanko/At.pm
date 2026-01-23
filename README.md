@@ -84,8 +84,8 @@ cannot be stolen and reused. It's a three step process:
 
 - 2. Redirect the user:
 
-    Open `$auth_url` in a browser. After they approve, they will be redirected to your callback
-    URL with `code` and `state` parameters.
+    Open `$auth_url` in a browser. After they approve, they will be redirected to your callback URL with `code` and
+    `state` parameters.
 
 - 3. Complete the callback:
 
@@ -93,10 +93,10 @@ cannot be stolen and reused. It's a three step process:
     $at->oauth_callback( $code, $state );
     ```
 
-    See the demonstration scripts `eg/bsky_oauth.pl` and `eg/mojo_oauth.pl` for both a CLI and
-    web based examples.
+    See the demonstration scripts `eg/bsky_oauth.pl` and `eg/mojo_oauth.pl` for both a CLI and web based examples.
 
-Once authenticated, you should store your session data securely so you can resume it later without requiring the user to log in again.
+Once authenticated, you should store your session data securely so you can resume it later without requiring the user
+to log in again.
 
 ### Resuming an OAuth Session
 
@@ -129,7 +129,8 @@ always use an App Password.**
 $at->login( 'user.bsky.social', 'your-app-password' );
 ```
 
-Once authenticated, you should store your session data securely so you can resume it later without requiring the user to log in again.
+Once authenticated, you should store your session data securely so you can resume it later without requiring the user
+to log in again.
 
 ### Resuming a Legacy Session
 
@@ -139,14 +140,15 @@ Legacy sessions only require the access and refresh tokens:
 $at->resume( $access_jwt, $refresh_jwt );
 ```
 
-**Note:** In both cases, if the access token has expired, `resume()` will automatically attempt to refresh it using
-the refresh token.
+**Note:** In both cases, if the access token has expired, `resume()` will automatically attempt to refresh it using the
+refresh token.
 
 # Account Management
 
 ## Creating an Account
 
-You can create a new account using `com.atproto.server.createAccount`. Note that PDS instances _may_ require an invite code.
+You can create a new account using `com.atproto.server.createAccount`. Note that PDS instances _may_ require an
+invite code.
 
 ```perl
 my $res = $at->post( 'com.atproto.server.createAccount' => {
@@ -196,8 +198,8 @@ for my $record (@{$res->{records}}) {
 
 # Drinking from the Firehose: Real-time Streaming
 
-The Firehose is a real-time stream of **all** events happening on the network (or a specific PDS). This includes new posts,
-likes, handle changes, deletions, and more.
+The Firehose is a real-time stream of **all** events happening on the network (or a specific PDS). This includes new
+posts, likes, handle changes, deletions, and more.
 
 ## Subscribing to the Firehose
 
@@ -216,8 +218,8 @@ my $fh = $at->firehose(sub ( $header, $body, $err ) {
 $fh->start();
 ```
 
-**Note:** The Firehose requires [CBOR::Free](https://metacpan.org/pod/CBOR%3A%3AFree) and an async event loop to keep the connection alive. Currently, At.pm supports
-[Mojo::UserAgent](https://metacpan.org/pod/Mojo%3A%3AUserAgent) so you should usually use [Mojo::IOLoop](https://metacpan.org/pod/Mojo%3A%3AIOLoop):
+**Note:** The Firehose requires [CBOR::Free](https://metacpan.org/pod/CBOR%3A%3AFree) and an async event loop to keep the connection alive. Currently, At.pm
+supports [Mojo::UserAgent](https://metacpan.org/pod/Mojo%3A%3AUserAgent) so you should usually use [Mojo::IOLoop](https://metacpan.org/pod/Mojo%3A%3AIOLoop):
 
 ```perl
 use Mojo::IOLoop;
