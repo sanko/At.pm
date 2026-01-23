@@ -10,6 +10,7 @@ class At::Protocol::Session {
     field $token_type   : param : reader = 'Bearer';
     field $dpop_key_jwk : param : reader = ();
     field $client_id    : param : reader = ();
+    field $pds          : param : reader = ();
 
     # Additional fields returned by server
     field $email           : param : reader = ();
@@ -31,6 +32,7 @@ class At::Protocol::Session {
             defined $handle ? ( handle => $handle . "" ) : (),
             token_type => $token_type,
             defined $dpop_key_jwk ? ( dpop_key_jwk => $dpop_key_jwk ) : (), defined $client_id ? ( client_id => $client_id ) : (),
+            defined $pds ? ( pds => $pds . "" ) : (),
         };
     }
 }

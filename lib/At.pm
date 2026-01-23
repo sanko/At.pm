@@ -195,7 +195,9 @@ class At v1.1.0 {
             dpop_key_jwk => $key->export_key_jwk('private'),
             client_id    => $session->client_id,
             scope        => $token_res->{scope},
+            pds          => $discovery->{pds}
         );
+        $self->set_host( $discovery->{pds} );
         return $http->set_tokens( $token_res->{access_token}, $token_res->{refresh_token}, 'DPoP', $key );
     }
 
@@ -212,16 +214,17 @@ class At v1.1.0 {
         return $session ? $http->set_tokens( $session->accessJwt, $session->refreshJwt ) : $session;
     }
 
-    method resume ( $accessJwt, $refreshJwt, $token_type = 'Bearer', $dpop_key_jwk = (), $client_id = () ) {
+    method resume ( $accessJwt, $refreshJwt, $token_type = 'Bearer', $dpop_key_jwk = (), $client_id = (), $handle = (), $pds = () ) {
         my $access  = $self->_decode_token($accessJwt);
         my $refresh = $self->_decode_token($refreshJwt);
+        return unless $access;
         my $key;
         if ( $token_type eq 'DPoP' && $dpop_key_jwk ) {
             $key = Crypt::PK::ECC->new();
-            $key->import_key_jwk($dpop_key_jwk);
+            $key->import_key( \$dpop_key_jwk );
             $dpop_key = $key;
         }
-        if ( time > $access->{exp} && time < $refresh->{exp} ) {
+        if ( $refresh && time > $access->{exp} && time < $refresh->{exp} ) {
             if ( $token_type eq 'DPoP' ) { return $self->oauth_refresh(); }
             else {
                 my $res = $self->post( 'com.atproto.server.refreshSession' => { refreshJwt => $refreshJwt } );
