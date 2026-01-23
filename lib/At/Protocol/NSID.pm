@@ -83,6 +83,8 @@ package At::Protocol::NSID 1.0 {    # https://github.com/bluesky-social/atproto/
 };
 1;
 __END__
+=pod
+
 =encoding utf-8
 
 =head1 NAME

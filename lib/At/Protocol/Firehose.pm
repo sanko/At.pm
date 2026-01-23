@@ -106,7 +106,7 @@ Each message from the firehose consists of two parts:
 
 =back
 
-=head1 METHODS
+=head1 Methods
 
 =head2 C<new( at => $at, callback => $cb, [ url => $url ] )>
 

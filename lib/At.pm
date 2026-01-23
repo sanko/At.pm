@@ -1,6 +1,6 @@
 use v5.42;
 use feature 'class';
-no warnings 'experimental::class', 'experimental::builtin', 'experimental::for_list';
+no warnings 'experimental::class', 'experimental::builtin', 'experimental::for_list';    # Be quiet.
 
 #~ |---------------------------------------|
 #~ |------3-33-----------------------------|
@@ -16,7 +16,7 @@ class At 1.0 {
     use MIME::Base64         qw[encode_base64url];
     use Crypt::PK::ECC;
     use Crypt::PRNG qw[random_string];
-    use Time::Moment;
+    use Time::Moment;    # Internal; standardize around Zulu
     use URI;
     use warnings::register;
     use At::Error;
@@ -502,20 +502,21 @@ At - The AT Protocol for Social Networking
 
 =head1 DESCRIPTION
 
-At.pm is a comprehensive toolkit for interacting with the AT Protocol (authenticated transfer protocol). It powers
-decentralized social networks like Bluesky.
+At.pm is a toolkit for interacting with the AT Protocol which powers decentralized social networks like Bluesky.
+
+Unless you're designing a new client around the AT Protocol, you are probably looking for L<Bluesky.pm|Bluesky>.
 
 =head2 Rate Limits
 
-At.pm attempts to keep track of rate limits according to the protocol's specs. Requests are categorized (e.g., C<auth>,
+At.pm attempts to keep track of rate limits according to the protocol's specs. Requests are categorized (C<auth>,
 C<repo>, C<global>) and tracked per-identifier.
 
 If you approach a limit (less than 10% remaining), a warning is issued. If you exceed a limit, a warning is issued with
 the time until reset.
 
-See also: L<https://docs.bsky.app/docs/advanced-guides/rate-limits>
+See L<https://docs.bsky.app/docs/advanced-guides/rate-limits>
 
-=head1 GETTING STARTED
+=head1 Getting Started
 
 If you are new to the AT Protocol, the first thing to understand is that it is decentralized. Your data lives on a
 Personal Data Server (PDS), but your identity is portable.
@@ -524,15 +525,15 @@ Personal Data Server (PDS), but your identity is portable.
 
 =over
 
-=item * B<Handle>: A human-readable name like C<alice.bsky.social>.
+=item * B<Handle>: A human-friendly name like C<alice.bsky.social>.
 
-=item * B<DID>: A persistent, machine-readable identifier like C<did:plc:z72i7...>.
+=item * B<DID>: A persistent, machine-friendly identifier like C<did:plc:z72i7...>.
 
 =back
 
-=head1 AUTHENTICATION
+=head1 Authentication and Session Management
 
-There are two ways to authenticate: the modern OAuth system and the legacy password system. Once  authenticated, all
+There are two ways to authenticate: the modern OAuth system and the legacy password system. Once authenticated, all
 other methods (like C<get>, C<post>, and C<subscribe>) work the same way.
 
 Developers of new code should be aware that the AT protocol is transitioning to OAuth and this library strongly
@@ -541,9 +542,11 @@ encourages its use.
 =head2 The OAuth System (Recommended)
 
 OAuth is the secure, modern way to authenticate. It uses DPoP (Demonstrating Proof-of-Possession) to ensure tokens
-cannot be stolen and reused.
+cannot be stolen and reused. It's a three step process:
 
-B<1. Start the flow:>
+=over
+
+=item 1. Start the flow:
 
     my $auth_url = $at->oauth_start(
         'user.bsky.social',
@@ -552,18 +555,23 @@ B<1. Start the flow:>
         'atproto transition:generic'         # Scopes
     );
 
-B<2. Redirect the user:> Open C<$auth_url> in a browser. After they approve, they will be redirected to your callback
-URL with C<code> and C<state> parameters.
+=item 2. Redirect the user:
 
-B<3. Complete the callback:>
+Open C<$auth_url> in a browser. After they approve, they will be redirected to your callback URL with C<code> and
+C<state> parameters.
+
+=item 3. Complete the callback:
 
     $at->oauth_callback( $code, $state );
 
-=head2 Resuming a Session
+See the demonstration scripts C<eg/bsky_oauth.pl> and C<eg/mojo_oauth.pl> for both a CLI and web based examples.
 
-You should store your session data securely so you can resume it later without requiring the user to log in again.
+=back
 
-B<1. Resuming an OAuth Session:>
+Once authenticated, you should store your session data securely so you can resume it later without requiring the user
+to log in again.
+
+=head3 Resuming an OAuth Session
 
 You need to store the tokens, the DPoP key, and the PDS endpoint. The C<_raw> method on the session  object provides a
 simple hash for this purpose:
@@ -583,28 +591,31 @@ simple hash for this purpose:
         $data->{pds}
     );
 
-B<2. Resuming a Legacy Session:>
+=head2 The Legacy System (App Passwords)
+
+Legacy authentication is simpler but less secure. It uses a single call to C<login>. B<Never use your main password;
+always use an App Password.>
+
+    $at->login( 'user.bsky.social', 'your-app-password' );
+
+Once authenticated, you should store your session data securely so you can resume it later without requiring the user
+to log in again.
+
+=head3 Resuming a Legacy Session
 
 Legacy sessions only require the access and refresh tokens:
 
     $at->resume( $access_jwt, $refresh_jwt );
 
-B<Note:> In both cases, if the access token has expired, C<resume()> will automatically attempt to  refresh it using
-the refresh token.
+B<Note:> In both cases, if the access token has expired, C<resume()> will automatically attempt to refresh it using the
+refresh token.
 
-=head2 The Legacy System (App Passwords)
-
-Legacy authentication is simpler but less secure. It uses a single call to C<login>.  B<Never use your main password;
-always use an App Password.>
-
-    $at->login( 'user.bsky.social', 'your-app-password' );
-
-=head1 ACCOUNT MANAGEMENT
+=head1 Account Management
 
 =head2 Creating an Account
 
-You can create a new account using C<com.atproto.server.createAccount>. Note that most PDS instances (like Bluesky's)
-require an invite code.
+You can create a new account using C<com.atproto.server.createAccount>. Note that PDS instances I<may> require an
+invite code.
 
     my $res = $at->post( 'com.atproto.server.createAccount' => {
         handle      => 'newuser.bsky.social',
@@ -613,14 +624,14 @@ require an invite code.
         inviteCode  => 'bsky-social-abcde'
     });
 
-=head1 WORKING WITH DATA (REPOSITORIES)
+=head1 Working With Data: Records and Repositories
 
 Data in the AT Protocol is stored in "repositories" as "records". Each record belongs to a "collection" (defined by a
 Lexicon).
 
 =head2 Creating a Post
 
-Posts are records in the C<app.bsky.feed.post> collection.
+Posts are records in, for example, the C<app.bsky.feed.post> collection.
 
     $at->post( 'com.atproto.repo.createRecord' => {
         repo       => $at->did,
@@ -646,14 +657,12 @@ To see what's in a collection:
         say $record->{value}{text};
     }
 
-=head1 FIREHOSE (REAL-TIME STREAMING)
+=head1 Drinking from the Firehose: Real-time Streaming
 
-The Firehose is a real-time stream of all events happening on the network (or a specific PDS). This includes new posts,
-likes, handle changes, and more.
+The Firehose is a real-time stream of B<all> events happening on the network (or a specific PDS). This includes new
+posts, likes, handle changes, deletions, and more.
 
 =head2 Subscribing to the Firehose
-
-B<Note:> The Firehose requires L<CBOR::Free> and L<Mojo::UserAgent> to be installed.
 
     my $fh = $at->firehose(sub ( $header, $body, $err ) {
         if ($err) {
@@ -668,14 +677,14 @@ B<Note:> The Firehose requires L<CBOR::Free> and L<Mojo::UserAgent> to be instal
 
     $fh->start();
 
-B<Note:> The Firehose requires an event loop to keep the connection alive. Since this library prefers
-L<Mojo::UserAgent>, you should usually use L<Mojo::IOLoop>:
+B<Note:> The Firehose requires L<CBOR::Free> and an async event loop to keep the connection alive. Currently, At.pm
+supports L<Mojo::UserAgent> so you should usually use L<Mojo::IOLoop>:
 
     use Mojo::IOLoop;
     # ... setup firehose ...
     Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
 
-=head1 LEXICON CACHING
+=head1 Lexicon Caching
 
 The AT Protocol defines its API endpoints using "Lexicons" (JSON schemas). This library uses these schemas to
 automatically coerce API responses into Perl objects.
@@ -782,19 +791,29 @@ Returns the DID of the authenticated user.
 
 Exception handling is carried out by returning L<At::Error> objects which have untrue boolean values.
 
-=head1 SEE ALSO
+=head1 See Also
 
 L<Bluesky> - Bluesky client library
 
+L<App::bsky> - Bluesky client on the command line
+
 L<https://docs.bsky.app/docs/api/>
+
+=head1 LICENSE
+
+Copyright (C) Sanko Robinson.
+
+This library is free software; you can redistribute it and/or modify it under the terms found in the Artistic License
+2. Other copyrights, terms, and conditions may apply to data transmitted through this module.
 
 =head1 AUTHOR
 
 Sanko Robinson E<lt>sanko@cpan.orgE<gt>
 
-=head1 LICENSE
+=begin stopwords
 
-Copyright (c) 2024-2026 Sanko Robinson. License: Artistic License 2.0. Other copyrights, terms, and conditions may
-apply to data transmitted through this module.
+atproto Bluesky auth authed login
+
+=end stopwords
 
 =cut

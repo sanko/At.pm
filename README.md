@@ -34,32 +34,33 @@ $fh->start();
 
 # DESCRIPTION
 
-At.pm is a comprehensive toolkit for interacting with the AT Protocol (authenticated transfer protocol). It powers
-decentralized social networks like Bluesky.
+At.pm is a toolkit for interacting with the AT Protocol which powers decentralized social networks like Bluesky.
+
+Unless you're designing a new client around the AT Protocol, you are probably looking for [Bluesky.pm](https://metacpan.org/pod/Bluesky).
 
 ## Rate Limits
 
-At.pm attempts to keep track of rate limits according to the protocol's specs. Requests are categorized (e.g., `auth`,
+At.pm attempts to keep track of rate limits according to the protocol's specs. Requests are categorized (`auth`,
 `repo`, `global`) and tracked per-identifier.
 
 If you approach a limit (less than 10% remaining), a warning is issued. If you exceed a limit, a warning is issued with
 the time until reset.
 
-See also: [https://docs.bsky.app/docs/advanced-guides/rate-limits](https://docs.bsky.app/docs/advanced-guides/rate-limits)
+See [https://docs.bsky.app/docs/advanced-guides/rate-limits](https://docs.bsky.app/docs/advanced-guides/rate-limits)
 
-# GETTING STARTED
+# Getting Started
 
 If you are new to the AT Protocol, the first thing to understand is that it is decentralized. Your data lives on a
 Personal Data Server (PDS), but your identity is portable.
 
 ## Identity (Handles and DIDs)
 
-- **Handle**: A human-readable name like `alice.bsky.social`.
-- **DID**: A persistent, machine-readable identifier like `did:plc:z72i7...`.
+- **Handle**: A human-friendly name like `alice.bsky.social`.
+- **DID**: A persistent, machine-friendly identifier like `did:plc:z72i7...`.
 
-# AUTHENTICATION
+# Authentication and Session Management
 
-There are two ways to authenticate: the modern OAuth system and the legacy password system. Once  authenticated, all
+There are two ways to authenticate: the modern OAuth system and the legacy password system. Once authenticated, all
 other methods (like `get`, `post`, and `subscribe`) work the same way.
 
 Developers of new code should be aware that the AT protocol is transitioning to OAuth and this library strongly
@@ -68,33 +69,36 @@ encourages its use.
 ## The OAuth System (Recommended)
 
 OAuth is the secure, modern way to authenticate. It uses DPoP (Demonstrating Proof-of-Possession) to ensure tokens
-cannot be stolen and reused.
+cannot be stolen and reused. It's a three step process:
 
-**1. Start the flow:**
+- 1. Start the flow:
 
-```perl
-my $auth_url = $at->oauth_start(
-    'user.bsky.social',
-    'http://localhost',                  # Client ID
-    'http://127.0.0.1:8888/callback',    # Redirect URI
-    'atproto transition:generic'         # Scopes
-);
-```
+    ```perl
+    my $auth_url = $at->oauth_start(
+        'user.bsky.social',
+        'http://localhost',                  # Client ID
+        'http://127.0.0.1:8888/callback',    # Redirect URI
+        'atproto transition:generic'         # Scopes
+    );
+    ```
 
-**2. Redirect the user:** Open `$auth_url` in a browser. After they approve, they will be redirected to your callback
-URL with `code` and `state` parameters.
+- 2. Redirect the user:
 
-**3. Complete the callback:**
+    Open `$auth_url` in a browser. After they approve, they will be redirected to your callback
+    URL with `code` and `state` parameters.
 
-```
-$at->oauth_callback( $code, $state );
-```
+- 3. Complete the callback:
 
-## Resuming a Session
+    ```
+    $at->oauth_callback( $code, $state );
+    ```
 
-You should store your session data securely so you can resume it later without requiring the user to log in again.
+    See the demonstration scripts `eg/bsky_oauth.pl` and `eg/mojo_oauth.pl` for both a CLI and
+    web based examples.
 
-**1. Resuming an OAuth Session:**
+Once authenticated, you should store your session data securely so you can resume it later without requiring the user to log in again.
+
+### Resuming an OAuth Session
 
 You need to store the tokens, the DPoP key, and the PDS endpoint. The `_raw` method on the session  object provides a
 simple hash for this purpose:
@@ -116,7 +120,18 @@ $at->resume(
 );
 ```
 
-**2. Resuming a Legacy Session:**
+## The Legacy System (App Passwords)
+
+Legacy authentication is simpler but less secure. It uses a single call to `login`. **Never use your main password;
+always use an App Password.**
+
+```
+$at->login( 'user.bsky.social', 'your-app-password' );
+```
+
+Once authenticated, you should store your session data securely so you can resume it later without requiring the user to log in again.
+
+### Resuming a Legacy Session
 
 Legacy sessions only require the access and refresh tokens:
 
@@ -124,24 +139,14 @@ Legacy sessions only require the access and refresh tokens:
 $at->resume( $access_jwt, $refresh_jwt );
 ```
 
-**Note:** In both cases, if the access token has expired, `resume()` will automatically attempt to  refresh it using
+**Note:** In both cases, if the access token has expired, `resume()` will automatically attempt to refresh it using
 the refresh token.
 
-## The Legacy System (App Passwords)
-
-Legacy authentication is simpler but less secure. It uses a single call to `login`.  **Never use your main password;
-always use an App Password.**
-
-```
-$at->login( 'user.bsky.social', 'your-app-password' );
-```
-
-# ACCOUNT MANAGEMENT
+# Account Management
 
 ## Creating an Account
 
-You can create a new account using `com.atproto.server.createAccount`. Note that most PDS instances (like Bluesky's)
-require an invite code.
+You can create a new account using `com.atproto.server.createAccount`. Note that PDS instances _may_ require an invite code.
 
 ```perl
 my $res = $at->post( 'com.atproto.server.createAccount' => {
@@ -152,14 +157,14 @@ my $res = $at->post( 'com.atproto.server.createAccount' => {
 });
 ```
 
-# WORKING WITH DATA (REPOSITORIES)
+# Working With Data: Records and Repositories
 
 Data in the AT Protocol is stored in "repositories" as "records". Each record belongs to a "collection" (defined by a
 Lexicon).
 
 ## Creating a Post
 
-Posts are records in the `app.bsky.feed.post` collection.
+Posts are records in, for example, the `app.bsky.feed.post` collection.
 
 ```perl
 $at->post( 'com.atproto.repo.createRecord' => {
@@ -189,14 +194,12 @@ for my $record (@{$res->{records}}) {
 }
 ```
 
-# FIREHOSE (REAL-TIME STREAMING)
+# Drinking from the Firehose: Real-time Streaming
 
-The Firehose is a real-time stream of all events happening on the network (or a specific PDS). This includes new posts,
-likes, handle changes, and more.
+The Firehose is a real-time stream of **all** events happening on the network (or a specific PDS). This includes new posts,
+likes, handle changes, deletions, and more.
 
 ## Subscribing to the Firehose
-
-**Note:** The Firehose requires [CBOR::Free](https://metacpan.org/pod/CBOR%3A%3AFree) and [Mojo::UserAgent](https://metacpan.org/pod/Mojo%3A%3AUserAgent) to be installed.
 
 ```perl
 my $fh = $at->firehose(sub ( $header, $body, $err ) {
@@ -213,8 +216,8 @@ my $fh = $at->firehose(sub ( $header, $body, $err ) {
 $fh->start();
 ```
 
-**Note:** The Firehose requires an event loop to keep the connection alive. Since this library prefers
-[Mojo::UserAgent](https://metacpan.org/pod/Mojo%3A%3AUserAgent), you should usually use [Mojo::IOLoop](https://metacpan.org/pod/Mojo%3A%3AIOLoop):
+**Note:** The Firehose requires [CBOR::Free](https://metacpan.org/pod/CBOR%3A%3AFree) and an async event loop to keep the connection alive. Currently, At.pm supports
+[Mojo::UserAgent](https://metacpan.org/pod/Mojo%3A%3AUserAgent) so you should usually use [Mojo::IOLoop](https://metacpan.org/pod/Mojo%3A%3AIOLoop):
 
 ```perl
 use Mojo::IOLoop;
@@ -222,7 +225,7 @@ use Mojo::IOLoop;
 Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
 ```
 
-# LEXICON CACHING
+# Lexicon Caching
 
 The AT Protocol defines its API endpoints using "Lexicons" (JSON schemas). This library uses these schemas to
 automatically coerce API responses into Perl objects.
@@ -318,17 +321,21 @@ Returns the DID of the authenticated user.
 
 Exception handling is carried out by returning [At::Error](https://metacpan.org/pod/At%3A%3AError) objects which have untrue boolean values.
 
-# SEE ALSO
+# See Also
 
 [Bluesky](https://metacpan.org/pod/Bluesky) - Bluesky client library
 
+[App::bsky](https://metacpan.org/pod/App%3A%3Absky) - Bluesky client on the command line
+
 [https://docs.bsky.app/docs/api/](https://docs.bsky.app/docs/api/)
+
+# LICENSE
+
+Copyright (C) Sanko Robinson.
+
+This library is free software; you can redistribute it and/or modify it under the terms found in the Artistic License
+2\. Other copyrights, terms, and conditions may apply to data transmitted through this module.
 
 # AUTHOR
 
 Sanko Robinson <sanko@cpan.org>
-
-# LICENSE
-
-Copyright (c) 2024-2026 Sanko Robinson. License: Artistic License 2.0. Other copyrights, terms, and conditions may
-apply to data transmitted through this module.

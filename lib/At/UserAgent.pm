@@ -277,7 +277,7 @@ At::UserAgent - Abstract Base Class for AT Protocol User Agents
 C<At::UserAgent> defines the interface for HTTP clients used by L<At>. It handles DPoP proof generation, automatic
 nonce management, and authentication headers.
 
-=head1 SUBCLASSES
+=head1 Subclasses
 
 =over
 
@@ -291,7 +291,7 @@ Uses L<HTTP::Tiny>. A lightweight, zero-dependency alternative. Does not support
 
 =back
 
-=head1 ATTRIBUTES
+=head1 Attributes
 
 =head2 C<accessJwt()>
 
@@ -305,7 +305,7 @@ The token type (e.g., 'DPoP' or 'Bearer').
 
 The L<Crypt::PK::ECC> key used for DPoP signing.
 
-=head1 METHODS
+=head1 Methods
 
 =head2 C<set_tokens( $access, $refresh, $type, $key )>
 
@@ -319,12 +319,21 @@ Performs an HTTP GET request.
 
 Performs an HTTP POST request.
 
+=head1 LICENSE
+
+Copyright (C) Sanko Robinson.
+
+This library is free software; you can redistribute it and/or modify it under the terms found in the Artistic License
+2. Other copyrights, terms, and conditions may apply to data transmitted through this module.
+
 =head1 AUTHOR
 
 Sanko Robinson E<lt>sanko@cpan.orgE<gt>
 
-=head1 LICENSE
+=begin stopwords
 
-Copyright (c) 2024-2026 Sanko Robinson. License: Artistic License 2.0.
+atproto Bluesky auth authed login
+
+=end stopwords
 
 =cut

@@ -63,7 +63,7 @@ At::Protocol::Session - AT Protocol Session Container
 C<At::Protocol::Session> stores authentication data for an active session. It supports both legacy password-based
 sessions and modern OAuth/DPoP sessions.
 
-=head1 ATTRIBUTES
+=head1 Attributes
 
 =head2 C<accessJwt()>
 
@@ -93,12 +93,21 @@ The scopes granted to this session.
 
 User's email information, if available.
 
+=head1 LICENSE
+
+Copyright (C) Sanko Robinson.
+
+This library is free software; you can redistribute it and/or modify it under the terms found in the Artistic License
+2. Other copyrights, terms, and conditions may apply to data transmitted through this module.
+
 =head1 AUTHOR
 
 Sanko Robinson E<lt>sanko@cpan.orgE<gt>
 
-=head1 LICENSE
+=begin stopwords
 
-Copyright (c) 2024-2026 Sanko Robinson. License: Artistic License 2.0.
+atproto
+
+=end stopwords
 
 =cut

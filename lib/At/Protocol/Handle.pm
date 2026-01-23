@@ -131,6 +131,8 @@ package At::Protocol::Handle 1.0 {
 };
 1;
 __END__
+=pod
+
 =encoding utf-8
 
 =head1 NAME

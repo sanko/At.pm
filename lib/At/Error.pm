@@ -89,7 +89,7 @@ At::Error - Specialized Exception Class for AT Protocol
 C<At::Error> is the primary exception class used by L<At>. It supports stack traces and can be fatal or non-fatal
 (warnings).
 
-=head1 METHODS
+=head1 Methods
 
 =head2 C<new( message => ..., [ description => ..., fatal => ... ] )>
 
@@ -111,18 +111,27 @@ Returns true if the error is considered fatal.
 
 Throws the error. If C<fatal> is true, it uses C<die>. Otherwise, it uses C<warn>.
 
-=head1 FUNCTIONS
+=head1 Functions
 
 =head2 C<register( $name, $is_fatal )>
 
 Registers a new error constructor in the caller's namespace.
 
-=head1 AUTHOR
-
-Sank Robinson E<lt>sanko@cpan.orgE<gt>
-
 =head1 LICENSE
 
-Copyright (c) 2024-2026 Sanko Robinson. License: Artistic License 2.0.
+Copyright (C) Sanko Robinson.
+
+This library is free software; you can redistribute it and/or modify it under the terms found in the Artistic License
+2. Other copyrights, terms, and conditions may apply to data transmitted through this module.
+
+=head1 AUTHOR
+
+Sanko Robinson E<lt>sanko@cpan.orgE<gt>
+
+=begin stopwords
+
+atproto Bluesky auth authed login
+
+=end stopwords
 
 =cut
