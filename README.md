@@ -92,13 +92,12 @@ $at->oauth_callback( $code, $state );
 
 ## Resuming a Session
 
-You should store your session data securely so you can resume it later without requiring the user to
-log in again.
+You should store your session data securely so you can resume it later without requiring the user to log in again.
 
 **1. Resuming an OAuth Session:**
 
-You need to store the tokens, the DPoP key, and the PDS endpoint. The `_raw` method on the session 
-object provides a simple hash for this purpose:
+You need to store the tokens, the DPoP key, and the PDS endpoint. The `_raw` method on the session  object provides a
+simple hash for this purpose:
 
 ```perl
 # After login, save the session
@@ -125,8 +124,8 @@ Legacy sessions only require the access and refresh tokens:
 $at->resume( $access_jwt, $refresh_jwt );
 ```
 
-**Note:** In both cases, if the access token has expired, `resume()` will automatically attempt to 
-refresh it using the refresh token.
+**Note:** In both cases, if the access token has expired, `resume()` will automatically attempt to  refresh it using
+the refresh token.
 
 ## The Legacy System (App Passwords)
 
@@ -223,6 +222,24 @@ use Mojo::IOLoop;
 Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
 ```
 
+# LEXICON CACHING
+
+The AT Protocol defines its API endpoints using "Lexicons" (JSON schemas). This library uses these schemas to
+automatically coerce API responses into Perl objects.
+
+## How it works
+
+When you call a method like `app.bsky.actor.getProfile`, the library:
+
+- 1. **Checks user-provided paths:** It looks in any directories passed to `lexicon_paths`.
+- 2. **Checks local storage:** It looks for the schema in the distribution's `share` directory.
+- 3. **Checks user cache:** It looks in `~/.cache/atproto/lexicons/`.
+- 4. **Downloads if missing:** If not found, it automatically downloads the schema from the
+official AT Protocol repository and saves it to your user cache.
+
+This system ensures that the library can support new or updated features without requiring a new release of the Perl
+module.
+
 # METHODS
 
 ## `new( [ host =` ..., share => ... \] )>
@@ -238,6 +255,11 @@ Expected parameters include:
 - `share`
 
     Location of lexicons. Defaults to the `share` directory under the distribution.
+
+- `lexicon_paths`
+
+    An optional path string or arrayref of paths to search for Lexicons before checking the default cache locations. Useful
+    for local development with a checkout of the `atproto` repository.
 
 - `http`
 

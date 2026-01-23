@@ -1,5 +1,5 @@
 package At::Protocol::Handle 1.0 {
-    use v5.38;
+    use v5.42;
     use At::Error qw[register throw];
     use parent -norequire => 'Exporter';
     use feature 'try';

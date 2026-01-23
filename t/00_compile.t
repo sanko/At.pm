@@ -3,7 +3,7 @@ use Test2::Util::Importer 'Test2::Tools::Subtest' => ( subtest_streamed => { -as
 use Test2::Plugin::UTF8;
 use JSON::PP   qw[decode_json encode_json];
 use Path::Tiny qw[path];
-use v5.36;
+use v5.42;
 
 # Dev
 # https://github.com/bluesky-social/atproto/blob/main/packages/api/tests/bsky-agent.test.ts

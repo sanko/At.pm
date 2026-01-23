@@ -1,7 +1,7 @@
 # Based on Module::Build::Tiny which is copyright (c) 2011 by Leon Timmermans, David Golden.
 # Module::Build::Tiny is free software; you can redistribute it and/or modify it under
 # the same terms as the Perl 5 programming language system itself.
-use v5.38;
+use v5.42;
 use feature 'class';
 no warnings 'experimental::class';
 class    #

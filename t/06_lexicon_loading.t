@@ -1,6 +1,6 @@
 use Test2::V0;
 use At;
-use v5.36;
+use v5.42;
 my $at = At->new( host => 'bsky.social' );
 subtest 'lexicon loading' => sub {
     ok $at->_locate_lexicon('app.bsky.feed.getTimeline'),        'found app.bsky.feed.getTimeline';
