@@ -561,15 +561,38 @@ B<3. Complete the callback:>
 
     $at->oauth_callback( $code, $state );
 
-B<Note for Local Scripts:> When using C<http://localhost> as a Client ID, you should declare your required scopes and
-redirect URI in the query string of the Client ID if you need more than the basic C<atproto> scope:
+=head2 Resuming a Session
 
-    use URI;
-    my $client_id = URI->new('http://localhost');
-    $client_id->query_param(scope => 'atproto transition:generic');
-    $client_id->query_param(redirect_uri => 'http://127.0.0.1:8888/');
+You should store your session data securely so you can resume it later without requiring the user to log in again.
 
-    my $url = $at->oauth_start($handle, $client_id->as_string, ...);
+B<1. Resuming an OAuth Session:>
+
+You need to store the tokens, the DPoP key, and the PDS endpoint. The C<_raw> method on the session  object provides a
+simple hash for this purpose:
+
+    # After login, save the session
+    my $data = $at->session->_raw;
+    # ... store $data securely ...
+
+    # Later, resume the session
+    $at->resume(
+        $data->{accessJwt},
+        $data->{refreshJwt},
+        $data->{token_type},
+        $data->{dpop_key_jwk},
+        $data->{client_id},
+        $data->{handle},
+        $data->{pds}
+    );
+
+B<2. Resuming a Legacy Session:>
+
+Legacy sessions only require the access and refresh tokens:
+
+    $at->resume( $access_jwt, $refresh_jwt );
+
+B<Note:> In both cases, if the access token has expired, C<resume()> will automatically attempt to  refresh it using
+the refresh token.
 
 =head2 The Legacy System (App Passwords)
 
@@ -679,6 +702,22 @@ L<IO::Async::Loop> (with L<Net::Async::HTTP>) in that order, falling back to L<H
 
 =back
 
+=head2 C<oauth_start( $handle, $client_id, $redirect_uri, [ $scope ] )>
+
+Initiates the OAuth 2.0 Authorization Code flow. Returns the authorization URL.
+
+=head2 C<oauth_callback( $code, $state )>
+
+Exchanges the authorization code for tokens and completes the OAuth flow.
+
+=head2 C<login( $handle, $app_password )>
+
+Performs legacy password-based authentication. B<Deprecated: Use OAuth instead.>
+
+=head2 C<resume( $access_jwt, $refresh_jwt, [ $token_type, $dpop_key_jwk, $client_id, $handle, $pds ] )>
+
+Resumes a previous session using stored tokens and metadata.
+
 =head2 C<get( $method, [ \%params ] )>
 
 Calls an XRPC query (GET). Returns the decoded JSON response.
@@ -702,6 +741,14 @@ Resolves a handle to a DID.
 =head2 C<collection_scope( $collection, [ $action ] )>
 
 Helper to generate granular OAuth scopes (e.g., C<repo:app.bsky.feed.post?action=create>).
+
+=head2 C<session()>
+
+Returns the current L<At::Protocol::Session> object.
+
+=head2 C<did()>
+
+Returns the DID of the authenticated user.
 
 =head1 ERROR HANDLING
 

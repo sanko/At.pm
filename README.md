@@ -90,17 +90,43 @@ URL with `code` and `state` parameters.
 $at->oauth_callback( $code, $state );
 ```
 
-**Note for Local Scripts:** When using `http://localhost` as a Client ID, you should declare your required scopes and
-redirect URI in the query string of the Client ID if you need more than the basic `atproto` scope:
+## Resuming a Session
+
+You should store your session data securely so you can resume it later without requiring the user to
+log in again.
+
+**1. Resuming an OAuth Session:**
+
+You need to store the tokens, the DPoP key, and the PDS endpoint. The `_raw` method on the session 
+object provides a simple hash for this purpose:
 
 ```perl
-use URI;
-my $client_id = URI->new('http://localhost');
-$client_id->query_param(scope => 'atproto transition:generic');
-$client_id->query_param(redirect_uri => 'http://127.0.0.1:8888/');
+# After login, save the session
+my $data = $at->session->_raw;
+# ... store $data securely ...
 
-my $url = $at->oauth_start($handle, $client_id->as_string, ...);
+# Later, resume the session
+$at->resume(
+    $data->{accessJwt},
+    $data->{refreshJwt},
+    $data->{token_type},
+    $data->{dpop_key_jwk},
+    $data->{client_id},
+    $data->{handle},
+    $data->{pds}
+);
 ```
+
+**2. Resuming a Legacy Session:**
+
+Legacy sessions only require the access and refresh tokens:
+
+```
+$at->resume( $access_jwt, $refresh_jwt );
+```
+
+**Note:** In both cases, if the access token has expired, `resume()` will automatically attempt to 
+refresh it using the refresh token.
 
 ## The Legacy System (App Passwords)
 
@@ -218,6 +244,22 @@ Expected parameters include:
     A pre-instantiated [At::UserAgent](https://metacpan.org/pod/At%3A%3AUserAgent) object. By default, this is auto-detected by checking for [Mojo::UserAgent](https://metacpan.org/pod/Mojo%3A%3AUserAgent) and
     [IO::Async::Loop](https://metacpan.org/pod/IO%3A%3AAsync%3A%3ALoop) (with [Net::Async::HTTP](https://metacpan.org/pod/Net%3A%3AAsync%3A%3AHTTP)) in that order, falling back to [HTTP::Tiny](https://metacpan.org/pod/HTTP%3A%3ATiny).
 
+## `oauth_start( $handle, $client_id, $redirect_uri, [ $scope ] )`
+
+Initiates the OAuth 2.0 Authorization Code flow. Returns the authorization URL.
+
+## `oauth_callback( $code, $state )`
+
+Exchanges the authorization code for tokens and completes the OAuth flow.
+
+## `login( $handle, $app_password )`
+
+Performs legacy password-based authentication. **Deprecated: Use OAuth instead.**
+
+## `resume( $access_jwt, $refresh_jwt, [ $token_type, $dpop_key_jwk, $client_id, $handle, $pds ] )`
+
+Resumes a previous session using stored tokens and metadata.
+
 ## `get( $method, [ \%params ] )`
 
 Calls an XRPC query (GET). Returns the decoded JSON response.
@@ -241,6 +283,14 @@ Resolves a handle to a DID.
 ## `collection_scope( $collection, [ $action ] )`
 
 Helper to generate granular OAuth scopes (e.g., `repo:app.bsky.feed.post?action=create`).
+
+## `session()`
+
+Returns the current [At::Protocol::Session](https://metacpan.org/pod/At%3A%3AProtocol%3A%3ASession) object.
+
+## `did()`
+
+Returns the DID of the authenticated user.
 
 # ERROR HANDLING
 
