@@ -470,7 +470,7 @@ __END__
 
 =head1 NAME
 
-At - The AT Protocol for Social Networking (Bluesky)
+At - The AT Protocol for Social Networking
 
 =head1 SYNOPSIS
 
@@ -725,7 +725,8 @@ for local development with a checkout of the C<atproto> repository.
 
 =item C<http>
 
-A pre-instantiated L<At::UserAgent> object. By default, this is auto-detected by checking for L<Mojo::UserAgent>, falling back to L<HTTP::Tiny>.
+A pre-instantiated L<At::UserAgent> object. By default, this is auto-detected by checking for L<Mojo::UserAgent>,
+falling back to L<HTTP::Tiny>.
 
 =back
 

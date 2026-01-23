@@ -35,7 +35,7 @@ Please create it with at least a handle:
     }
 }
 ERR
-    say "1. Discovering and starting OAuth flow for $handle...";
+    say 'Discovering and starting OAuth flow for ' . $handle . '...';
     my $REDIRECT_URI  = 'http://127.0.0.1:8888/';
     my $SCOPE         = 'atproto transition:generic';
     my $client_id_uri = URI->new('http://localhost');
@@ -43,15 +43,15 @@ ERR
     $client_id_uri->query_param( redirect_uri => $REDIRECT_URI );
     my $CLIENT_ID = $client_id_uri->as_string;
     my $auth_url  = $at->oauth_start( $handle, $CLIENT_ID, $REDIRECT_URI, $SCOPE );
-    say '2. Open this URL: ' . $auth_url;
-    say '3. Paste callback URL:';
+    say 'Open this URL: ' . $auth_url;
+    say 'Paste callback URL:';
     print '> ';
     my $callback_url_str = <STDIN>;
     chomp $callback_url_str;
     my $cb_uri = URI->new($callback_url_str);
     my $code   = $cb_uri->query_param('code');
     my $state  = $cb_uri->query_param('state');
-    say '4. Exchanging token...';
+    say 'Exchanging token...';
     $at->oauth_callback( $code, $state );
 
     # Save session back to file
@@ -60,7 +60,7 @@ ERR
     say '   Session saved to test_auth.json';
 }
 say 'Authenticated as ' . $at->did;
-say '5. Testing Read Access (listRecords)...';
+say 'Testing Read Access (listRecords)...';
 my $ident = $at->get( 'com.atproto.repo.listRecords', { repo => $at->did, collection => 'app.bsky.feed.post', limit => 1 } );
 if ( builtin::blessed($ident) && $ident->isa('At::Error') ) {
     say '   Read failed: ' . $ident;
@@ -68,7 +68,7 @@ if ( builtin::blessed($ident) && $ident->isa('At::Error') ) {
 else {
     say '   Read OK. Found ' . scalar( @{ $ident->{records} } ) . ' posts.';
 }
-say '6. Testing Write Access (createRecord)...';
+say 'Testing Write Access (createRecord)...';
 my $res = $at->post(
     'com.atproto.repo.createRecord' => {
         repo       => $at->did,
@@ -83,3 +83,37 @@ else {
     my $err_msg = builtin::blessed($res) && $res->isa('At::Error') ? $res->message : "$res";
     say '   Post failed: ' . $err_msg;
 }
+
+=head1 NAME
+
+bsky_oauth.pl - OAuth Authentication Example
+
+=head1 SYNOPSIS
+
+    perl eg/bsky_oauth.pl
+
+=head1 DESCRIPTION
+
+This script demonstrates the OAuth authentication flow in a CLI environment.
+Since OAuth requires a redirect, this script uses the "loopback" client ID method.
+It prints the authorization URL, asks you to open it, and then requests the
+redirected URL (containing the code) to be pasted back into the terminal.
+
+It verifies:
+
+=over
+
+=item * OAuth flow (start -> callback -> token exchange)
+
+=item * Session persistence (saving/loading tokens)
+
+=item * Read access (listRecords)
+
+=item * Write access (createRecord)
+
+=back
+
+For an example that uses a tiny, local webserver to gather the tokens instead,
+see C<eg/mojo_oauth.pl>.
+
+=cut

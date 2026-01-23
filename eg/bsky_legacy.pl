@@ -62,3 +62,30 @@ if ( $res && !builtin::blessed $res ) {
 else {
     die 'Post failed: ' . $res;
 }
+
+=head1 NAME
+
+bsky_legacy.pl - Legacy Authentication Example
+
+=head1 SYNOPSIS
+
+    perl eg/bsky_legacy.pl
+
+=head1 DESCRIPTION
+
+This script demonstrates how to authenticate with Bluesky using the legacy
+password-based method (App Passwords). It also shows how to:
+
+=over
+
+=item * Resume a session from a saved file
+
+=item * Login with a handle and app password
+
+=item * Create a simple text post
+
+=back
+
+Note that this login scheme is being replaced by OAuth. See C<eg/bsky_oauth.pl>.
+
+=cut

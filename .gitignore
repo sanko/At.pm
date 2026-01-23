@@ -40,3 +40,4 @@ eg/lib/*.pm
 test_auth.json
 
 MANIFEST
+eg/.cache/**

@@ -2,6 +2,8 @@ use v5.42;
 use lib '../lib';
 use At;
 use Data::Dumper;
+$|++;
+#
 my $at = At->new();
 say 'Testing connection to bsky.social...';
 
@@ -40,3 +42,32 @@ unless ($pds) {
 }
 say 'PDS: ' . $pds;
 say 'All connection tests passed.';
+
+=head1 NAME
+
+debug_connection.pl - Connection & Discovery Diagnostic Tool
+
+=head1 SYNOPSIS
+
+    perl eg/debug_connection.pl
+
+=head1 DESCRIPTION
+
+This utility script runs a series of tests to verify your environment's ability
+to connect to an AT Protocol network. It checks:
+
+=over
+
+=item * Basic HTTP connectivity to bsky.social
+
+=item * Handle resolution (DNS/HTTP)
+
+=item * DID resolution
+
+=item * PDS (Personal Data Server) discovery
+
+=back
+
+Use this if you are encountering connection or resolution errors.
+
+=cut

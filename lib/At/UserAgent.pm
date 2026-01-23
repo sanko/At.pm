@@ -12,20 +12,19 @@ use feature 'class';
 no warnings 'experimental::class';
 
 class At::UserAgent {
-    field $accessJwt  :reader :param = undef;
-    field $refreshJwt :reader :param = undef;
-    field $token_type :reader :param = 'Bearer';
-    field $dpop_key   :reader :param = undef;
-
+    field $accessJwt  : reader : param = undef;
+    field $refreshJwt : reader : param = undef;
+    field $token_type : reader : param = 'Bearer';
+    field $dpop_key   : reader : param = undef;
     field $dpop_nonce;
     field $auth;
 
-    method dpop_nonce ($new_val = undef) {
+    method dpop_nonce ( $new_val = undef ) {
         $dpop_nonce = $new_val if defined $new_val;
         return $dpop_nonce;
     }
 
-    method auth ($new_val = undef) {
+    method auth ( $new_val = undef ) {
         $auth = $new_val if defined $new_val;
         return $auth;
     }
@@ -56,34 +55,28 @@ class At::UserAgent {
             = { jti => Crypt::PRNG::random_string_from( $chars, 32 ), htm => $method, htu => $htu->as_string, iat => $now, exp => $now + 60, };
         $payload->{nonce} = $dpop_nonce if defined $dpop_nonce;
 
-        if ( $accessJwt ) {
-            $payload->{ath} = MIME::Base64::encode_base64url( Digest::SHA::sha256( $accessJwt ) );
+        if ($accessJwt) {
+            $payload->{ath} = MIME::Base64::encode_base64url( Digest::SHA::sha256($accessJwt) );
             $payload->{ath} =~ s/=+$//;
         }
-        return Crypt::JWT::encode_jwt(
-            payload       => $payload,
-            key           => $dpop_key,
-            alg           => 'ES256',
-            extra_headers => { typ => 'dpop+jwt', jwk => $jwk }
-        );
+        return Crypt::JWT::encode_jwt( payload => $payload, key => $dpop_key, alg => 'ES256', extra_headers => { typ => 'dpop+jwt', jwk => $jwk } );
     }
-
-    method _set_auth_header ($token) { die "Abstract" }
-    method get ($url, $req = undef)  { die "Abstract" }
-    method post ($url, $req = undef) { die "Abstract" }
-    method websocket ($url, $cb)     { die "Abstract" }
+    method _set_auth_header ($token)               { die "Abstract" }
+    method get              ( $url, $req = undef ) { die "Abstract" }
+    method post             ( $url, $req = undef ) { die "Abstract" }
+    method websocket        ( $url, $cb )          { die "Abstract" }
 }
 
-class At::UserAgent::Tiny :isa(At::UserAgent) {
+class At::UserAgent::Tiny : isa(At::UserAgent) {
     use HTTP::Tiny;
-    field $agent :param = HTTP::Tiny->new( agent => 'At.pm/Tiny', default_headers => { 'Content-Type' => 'application/json', Accept => 'application/json' } );
+    field $agent : param
+        = HTTP::Tiny->new( agent => 'At.pm/Tiny', default_headers => { 'Content-Type' => 'application/json', Accept => 'application/json' } );
 
     method get( $url, $req = {} ) {
         $req //= {};
         $req->{headers}{DPoP} = $self->_generate_dpop_proof( $url, 'GET' ) if $self->token_type eq 'DPoP';
         my $res
-            = $agent
-            ->get( $url . ( defined $req->{content} && keys %{ $req->{content} } ? '?' . $agent->www_form_urlencode( $req->{content} ) : '' ),
+            = $agent->get( $url . ( defined $req->{content} && keys %{ $req->{content} } ? '?' . $agent->www_form_urlencode( $req->{content} ) : '' ),
             { defined $req->{headers} ? ( headers => $req->{headers} ) : () } );
         $res->{content} = JSON::PP::decode_json( $res->{content} ) if $res->{content} && ( $res->{headers}{'content-type'} // '' ) =~ m[json];
         unless ( $res->{success} ) {
@@ -122,8 +115,8 @@ class At::UserAgent::Tiny :isa(At::UserAgent) {
                 $content = $req->{content};
             }
         }
-        my $res = $agent
-            ->post( $url, { defined $req->{headers} ? ( headers => $req->{headers} ) : (), defined $content ? ( content => $content ) : () } );
+        my $res = $agent->post( $url,
+            { defined $req->{headers} ? ( headers => $req->{headers} ) : (), defined $content ? ( content => $content ) : () } );
         $res->{content} = JSON::PP::decode_json( $res->{content} ) if $res->{content} && ( $res->{headers}{'content-type'} // '' ) =~ m[json];
         unless ( $res->{success} ) {
             my $msg = $res->{reason} // 'Unknown error';
@@ -144,18 +137,18 @@ class At::UserAgent::Tiny :isa(At::UserAgent) {
         wantarray ? ( $res->{content}, $res->{headers} ) : $res->{content};
     }
 
-    method websocket ($url, $cb) {
+    method websocket ( $url, $cb ) {
         die "At::UserAgent::Tiny does not support WebSockets. Please install Mojo::UserAgent.";
     }
 
-    method _set_auth_header( $token ) {
+    method _set_auth_header($token) {
         $self->auth($token);
         $agent->{default_headers}{Authorization} = $token;
     }
 }
 
-class At::UserAgent::Mojo :isa(At::UserAgent) {
-    field $agent :param = do { require Mojo::UserAgent; Mojo::UserAgent->new };
+class At::UserAgent::Mojo : isa(At::UserAgent) {
+    field $agent : param = do { require Mojo::UserAgent; Mojo::UserAgent->new };
 
     method get( $url, $req = {} ) {
         $req //= {};
@@ -165,7 +158,6 @@ class At::UserAgent::Mojo :isa(At::UserAgent) {
         my $tx  = $agent->get( $url, $headers, defined $req->{content} ? ( form => $req->{content} ) : () );
         my $res = $tx->result;
         if ( my $nonce = $res->headers->header('DPoP-Nonce') ) { $self->dpop_nonce($nonce); }
-
         if ( $res->code == 401 || $res->code == 400 ) {
             my $body = $res->body // '';
             if ( $body =~ /use_dpop_nonce/i ) {
@@ -267,7 +259,7 @@ class At::UserAgent::Mojo :isa(At::UserAgent) {
             }
         );
     }
-    method _set_auth_header( $token ) { $self->auth($token); }
+    method _set_auth_header($token) { $self->auth($token); }
 }
 1;
 __END__

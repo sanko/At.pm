@@ -4,6 +4,8 @@ use At::UserAgent;
 use Crypt::PK::ECC;
 use Crypt::JWT qw[decode_jwt];
 use Data::Dumper;
+$|++;
+#
 my $ua  = At::UserAgent::Tiny->new();
 my $key = Crypt::PK::ECC->new();
 $key->generate_key('secp256r1');
@@ -22,3 +24,20 @@ use JSON::PP     qw(decode_json);
 my ($header_b64) = split /\./, $proof;
 my $header       = decode_json( decode_base64url($header_b64) );
 say 'Decoded Header: ' . Dumper($header);
+
+=head1 NAME
+
+debug_dpop.pl - DPoP Proof Generation Debugger
+
+=head1 SYNOPSIS
+
+    perl eg/debug_dpop.pl
+
+=head1 DESCRIPTION
+
+This script is for internal debugging of the DPoP (Demonstrating Proof-of-Possession)
+mechanism. It manually generates a DPoP proof using C<At::UserAgent>'s logic and
+then decodes/verifies it locally to ensure the JWT structure and signature
+are correct.
+
+=cut
