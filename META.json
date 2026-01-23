@@ -85,7 +85,7 @@
             "Crypt::PK::ECC" : "0",
             "File::ShareDir::Tiny" : "0",
             "IO::Socket::SSL" : "1.42",
-            "JSON::Tiny" : "0",
+            "JSON::PP" : "0",
             "MIME::Base64" : "0",
             "Net::SSLeay" : "1.49",
             "Path::Tiny" : "0",

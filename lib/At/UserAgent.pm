@@ -3,7 +3,7 @@ use feature 'class';
 use experimental 'try';
 no warnings 'experimental::class';
 use URI;
-use JSON::Tiny;
+use JSON::PP;
 use Digest::SHA;
 use MIME::Base64;
 use Crypt::JWT;
@@ -33,7 +33,7 @@ class At::UserAgent {
     method _generate_dpop_proof ( $url, $method ) {
         return unless $dpop_key;
         my $jwk_json = $dpop_key->export_key_jwk('public');
-        my $jwk      = JSON::Tiny::decode_json($jwk_json);
+        my $jwk      = JSON::PP::decode_json($jwk_json);
         my $now      = time;
         my $htu      = URI->new($url);
         $htu->query(undef);
@@ -65,7 +65,7 @@ class At::UserAgent::Tiny : isa(At::UserAgent) {
         my $res
             = $agent->get( $url . ( defined $req->{content} && keys %{ $req->{content} } ? '?' . $agent->www_form_urlencode( $req->{content} ) : '' ),
             { defined $req->{headers} ? ( headers => $req->{headers} ) : () } );
-        $res->{content} = JSON::Tiny::decode_json( $res->{content} ) if $res->{content} && ( $res->{headers}{'content-type'} // '' ) =~ m[json];
+        $res->{content} = JSON::PP::decode_json( $res->{content} ) if $res->{content} && ( $res->{headers}{'content-type'} // '' ) =~ m[json];
         unless ( $res->{success} ) {
             my $msg = $res->{reason} // 'Unknown error';
             if ( ref $res->{content} eq 'HASH' ) {
@@ -94,7 +94,7 @@ class At::UserAgent::Tiny : isa(At::UserAgent) {
                 $req->{headers}{'Content-Type'} = 'application/x-www-form-urlencoded';
             }
             elsif ( ref $req->{content} ) {
-                $content = JSON::Tiny::encode_json( $req->{content} );
+                $content = JSON::PP::encode_json( $req->{content} );
                 $req->{headers}{'Content-Type'} = 'application/json';
             }
             else {
@@ -103,7 +103,7 @@ class At::UserAgent::Tiny : isa(At::UserAgent) {
         }
         my $res = $agent->post( $url,
             { defined $req->{headers} ? ( headers => $req->{headers} ) : (), defined $content ? ( content => $content ) : () } );
-        $res->{content} = JSON::Tiny::decode_json( $res->{content} ) if $res->{content} && ( $res->{headers}{'content-type'} // '' ) =~ m[json];
+        $res->{content} = JSON::PP::decode_json( $res->{content} ) if $res->{content} && ( $res->{headers}{'content-type'} // '' ) =~ m[json];
         unless ( $res->{success} ) {
             my $msg = $res->{reason} // 'Unknown error';
             if ( ref $res->{content} eq 'HASH' ) {
@@ -144,7 +144,7 @@ class At::UserAgent::Mojo : isa(At::UserAgent) {
         my $headers = { %{ $req->{headers} // {} } };
         $headers->{Authorization} = $self->auth                                if defined $self->auth;
         $headers->{DPoP}          = $self->_generate_dpop_proof( $url, 'GET' ) if $self->token_type eq 'DPoP';
-        if ($At::DEBUG) { warn "DEBUG: GET $url\nHeaders: " . JSON::Tiny::encode_json($headers) . "\n"; }
+        if ($At::DEBUG) { warn "DEBUG: GET $url\nHeaders: " . JSON::PP::encode_json($headers) . "\n"; }
         my $tx  = $agent->get( $url, $headers, defined $req->{content} ? ( form => $req->{content} ) : () );
         my $res = $tx->result;
         if ($At::DEBUG)                                        { warn "DEBUG: Response Status: " . $res->code . "\nBody: " . $res->body . "\n"; }
@@ -168,7 +168,7 @@ class At::UserAgent::Mojo : isa(At::UserAgent) {
         my $msg = $res->message;
         if ( my $body = $res->body ) {
             my $json;
-            try { $json = JSON::Tiny::decode_json($body) }
+            try { $json = JSON::PP::decode_json($body) }
             catch ($e) { }
             if ($json) {
                 my $details = $json->{error} // '';
@@ -196,7 +196,7 @@ class At::UserAgent::Mojo : isa(At::UserAgent) {
             else                                                     { $args{content} = $req->{content}; }
         }
         if ($At::DEBUG) {
-            warn "DEBUG: POST $url\nHeaders: " . JSON::Tiny::encode_json($headers) . "\nArgs: " . JSON::Tiny::encode_json( \%args ) . "\n";
+            warn "DEBUG: POST $url\nHeaders: " . JSON::PP::encode_json($headers) . "\nArgs: " . JSON::PP::encode_json( \%args ) . "\n";
         }
         my $tx  = $agent->post( $url, $headers, %args );
         my $res = $tx->result;
@@ -220,7 +220,7 @@ class At::UserAgent::Mojo : isa(At::UserAgent) {
         my $msg = $res->message;
         if ( my $body = $res->body ) {
             my $json;
-            try { $json = JSON::Tiny::decode_json($body) }
+            try { $json = JSON::PP::decode_json($body) }
             catch ($e) { }
             if ($json) {
                 my $details = $json->{error} // '';
@@ -299,7 +299,7 @@ class At::UserAgent::IOAsync : isa(At::UserAgent) {
         }
         if ( $res->is_success ) {
             my $body    = $res->content;
-            my $content = $body && ( $res->content_type // '' ) =~ m[json] ? JSON::Tiny::decode_json($body) : $body;
+            my $content = $body && ( $res->content_type // '' ) =~ m[json] ? JSON::PP::decode_json($body) : $body;
             return wantarray ? ( $content, { map { $_ => $res->header($_) } $res->header_field_names } ) : $content;
         }
         return $self->_handle_error($res);
@@ -321,7 +321,7 @@ class At::UserAgent::IOAsync : isa(At::UserAgent) {
                 $content_type = 'application/x-www-form-urlencoded';
             }
             elsif ( ref $req->{content} ) {
-                $content = JSON::Tiny::encode_json( $req->{content} );
+                $content = JSON::PP::encode_json( $req->{content} );
             }
             else {
                 $content = $req->{content};
@@ -340,7 +340,7 @@ class At::UserAgent::IOAsync : isa(At::UserAgent) {
         }
         if ( $res->is_success ) {
             my $body    = $res->content;
-            my $content = $body && ( $res->content_type // '' ) =~ m[json] ? JSON::Tiny::decode_json($body) : $body;
+            my $content = $body && ( $res->content_type // '' ) =~ m[json] ? JSON::PP::decode_json($body) : $body;
             return wantarray ? ( $content, { map { $_ => $res->header($_) } $res->header_field_names } ) : $content;
         }
         return $self->_handle_error($res);
@@ -369,7 +369,7 @@ class At::UserAgent::IOAsync : isa(At::UserAgent) {
         my $msg = $res->message;
         if ( my $body = $res->content ) {
             my $json;
-            try { $json = JSON::Tiny::decode_json($body) }
+            try { $json = JSON::PP::decode_json($body) }
             catch ($e) { }
             if ($json) {
                 my $details = $json->{error} // '';

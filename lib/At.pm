@@ -10,7 +10,7 @@ class At v1.1.0 {
     use Carp qw[];
     use experimental 'try';
     use File::ShareDir::Tiny qw[dist_dir];
-    use JSON::Tiny           qw[decode_json encode_json];
+    use JSON::PP             qw[decode_json encode_json];
     use Path::Tiny           qw[path];
     use Digest::SHA          qw[sha256];
     use MIME::Base64         qw[encode_base64url];
@@ -160,7 +160,8 @@ class At v1.1.0 {
             token_type   => 'DPoP',
             dpop_key_jwk => $key->export_key_jwk('private'),
             client_id    => $oauth_state->{client_id},
-            scope        => $token_res->{scope}
+            scope        => $token_res->{scope},
+            pds          => $oauth_state->{discovery}{pds}
         );
         $self->set_host( $oauth_state->{discovery}{pds} );
         $http->set_tokens( $token_res->{access_token}, $token_res->{refresh_token}, 'DPoP', $key );
@@ -235,16 +236,26 @@ class At v1.1.0 {
             refreshJwt   => $refreshJwt,
             token_type   => $token_type,
             dpop_key_jwk => $dpop_key_jwk,
-            client_id    => $client_id
+            client_id    => $client_id,
+            handle       => $handle,
+            pds          => $pds
         );
+        $self->set_host($pds) if $pds;
         return $http->set_tokens( $accessJwt, $refreshJwt, $token_type, $key );
     }
 
     method _decode_token ($token) {
+        return unless defined $token;
         use MIME::Base64 qw[decode_base64];
         my ( $header, $payload, $sig ) = split /\./, $token;
+        return unless defined $payload;
         $payload =~ tr[-_][+/];
-        decode_json decode_base64 $payload;
+        try {
+            return decode_json decode_base64 $payload;
+        }
+        catch ($e) {
+            return;
+        }
     }
 
     # XRPC & Lexicons
@@ -285,7 +296,7 @@ class At v1.1.0 {
             $cache_dir->mkpath;
             my $lex_file = $cache_dir->child( @namespace[ 0 .. $#namespace - 1 ], $namespace[-1] . '.json' );
             $lex_file->parent->mkpath;
-            $lex_file->spew_raw( JSON::Tiny::encode_json($content) );
+            $lex_file->spew_raw( builtin::blessed($content) ? JSON::PP::encode_json($content) : $content );
             return $lex_file;
         }
         return;

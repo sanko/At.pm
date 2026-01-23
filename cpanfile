@@ -2,7 +2,7 @@ requires 'Crypt::JWT';
 requires 'Crypt::PK::ECC';
 requires 'File::ShareDir::Tiny';
 requires 'IO::Socket::SSL', '1.42';
-requires 'JSON::Tiny';
+requires 'JSON::PP';
 requires 'MIME::Base64';
 requires 'Net::SSLeay', '1.49';
 requires 'Path::Tiny';
