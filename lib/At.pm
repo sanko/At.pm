@@ -324,6 +324,11 @@ class At v1.1.0 {
     }
     method subscribe( $id, $cb ) { $self->http->websocket( sprintf( '%s/xrpc/%s', $host, $id ), $cb ); }
 
+    method firehose ( $callback, $url = () ) {
+        require At::Protocol::Firehose;
+        return At::Protocol::Firehose->new( at => $self, callback => $callback, defined $url ? ( url => $url ) : () );
+    }
+
     # Coercion Logic
     my %coercions = (
         array => method( $namespace, $schema, $data ) {
@@ -464,6 +469,14 @@ At - The AT Protocol for Social Networking (Bluesky)
         }
     });
 
+    # Streaming the Firehose
+    my $fh = $at->firehose(sub ( $header, $body, $err ) {
+        return warn $err if $err;
+        say "New event: " . $header->{t};
+    });
+    $fh->start();
+    # ... Start event loop (e.g. Mojo::IOLoop->start) ...
+
 =head1 DESCRIPTION
 
 At.pm is a comprehensive toolkit for interacting with the AT Protocol (authenticated transfer protocol). It powers
@@ -486,7 +499,7 @@ Personal Data Server (PDS), but your identity is portable.
 
 =head2 Identity (Handles and DIDs)
 
-=over 4
+=over
 
 =item * B<Handle>: A human-readable name like C<alice.bsky.social>.
 
@@ -587,6 +600,35 @@ To see what's in a collection:
         say $record->{value}{text};
     }
 
+=head1 FIREHOSE (REAL-TIME STREAMING)
+
+The Firehose is a real-time stream of all events happening on the network (or a specific PDS). This includes new posts,
+likes, handle changes, and more.
+
+=head2 Subscribing to the Firehose
+
+B<Note:> The Firehose requires L<CBOR::Free> and L<Mojo::UserAgent> to be installed.
+
+    my $fh = $at->firehose(sub ( $header, $body, $err ) {
+        if ($err) {
+            warn "Firehose error: $err";
+            return;
+        }
+
+        if ($header->{t} eq '#commit') {
+            say "New commit in repo: " . $body->{repo};
+        }
+    });
+
+    $fh->start();
+
+B<Note:> The Firehose requires an event loop to keep the connection alive. Since this library prefers
+L<Mojo::UserAgent>, you should usually use L<Mojo::IOLoop>:
+
+    use Mojo::IOLoop;
+    # ... setup firehose ...
+    Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
+
 =head1 METHODS
 
 =head2 C<new( [ host => ..., share => ... ] )>
@@ -618,6 +660,10 @@ Calls an XRPC procedure (POST). Returns the decoded JSON response.
 =head2 C<subscribe( $method, $callback )>
 
 Connects to a WebSocket stream (Firehose).
+
+=head2 C<firehose( $callback, [ $url ] )>
+
+Returns a new L<At::Protocol::Firehose> client. C<$url> defaults to the Bluesky relay firehose.
 
 =head2 C<resolve_handle( $handle )>
 

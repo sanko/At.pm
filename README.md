@@ -22,6 +22,14 @@ $at->post( 'com.atproto.repo.createRecord' => {
         createdAt => At::_now->to_string
     }
 });
+
+# Streaming the Firehose
+my $fh = $at->firehose(sub ( $header, $body, $err ) {
+    return warn $err if $err;
+    say "New event: " . $header->{t};
+});
+$fh->start();
+# ... Start event loop (e.g. Mojo::IOLoop->start) ...
 ```
 
 # DESCRIPTION
@@ -156,6 +164,39 @@ for my $record (@{$res->{records}}) {
 }
 ```
 
+# FIREHOSE (REAL-TIME STREAMING)
+
+The Firehose is a real-time stream of all events happening on the network (or a specific PDS). This includes new posts,
+likes, handle changes, and more.
+
+## Subscribing to the Firehose
+
+**Note:** The Firehose requires [CBOR::Free](https://metacpan.org/pod/CBOR%3A%3AFree) and [Mojo::UserAgent](https://metacpan.org/pod/Mojo%3A%3AUserAgent) to be installed.
+
+```perl
+my $fh = $at->firehose(sub ( $header, $body, $err ) {
+    if ($err) {
+        warn "Firehose error: $err";
+        return;
+    }
+
+    if ($header->{t} eq '#commit') {
+        say "New commit in repo: " . $body->{repo};
+    }
+});
+
+$fh->start();
+```
+
+**Note:** The Firehose requires an event loop to keep the connection alive. Since this library prefers
+[Mojo::UserAgent](https://metacpan.org/pod/Mojo%3A%3AUserAgent), you should usually use [Mojo::IOLoop](https://metacpan.org/pod/Mojo%3A%3AIOLoop):
+
+```perl
+use Mojo::IOLoop;
+# ... setup firehose ...
+Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
+```
+
 # METHODS
 
 ## `new( [ host =` ..., share => ... \] )>
@@ -183,6 +224,10 @@ Calls an XRPC procedure (POST). Returns the decoded JSON response.
 ## `subscribe( $method, $callback )`
 
 Connects to a WebSocket stream (Firehose).
+
+## `firehose( $callback, [ $url ] )`
+
+Returns a new [At::Protocol::Firehose](https://metacpan.org/pod/At%3A%3AProtocol%3A%3AFirehose) client. `$url` defaults to the Bluesky relay firehose.
 
 ## `resolve_handle( $handle )`
 

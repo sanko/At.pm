@@ -109,6 +109,10 @@
          "file" : "lib/At/Protocol/DID.pm",
          "version" : "1.0"
       },
+      "At::Protocol::Firehose" : {
+         "file" : "lib/At/Protocol/Firehose.pm",
+         "version" : "1.0"
+      },
       "At::Protocol::Handle" : {
          "file" : "lib/At/Protocol/Handle.pm",
          "version" : "1.0"

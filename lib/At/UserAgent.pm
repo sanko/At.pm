@@ -49,9 +49,10 @@ class At::UserAgent {
         }
         return Crypt::JWT::encode_jwt( payload => $payload, key => $dpop_key, alg => 'ES256', extra_headers => { typ => 'dpop+jwt', jwk => $jwk } );
     }
-    method _set_auth_header ($token) { die "Abstract" }
-    method get  ( $url, $req = () ) { die "Abstract" }
-    method post ( $url, $req = () ) { die "Abstract" }
+    method _set_auth_header ($token)            { die "Abstract" }
+    method get              ( $url, $req = () ) { die "Abstract" }
+    method post             ( $url, $req = () ) { die "Abstract" }
+    method websocket        ( $url, $cb )       { die "Abstract" }
 }
 
 class At::UserAgent::Tiny : isa(At::UserAgent) {
@@ -120,6 +121,10 @@ class At::UserAgent::Tiny : isa(At::UserAgent) {
             $res->{content} = At::Error->new( message => $msg, fatal => 1 );
         }
         wantarray ? ( $res->{content}, $res->{headers} ) : $res->{content};
+    }
+
+    method websocket ( $url, $cb ) {
+        die "At::UserAgent::Tiny does not support WebSockets. Please install Mojo::UserAgent.";
     }
 
     method _set_auth_header ($token) {
@@ -231,6 +236,28 @@ class At::UserAgent::Mojo : isa(At::UserAgent) {
         }
         return At::Error->new( message => $msg, fatal => 1 );
     }
+
+    method websocket ( $url, $cb ) {
+        $agent->websocket(
+            $url => sub ( $ua, $tx ) {
+                if ( !$tx->is_websocket ) {
+                    $cb->( undef, At::Error->new( message => "WebSocket handshake failed", fatal => 1 ) );
+                    return;
+                }
+                $tx->on(
+                    message => sub ( $tx, $msg ) {
+                        $cb->( $msg, undef );
+                    }
+                );
+                $tx->on(
+                    finish => sub ( $tx, $code, $reason ) {
+
+                        # Optionally handle finish
+                    }
+                );
+            }
+        );
+    }
     method _set_auth_header ($token) { $self->set_auth($token); }
 }
 1;
@@ -251,7 +278,7 @@ nonce management, and authentication headers.
 
 =head1 SUBCLASSES
 
-=over 4
+=over
 
 =item L<At::UserAgent::Mojo>
 
