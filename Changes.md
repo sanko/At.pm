@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.0] - 2026-01-23
 
 ### Added
 - Dedicated Firehose client (`At::Protocol::Firehose`) for real-time event streaming.
@@ -133,3 +133,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Original version.
+
+[Unreleased]: https://github.com/sanko/At.pm/compare/1.0...HEAD
+[1.0]: https://github.com/sanko/At.pm/compare/0.18...1.0
+[0.18]: https://github.com/sanko/At.pm/compare/0.17...0.18
+[0.17]: https://github.com/sanko/At.pm/compare/0.16...0.17
+[0.16]: https://github.com/sanko/At.pm/compare/0.15...0.16
+[0.15]: https://github.com/sanko/At.pm/compare/0.14...0.15
+[0.14]: https://github.com/sanko/At.pm/compare/0.13...0.14
+[0.13]: https://github.com/sanko/At.pm/compare/0.12...0.13
+[0.12]: https://github.com/sanko/At.pm/compare/0.11...0.12
+[0.11]: https://github.com/sanko/At.pm/compare/0.10...0.11
+[0.10]: https://github.com/sanko/At.pm/compare/0.09...0.10
+[0.09]: https://github.com/sanko/At.pm/compare/0.08...0.09
+[0.08]: https://github.com/sanko/At.pm/compare/0.07...0.08
+[0.07]: https://github.com/sanko/At.pm/compare/0.06...0.07
+[0.06]: https://github.com/sanko/At.pm/compare/0.05...0.06
+[0.05]: https://github.com/sanko/At.pm/compare/0.04...0.05
+[0.04]: https://github.com/sanko/At.pm/compare/0.03...0.04
+[0.03]: https://github.com/sanko/At.pm/compare/0.02...0.03
+[0.02]: https://github.com/sanko/At.pm/compare/0.01...0.02
+[0.01]: https://github.com/sanko/At.pm/releases/tag/0.01
