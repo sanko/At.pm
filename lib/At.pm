@@ -6,7 +6,7 @@ no warnings 'experimental::class', 'experimental::builtin', 'experimental::for_l
 #~ |------3-33-----------------------------|
 #~ |-5-55------4-44-5-55----353--3-33-/1~--|
 #~ |---------------------335---33----------|
-class At v1.1.0 {
+class At 1.0 {
     use Carp qw[];
     use experimental 'try';
     use File::ShareDir::Tiny qw[dist_dir];
@@ -467,7 +467,8 @@ class At v1.1.0 {
             warnings::warnif( At => "Approaching rate limit for $type ($rate->{remaining} remaining)." );
         }
     }
-} 1;
+}
+1;
 __END__
 
 =pod
