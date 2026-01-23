@@ -25,8 +25,10 @@ class At v1.1.0 {
     use At::UserAgent;
     field $share    : reader : param = ();
     field %lexicons : reader;
-    field $http     : reader = ();
-    field $host     : param : reader //= 'bsky.social';
+    field $http : reader = ();
+    field $lexicon_paths_param : param(lexicon_paths) = [];
+    field @lexicon_paths;
+    field $host : param : reader //= 'bsky.social';
     method set_host ($new) { $host = $new }
     field $session = ();
     field $oauth_state;
@@ -44,6 +46,7 @@ class At v1.1.0 {
             catch ($e) { $share = 'share' }
         }
         $share = path($share) unless builtin::blessed $share;
+        @lexicon_paths = map { path($_) } ( ref $lexicon_paths_param eq 'ARRAY' ? @$lexicon_paths_param : ($lexicon_paths_param) );
         if ( !defined $http ) {
             my $ua_class;
             try {
@@ -267,6 +270,7 @@ class At v1.1.0 {
             my $base_fqdn = $fqdn =~ s[#(.+)$][]r;
             my @namespace = split /\./, $base_fqdn;
             my @search    = (
+                @lexicon_paths,
                 $share->child('lexicons'),
                 defined $ENV{HOME} ? path( $ENV{HOME}, '.cache', 'atproto', 'lexicons' ) : (),
                 path( 'share', 'lexicons' )
@@ -677,6 +681,31 @@ L<Mojo::UserAgent>, you should usually use L<Mojo::IOLoop>:
     # ... setup firehose ...
     Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
 
+=head1 LEXICON CACHING
+
+The AT Protocol defines its API endpoints using "Lexicons" (JSON schemas). This library uses these schemas to
+automatically coerce API responses into Perl objects.
+
+=head2 How it works
+
+When you call a method like C<app.bsky.actor.getProfile>, the library:
+
+=over
+
+=item 1. B<Checks user-provided paths:> It looks in any directories passed to C<lexicon_paths>.
+
+=item 2. B<Checks local storage:> It looks for the schema in the distribution's C<share> directory.
+
+=item 3. B<Checks user cache:> It looks in C<~/.cache/atproto/lexicons/>.
+
+=item 4. B<Downloads if missing:> If not found, it automatically downloads the schema from the
+official AT Protocol repository and saves it to your user cache.
+
+=back
+
+This system ensures that the library can support new or updated features without requiring a new release of the Perl
+module.
+
 =head1 METHODS
 
 =head2 C<new( [ host => ..., share => ... ] )>
@@ -694,6 +723,11 @@ Host for the service. Defaults to C<bsky.social>.
 =item C<share>
 
 Location of lexicons. Defaults to the C<share> directory under the distribution.
+
+=item C<lexicon_paths>
+
+An optional path string or arrayref of paths to search for Lexicons before checking the default cache locations. Useful
+for local development with a checkout of the C<atproto> repository.
 
 =item C<http>
 

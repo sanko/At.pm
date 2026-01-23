@@ -405,7 +405,7 @@ nonce management, and authentication headers.
 
 =head1 SUBCLASSES
 
-=over 4
+=over
 
 =item L<At::UserAgent::Mojo>
 

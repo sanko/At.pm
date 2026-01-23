@@ -16,4 +16,15 @@ subtest 'lexicon loading' => sub {
 subtest 'subscribe method' => sub {
     can_ok $at, 'subscribe';
 };
+subtest 'custom lexicon_paths' => sub {
+    use Path::Tiny;
+    use JSON::PP qw[encode_json];
+    my $temp_dir = Path::Tiny->tempdir;
+    my $lex_dir  = $temp_dir->child( 'com', 'example' );
+    $lex_dir->mkpath;
+    $lex_dir->child('test.json')
+        ->spew_raw( encode_json( { lexicon => 1, id => 'com.example.test', defs => { main => { type => 'query', description => 'Test' } } } ) );
+    my $at_custom = At->new( lexicon_paths => [$temp_dir] );
+    ok $at_custom->_locate_lexicon('com.example.test'), 'found custom lexicon in provided path';
+};
 done_testing;
