@@ -1,7 +1,7 @@
 ---
 jobs:
   build:
-    name: "${{ inputs.flags == '-Dusethreads' && 'Threads' ||inputs.flags == '-Duselongdouble' && 'Long Double' || inputs.flags == '-Dusequadmath' && 'Quad Math' || 'Default' }}"
+    name: "${{ inputs.flags == '-Dusethreads' && 'Threads' || inputs.flags == '-Duselongdouble' && 'Long Double' || inputs.flags == '-Dusequadmath' && 'Quad Math' || inputs.flags == '--debug' && 'Debugging' || inputs.flags == '' && 'Default' || inputs.flags }}"
     runs-on: '${{ inputs.os }}'
     steps:
       - name: Checkout source
@@ -46,6 +46,7 @@ jobs:
         run: |
           source ~/perl5/perlbrew/etc/bashrc
           perlbrew switch cache-${{ inputs.os }}-${{ inputs.perl }}${{ inputs.flags }}
+          perl -V
           perl Build.PL
           ./Build
           ./Build test --v

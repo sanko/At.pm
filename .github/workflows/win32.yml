@@ -8,11 +8,9 @@ jobs:
         with:
           submodules: true
       - name: Setup Perl environment
-        uses: shogo82148/actions-setup-perl@v1.37.0
+        uses: shogo82148/actions-setup-perl@v1.37.1
         with:
           distribution: "${{ inputs.flags == '-Dusethreads' && 'strawberry' || 'default' }}"
-          install-modules-args: --with-configure --installdeps --notest -v .
-          install-modules-with: cpanm
           multi-thread: "${{ inputs.flags == '-Dusethreads' && true || false }}"
           perl-version: '${{ inputs.perl }}'
       - name: Install prereqs
