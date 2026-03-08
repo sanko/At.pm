@@ -113,7 +113,7 @@
    "provides" : {
       "At" : {
          "file" : "lib/At.pm",
-         "version" : "1.2"
+         "version" : "1.3"
       },
       "At::Error" : {
          "file" : "lib/At/Error.pm",
@@ -136,14 +136,16 @@
          "version" : "1.0"
       },
       "At::Protocol::Session" : {
-         "file" : "lib/At/Protocol/Session.pm"
+         "file" : "lib/At/Protocol/Session.pm",
+         "version" : "1.3"
       },
       "At::Protocol::URI" : {
          "file" : "lib/At/Protocol/URI.pm",
          "version" : "1.0"
       },
       "At::UserAgent" : {
-         "file" : "lib/At/UserAgent.pm"
+         "file" : "lib/At/UserAgent.pm",
+         "version" : "1.3"
       },
       "At::UserAgent::Mojo" : {
          "file" : "lib/At/UserAgent.pm"
@@ -167,7 +169,7 @@
          "web" : "https://github.com/sanko/At.pm"
       }
    },
-   "version" : "1.2",
+   "version" : "1.3",
    "x_contributors" : [
       "Akiomi Kamakura <akiomik@gmail.com>",
       "Alberto Roura <mail@albertoroura.com>",

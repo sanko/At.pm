@@ -6,7 +6,7 @@ no warnings 'experimental::class', 'experimental::builtin', 'experimental::for_l
 #~ |------3-33-----------------------------|
 #~ |-5-55------4-44-5-55----353--3-33-/1~--|
 #~ |---------------------335---33----------|
-class At 1.2 {
+class At 1.3 {
     use Carp qw[];
     use experimental 'try';
     use File::ShareDir::Tiny qw[dist_dir];
@@ -113,23 +113,27 @@ class At 1.2 {
         # Prepare UA for DPoP
         $http->set_tokens( undef, undef, 'DPoP', $self->_get_dpop_key() );
         my $par_endpoint = $discovery->{metadata}{pushed_authorization_request_endpoint};
+        my $par_content  = {
+            client_id             => $client_id,
+            response_type         => 'code',
+            code_challenge        => $code_challenge,
+            code_challenge_method => 'S256',
+            redirect_uri          => $redirect_uri,
+            state                 => $state,
+            scope                 => $scope,
+            aud                   => $discovery->{pds},
+        };
+        say "[DEBUG] [At] PAR request: " . JSON::PP->new->ascii->encode($par_content) if $ENV{DEBUG};
         my ($par_res) = $http->post(
             $par_endpoint => {
-                headers  => { DPoP => $http->_generate_dpop_proof( $par_endpoint, 'POST' ) },
+                headers  => { DPoP => $http->_generate_dpop_proof( $par_endpoint, 'POST', 1 ) },
                 encoding => 'form',
-                content  => {
-                    client_id             => $client_id,
-                    response_type         => 'code',
-                    code_challenge        => $code_challenge,
-                    code_challenge_method => 'S256',
-                    redirect_uri          => $redirect_uri,
-                    state                 => $state,
-                    scope                 => $scope,
-                    aud                   => $discovery->{pds},
-                }
+                content  => $par_content,
+                skip_ath => 1
             }
         );
-        die 'PAR failed: ' . ( $par_res . "" ) if builtin::blessed $par_res;
+        die 'PAR failed: ' . ( $par_res . "" )                                     if builtin::blessed $par_res;
+        say "[DEBUG] [At] PAR response: " . JSON::PP->new->ascii->encode($par_res) if $ENV{DEBUG};
         my $auth_uri = URI->new( $discovery->{metadata}{authorization_endpoint} );
         $auth_uri->query_form( client_id => $client_id, request_uri => $par_res->{request_uri} );
         return $auth_uri->as_string;
@@ -141,7 +145,7 @@ class At 1.2 {
         my $key            = $self->_get_dpop_key();
         my ($token_res)    = $http->post(
             $token_endpoint => {
-                headers  => { DPoP => $http->_generate_dpop_proof( $token_endpoint, 'POST' ) },
+                headers  => { DPoP => $http->_generate_dpop_proof( $token_endpoint, 'POST', 1 ) },
                 encoding => 'form',
                 content  => {
                     grant_type    => 'authorization_code',
@@ -150,10 +154,12 @@ class At 1.2 {
                     redirect_uri  => $oauth_state->{redirect_uri},
                     code_verifier => $oauth_state->{code_verifier},
                     aud           => $oauth_state->{discovery}{pds}
-                }
+                },
+                skip_ath => 1
             }
         );
-        die 'Token exchange failed: ' . ( $token_res . "" ) if builtin::blessed $token_res;
+        die 'Token exchange failed: ' . ( $token_res . "" )                            if builtin::blessed $token_res;
+        say "[DEBUG] [At] Token response: " . JSON::PP->new->ascii->encode($token_res) if $ENV{DEBUG};
         $session = At::Protocol::Session->new(
             did          => $token_res->{sub},
             accessJwt    => $token_res->{access_token},
@@ -173,18 +179,21 @@ class At 1.2 {
         return unless $session && $session->refreshJwt && $session->token_type eq 'DPoP';
         my $discovery = $self->oauth_discover( $session->handle );
         return unless $discovery;
-        my $token_endpoint = $discovery->{metadata}{token_endpoint};
-        my $key            = $self->_get_dpop_key();
-        my ($token_res)    = $http->post(
+        my $token_endpoint  = $discovery->{metadata}{token_endpoint};
+        my $key             = $self->_get_dpop_key();
+        my $refresh_content = {
+            grant_type    => 'refresh_token',
+            refresh_token => $session->refreshJwt,
+            client_id     => $session->client_id // '',
+            aud           => $discovery->{pds},
+        };
+        say "[DEBUG] [At] Refresh request: " . JSON::PP->new->ascii->encode($refresh_content) if $ENV{DEBUG};
+        my ($token_res) = $http->post(
             $token_endpoint => {
-                headers  => { DPoP => $http->_generate_dpop_proof( $token_endpoint, 'POST' ) },
+                headers  => { DPoP => $http->_generate_dpop_proof( $token_endpoint, 'POST', 1 ) },
                 encoding => 'form',
-                content  => {
-                    grant_type    => 'refresh_token',
-                    refresh_token => $session->refreshJwt,
-                    client_id     => $session->client_id // '',
-                    aud           => $discovery->{pds},
-                }
+                content  => $refresh_content,
+                skip_ath => 1
             }
         );
         die "Refresh failed: " . ( $token_res . "" ) if builtin::blessed $token_res;
@@ -216,7 +225,7 @@ class At 1.2 {
         return $session ? $http->set_tokens( $session->accessJwt, $session->refreshJwt, undef, undef ) : $session;
     }
 
-    method resume ( $accessJwt, $refreshJwt, $token_type = 'Bearer', $dpop_key_jwk = (), $client_id = (), $handle = (), $pds = () ) {
+    method resume ( $accessJwt, $refreshJwt, $token_type = 'Bearer', $dpop_key_jwk = (), $client_id = (), $handle = (), $pds = (), $scope = () ) {
         my $access  = $self->_decode_token($accessJwt);
         my $refresh = $self->_decode_token($refreshJwt);
         return unless $access;
@@ -243,7 +252,8 @@ class At 1.2 {
             dpop_key_jwk => $dpop_key_jwk,
             client_id    => $client_id,
             handle       => $handle,
-            pds          => $pds
+            pds          => $pds,
+            scope        => $scope
         );
         $self->set_host($pds) if $pds;
         return $http->set_tokens( $accessJwt, $refreshJwt, $token_type, $key );

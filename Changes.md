@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Added support for `atproto-proxy` header in `At::UserAgent` to allow PDS proxying of requests to external services like `chat.bsky.*`.
+- Added `skip_ath` option to DPoP proof generation, as required by the DPoP spec for refresh token exchanges.
+- Added automatic `DPoP-Nonce` management and retry logic to `At::UserAgent::Mojo`.
+- Added support in `At::Protocol::Session` to correctly serialize and resume all metadata fields including `scope`, `token_type`, and `dpop_key_jwk`.
+
 ## [1.2] - 2026-03-08
 
 ### Added
