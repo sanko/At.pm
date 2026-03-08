@@ -10,6 +10,7 @@ requires 'Time::Moment';
 requires 'URI';
 requires 'perl', 'v5.42.0';
 recommends 'CBOR::Free';
+recommends 'InterPlanetary';
 recommends 'Mojo::UserAgent';
 on configure => sub {
     requires 'CPAN::Meta';

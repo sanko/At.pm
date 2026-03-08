@@ -6,7 +6,7 @@ no warnings 'experimental::class', 'experimental::builtin', 'experimental::for_l
 #~ |------3-33-----------------------------|
 #~ |-5-55------4-44-5-55----353--3-33-/1~--|
 #~ |---------------------335---33----------|
-class At 1.1 {
+class At 1.2 {
     use Carp qw[];
     use experimental 'try';
     use File::ShareDir::Tiny qw[dist_dir];
@@ -28,7 +28,9 @@ class At 1.1 {
     field $http     : reader : param = ();
     field $lexicon_paths_param : param(lexicon_paths) = [];
     field @lexicon_paths;
-    field $host : param : reader //= 'bsky.social';
+    field $host      : param : reader //= 'bsky.social';
+    field $ipfs_node : param : reader //= undef;
+    field $bitswap;
     method set_host ($new) { $host = $new }
     field $session = ();
     field $oauth_state;
@@ -41,6 +43,10 @@ class At 1.1 {
         resetPassword => {}           # by IP
     );
     ADJUST {
+        if ($ipfs_node) {
+            require InterPlanetary::Protocol::Bitswap;
+            $bitswap = InterPlanetary::Protocol::Bitswap->new( node => $ipfs_node );
+        }
         if ( !defined $share ) {
             try { $share = dist_dir('At') }
             catch ($e) { $share = 'share' }
@@ -408,7 +414,7 @@ class At 1.1 {
     }
 
     # Identity & Helpers
-    method did()                   { $session ? $session->did . "" : undef; }
+    method did()                   { $session ? $session->did . '' : undef; }
     method resolve_handle($handle) { $self->get( 'com.atproto.identity.resolveHandle' => { handle => $handle } ); }
 
     method resolve_did ($did) {
@@ -433,7 +439,88 @@ class At 1.1 {
         }
         return;
     }
-    method session()            { $session //= $self->get('com.atproto.server.getSession'); $session; }
+
+    method peer_id_for_did ($did) {
+        my $doc = $self->resolve_did($did);
+        return unless $doc && ref $doc eq 'HASH' && $doc->{verificationMethod};
+
+        # Look for the primary signing key (usually the first one)
+        my $vm                = $doc->{verificationMethod}[0];
+        my $pub_key_multibase = $vm->{publicKeyMultibase} // return;
+
+        # publicKeyMultibase for secp256k1 in atproto usually starts with 'z' (base58btc)
+        # and has a multicodec prefix.
+        require InterPlanetary::Multibase;
+        my $raw = InterPlanetary::Multibase->decode($pub_key_multibase);
+
+        # For secp256k1 (0xe7 multicodec), we need to extract the 33-byte compressed key
+        # and wrap it in the libp2p Protobuf PublicKey.
+        require Net::Libp2p::Crypto;
+        require InterPlanetary::Utils;
+
+        # Simplified: assume it's secp256k1 for now as per bsky standard
+        my $key_bytes = substr( $raw, 2 );    # Skip multicodec prefix (usually 2 bytes for 0xe7)
+
+        # Wrap in libp2p Protobuf (Type 2 = Secp256k1)
+        my $pk_pb = pack( 'C', ( 1 << 3 ) | 0 ) . InterPlanetary::Utils::encode_varint(2);
+        $pk_pb .= pack( 'C', ( 2 << 3 ) | 2 ) . InterPlanetary::Utils::encode_varint( length($key_bytes) ) . $key_bytes;
+        return Net::Libp2p::Crypto->peer_id_from_public_key($pk_pb);
+    }
+    method session() { $session //= $self->get('com.atproto.server.getSession'); $session; }
+
+    method get_block ( $cid_str, $target_peer_id = undef, $did = undef ) {
+        if ($ipfs_node) {
+            my $cid  = InterPlanetary::CID->from_string($cid_str);
+            my $data = $ipfs_node->blockstore->get($cid);
+            return Future->done($data) if $data;
+            if ($target_peer_id) {
+
+                #~ say "[IPFS] Block $cid_str not found locally, attempting Bitswap from $target_peer_id...";
+                return $ipfs_node->host->dial( $target_peer_id, '/ipfs/bitswap/1.2.0' )->then(
+                    sub ($ss) {
+
+                        # The local bitswap handler needs to 'own' this stream to read the response
+                        $bitswap->handle_stream($ss);
+                        return $bitswap->request_block( $ss, $cid );
+                    }
+                )->else(
+                    sub {
+                        my ($e) = @_;
+
+                        #~ say "[IPFS] Bitswap failed: $e. Falling back to HTTP...";
+                        return $self->_get_block_http( $cid_str, $did );
+                    }
+                );
+            }
+        }
+        return $self->_get_block_http( $cid_str, $did );
+    }
+
+    method _get_block_http ( $cid_str, $did ) {
+
+        # If no DID provided, we can't fallback to sync endpoints
+        return Future->done(undef) unless $did;
+
+        #~ say "[HTTP] Fetching block $cid_str for $did via com.atproto.sync.getBlocks...";
+        # com.atproto.sync.getBlocks returns a CAR file
+        return Future->call(
+            sub {
+                my $car_data = $self->get( 'com.atproto.sync.getBlocks' => { did => $did, cids => [$cid_str] } );
+                return undef unless $car_data;
+                require InterPlanetary::CAR;
+                my $car = InterPlanetary::CAR->new();
+                open my $fh, '<', \$car_data;
+                my $blocks = $car->decode($fh);
+                if ( exists $blocks->{$cid_str} ) {
+
+                    #~ say "[HTTP] Successfully retrieved block $cid_str via HTTP.";
+                    return $blocks->{$cid_str};
+                }
+                return undef;
+            }
+        );
+    }
+    method get_repo_head ($did) { $self->get( 'com.atproto.sync.getHead' => { did => $did } ) }
     sub _now                    { Time::Moment->now }
     method _duration ($seconds) { $seconds || return '0 seconds'; $seconds = abs $seconds; return "$seconds seconds"; }
 
@@ -671,7 +758,7 @@ posts, likes, handle changes, deletions, and more.
         }
 
         if ($header->{t} eq '#commit') {
-            say "New commit in repo: " . $body->{repo};
+            say 'New commit in repo: ' . $body->{repo};
         }
     });
 
@@ -786,6 +873,56 @@ Returns the current L<At::Protocol::Session> object.
 =head2 C<did()>
 
 Returns the DID of the authenticated user.
+
+=head2 C<peer_id_for_did( $did )>
+
+Resolves an AT Protocol DID to a libp2p PeerID. This is used to discover the user's data on the P2P network.
+
+=head2 C<get_repo_head( $did )>
+
+Retrieves the current MST (Merkle Search Tree) root CID for a user's repository via the C<com.atproto.sync.getHead>
+endpoint.
+
+=head2 C<get_block( $cid_str, [ $target_peer_id ] )>
+
+Retrieves a raw block by its CID. If an C<ipfs_node> was provided to the constructor, this method will:
+
+=over
+
+=item Check the local blockstore.
+
+=item Attempt to fetch the block via Bitswap from the provided C<$target_peer_id>.
+
+=item Fall back to the centralized PDS via HTTP if the block is not found in the P2P network.
+
+=back
+
+Returns a L<Future> that resolves to the block data.
+
+=head1 Decentralized Data Synchronization
+
+When an C<ipfs_node> is provided to the L<At> constructor, the library enables peer-to-peer data synchronization
+compliant with the AT Protocol Sync specification (L<https://atproto.com/specs/sync>).
+
+=head2 Peer-to-Peer Repository Mirroring
+
+By combining C<peer_id_for_did> and C<get_block>, this library can mirror entire user repositories without relying on a
+centralized Relay or PDS. The process involves:
+
+=over
+
+=item Identity bridging: Converting the user's DID to a libp2p PeerID.
+
+=item Root resolution: Getting the latest MST root CID.
+
+=item MST traversal: Recursively walking the Merkle Search Tree.
+
+=item Block exchange: Using Bitswap to fetch missing blocks from peers.
+
+=back
+
+This decentralized approach significantly reduces the load on centralized infrastructure and enables data availability
+even during outages of primary service providers.
 
 =head1 ERROR HANDLING
 

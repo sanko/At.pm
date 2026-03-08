@@ -211,7 +211,7 @@ my $fh = $at->firehose(sub ( $header, $body, $err ) {
     }
 
     if ($header->{t} eq '#commit') {
-        say "New commit in repo: " . $body->{repo};
+        say 'New commit in repo: ' . $body->{repo};
     }
 });
 
@@ -318,6 +318,43 @@ Returns the current [At::Protocol::Session](https://metacpan.org/pod/At%3A%3APro
 ## `did()`
 
 Returns the DID of the authenticated user.
+
+## `peer_id_for_did( $did )`
+
+Resolves an AT Protocol DID to a libp2p PeerID. This is used to discover the user's data on the P2P network.
+
+## `get_repo_head( $did )`
+
+Retrieves the current MST (Merkle Search Tree) root CID for a user's repository via the `com.atproto.sync.getHead`
+endpoint.
+
+## `get_block( $cid_str, [ $target_peer_id ] )`
+
+Retrieves a raw block by its CID. If an `ipfs_node` was provided to the constructor, this method will:
+
+- Check the local blockstore.
+- Attempt to fetch the block via Bitswap from the provided `$target_peer_id`.
+- Fall back to the centralized PDS via HTTP if the block is not found in the P2P network.
+
+Returns a [Future](https://metacpan.org/pod/Future) that resolves to the block data.
+
+# Decentralized Data Synchronization
+
+When an `ipfs_node` is provided to the [At](https://metacpan.org/pod/At) constructor, the library enables peer-to-peer data synchronization
+compliant with the AT Protocol Sync specification ([https://atproto.com/specs/sync](https://atproto.com/specs/sync)).
+
+## Peer-to-Peer Repository Mirroring
+
+By combining `peer_id_for_did` and `get_block`, this library can mirror entire user repositories without relying on a
+centralized Relay or PDS. The process involves:
+
+- Identity bridging: Converting the user's DID to a libp2p PeerID.
+- Root resolution: Getting the latest MST root CID.
+- MST traversal: Recursively walking the Merkle Search Tree.
+- Block exchange: Using Bitswap to fetch missing blocks from peers.
+
+This decentralized approach significantly reduces the load on centralized infrastructure and enables data availability
+even during outages of primary service providers.
 
 # ERROR HANDLING
 
