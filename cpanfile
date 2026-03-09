@@ -28,6 +28,9 @@ on configure => sub {
     requires 'Test2::V1';
     requires 'perl', 'v5.42.0';
 };
+on build => sub {
+    requires 'Module::Build::Tiny';
+};
 on test => sub {
     requires 'Test2::V0';
 };

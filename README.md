@@ -26,7 +26,7 @@ $at->post( 'com.atproto.repo.createRecord' => {
 # Streaming the Firehose
 my $fh = $at->firehose(sub ( $header, $body, $err ) {
     return warn $err if $err;
-    say "New event: " . $header->{t};
+    say 'New event: ' . $header->{t};
 });
 $fh->start();
 # ... Start event loop (e.g. Mojo::IOLoop->start) ...
@@ -161,7 +161,7 @@ my $res = $at->post( 'com.atproto.server.createAccount' => {
 
 # Working With Data: Records and Repositories
 
-Data in the AT Protocol is stored in "repositories" as "records". Each record belongs to a "collection" (defined by a
+Data in the AT Protocol is stored in 'repositories' as 'records'. Each record belongs to a 'collection' (defined by a
 Lexicon).
 
 ## Creating a Post
@@ -279,6 +279,11 @@ Initiates the OAuth 2.0 Authorization Code flow. Returns the authorization URL.
 
 Exchanges the authorization code for tokens and completes the OAuth flow.
 
+## `oauth_refresh()`
+
+Uses the session's refresh token to obtain a new set of access and refresh tokens. Automatically handles DPoP nonces
+and spec-compliant proof generation (omitting `ath` during refresh).
+
 ## `login( $handle, $app_password )`
 
 Performs legacy password-based authentication. **Deprecated: Use OAuth instead.**
@@ -306,6 +311,41 @@ Returns a new [At::Protocol::Firehose](https://metacpan.org/pod/At%3A%3AProtocol
 ## `resolve_handle( $handle )`
 
 Resolves a handle to a DID.
+
+## `resolve_did_to_handle( $did )`
+
+Reverse resolution: resolves a DID to its primary handle.
+
+## `atproto_proxy( [ $service_did ] )`
+
+Gets or sets the `atproto-proxy` header value on the underlying user agent. When set, requests will be sent to the
+primary `host` but include this header, signaling the PDS to proxy the request to the specified service.
+
+Example for Bluesky Chat:
+
+```
+$at->http->at_protocol_proxy("did:web:api.bsky.chat#bsky_chat");
+```
+
+## `upload_blob( $data, $mime_type )`
+
+Uploads a raw binary blob to the PDS. Returns the blob's metadata (CID, etc).
+
+## `create_record( $collection, $record, [ $rkey ] )`
+
+Helper to create a new record in a specific collection. Automatically uses the authenticated user's DID.
+
+## `delete_record( $collection, $rkey )`
+
+Helper to delete a record from a specific collection.
+
+## `put_record( $collection, $rkey, $record, [ $swapRecord ] )`
+
+Helper to write a record (creating or updating it) at a specific rkey.
+
+## `apply_writes( $writes, [ $swapCommit ] )`
+
+Atomic multi-record update. `$writes` should be an arrayref of create/update/delete operations.
 
 ## `collection_scope( $collection, [ $action ] )`
 
