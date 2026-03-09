@@ -6,7 +6,7 @@ no warnings 'experimental::class', 'experimental::builtin', 'experimental::for_l
 #~ |------3-33-----------------------------|
 #~ |-5-55------4-44-5-55----353--3-33-/1~--|
 #~ |---------------------335---33----------|
-class At 1.3 {
+class At 1.4 {
     use Carp qw[];
     use experimental 'try';
     use File::ShareDir::Tiny qw[dist_dir];
@@ -82,19 +82,19 @@ class At 1.3 {
         if ( builtin::blessed($res) && $res->isa('At::Error') ) { $res->throw; }
         return unless $res && $res->{did};
         my $pds = $self->pds_for_did( $res->{did} );
-        unless ($pds) { die "Could not resolve PDS for DID: " . $res->{did}; }
-        my ($protected) = $http->get("$pds/.well-known/oauth-protected-resource");
+        unless ($pds) { die 'Could not resolve PDS for DID: ' . $res->{did}; }
+        my ($protected) = $http->get( $pds . '/.well-known/oauth-protected-resource' );
         if ( builtin::blessed($protected) && $protected->isa('At::Error') ) { $protected->throw; }
         return unless $protected && $protected->{authorization_servers};
         my $auth_server = $protected->{authorization_servers}[0];
-        my ($metadata) = $http->get("$auth_server/.well-known/oauth-authorization-server");
+        my ($metadata) = $http->get( $auth_server . '/.well-known/oauth-authorization-server' );
         if ( builtin::blessed($metadata) && $metadata->isa('At::Error') ) { $metadata->throw; }
         return { pds => $pds, auth_server => $auth_server, metadata => $metadata, did => $res->{did} };
     }
 
     method oauth_start ( $handle, $client_id, $redirect_uri, $scope = 'atproto' ) {
         my $discovery = $self->oauth_discover($handle);
-        die "Failed to discover OAuth metadata for $handle" unless $discovery;
+        die 'Failed to discover OAuth metadata for ' . $handle unless $discovery;
         my $chars          = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~';
         my $code_verifier  = Crypt::PRNG::random_string_from( $chars, 43 );
         my $code_challenge = encode_base64url( sha256($code_verifier) );
@@ -123,7 +123,7 @@ class At 1.3 {
             scope                 => $scope,
             aud                   => $discovery->{pds},
         };
-        say "[DEBUG] [At] PAR request: " . JSON::PP->new->ascii->encode($par_content) if $ENV{DEBUG};
+        say '[DEBUG] [At] PAR request: ' . JSON::PP->new->ascii->encode($par_content) if $ENV{DEBUG};
         my ($par_res) = $http->post(
             $par_endpoint => {
                 headers  => { DPoP => $http->_generate_dpop_proof( $par_endpoint, 'POST', 1 ) },
@@ -132,8 +132,8 @@ class At 1.3 {
                 skip_ath => 1
             }
         );
-        die 'PAR failed: ' . ( $par_res . "" )                                     if builtin::blessed $par_res;
-        say "[DEBUG] [At] PAR response: " . JSON::PP->new->ascii->encode($par_res) if $ENV{DEBUG};
+        die 'PAR failed: ' . ( $par_res . '' )                                     if builtin::blessed $par_res;
+        say '[DEBUG] [At] PAR response: ' . JSON::PP->new->ascii->encode($par_res) if $ENV{DEBUG};
         my $auth_uri = URI->new( $discovery->{metadata}{authorization_endpoint} );
         $auth_uri->query_form( client_id => $client_id, request_uri => $par_res->{request_uri} );
         return $auth_uri->as_string;
@@ -158,8 +158,8 @@ class At 1.3 {
                 skip_ath => 1
             }
         );
-        die 'Token exchange failed: ' . ( $token_res . "" )                            if builtin::blessed $token_res;
-        say "[DEBUG] [At] Token response: " . JSON::PP->new->ascii->encode($token_res) if $ENV{DEBUG};
+        die 'Token exchange failed: ' . ( $token_res . '' )                            if builtin::blessed $token_res;
+        say '[DEBUG] [At] Token response: ' . JSON::PP->new->ascii->encode($token_res) if $ENV{DEBUG};
         $session = At::Protocol::Session->new(
             did          => $token_res->{sub},
             accessJwt    => $token_res->{access_token},
@@ -187,7 +187,7 @@ class At 1.3 {
             client_id     => $session->client_id // '',
             aud           => $discovery->{pds},
         };
-        say "[DEBUG] [At] Refresh request: " . JSON::PP->new->ascii->encode($refresh_content) if $ENV{DEBUG};
+        say '[DEBUG] [At] Refresh request: ' . JSON::PP->new->ascii->encode($refresh_content) if $ENV{DEBUG};
         my ($token_res) = $http->post(
             $token_endpoint => {
                 headers  => { DPoP => $http->_generate_dpop_proof( $token_endpoint, 'POST', 1 ) },
@@ -196,7 +196,7 @@ class At 1.3 {
                 skip_ath => 1
             }
         );
-        die "Refresh failed: " . ( $token_res . "" ) if builtin::blessed $token_res;
+        die 'Refresh failed: ' . ( $token_res . '' ) if builtin::blessed $token_res;
         $session = At::Protocol::Session->new(
             did          => $token_res->{sub},
             accessJwt    => $token_res->{access_token},
@@ -305,7 +305,7 @@ class At 1.3 {
     method _fetch_lexicon($base_fqdn) {
         my @namespace = split /\./, $base_fqdn;
         my $rel_path  = join( '/', @namespace[ 0 .. $#namespace - 1 ], $namespace[-1] . '.json' );
-        my $url       = "https://raw.githubusercontent.com/bluesky-social/atproto/main/lexicons/$rel_path";
+        my $url       = 'https://raw.githubusercontent.com/bluesky-social/atproto/main/lexicons/' . $rel_path;
         my ( $content, $headers ) = $http->get($url);
         if ( $content && !builtin::blessed($content) ) {
             my $cache_dir = defined $ENV{HOME} ? path( $ENV{HOME}, '.cache', 'atproto', 'lexicons' ) : path( '.cache', 'atproto', 'lexicons' );
@@ -427,9 +427,45 @@ class At 1.3 {
     method did()                   { $session ? $session->did . '' : undef; }
     method resolve_handle($handle) { $self->get( 'com.atproto.identity.resolveHandle' => { handle => $handle } ); }
 
+    method resolve_did_to_handle ($did) {
+        my $doc = $self->resolve_did($did);
+        return $doc->{alsoKnownAs}[0] =~ s/^at:\/\///r if $doc && $doc->{alsoKnownAs};
+        return;
+    }
+
+    method upload_blob ( $data, $mime_type ) {
+        $self->post( 'com.atproto.repo.uploadBlob' => { content => $data, headers => { 'Content-Type' => $mime_type } } );
+    }
+
+    method create_record ( $collection, $record, $rkey = undef ) {
+        $self->post( 'com.atproto.repo.createRecord' =>
+                { repo => $self->did, collection => $collection, record => $record, defined $rkey ? ( rkey => $rkey ) : () } );
+    }
+
+    method delete_record ( $collection, $rkey ) {
+        $self->post( 'com.atproto.repo.deleteRecord' => { repo => $self->did, collection => $collection, rkey => $rkey } );
+    }
+
+    method put_record ( $collection, $rkey, $record, $swapRecord = undef ) {
+        $self->post(
+            'com.atproto.repo.putRecord' => {
+                repo       => $self->did,
+                collection => $collection,
+                rkey       => $rkey,
+                record     => $record,
+                defined $swapRecord ? ( swapRecord => $swapRecord ) : ()
+            }
+        );
+    }
+
+    method apply_writes ( $writes, $swapCommit = undef ) {
+        $self->post(
+            'com.atproto.repo.applyWrites' => { repo => $self->did, writes => $writes, defined $swapCommit ? ( swapCommit => $swapCommit ) : () } );
+    }
+
     method resolve_did ($did) {
         if ( $did =~ /^did:plc:(.+)$/ ) {
-            my ($content) = $http->get("https://plc.directory/$did");
+            my ($content) = $http->get( 'https://plc.directory/' . $did );
             return $content;
         }
         elsif ( $did =~ /^did:web:(.+)$/ ) {
@@ -532,7 +568,7 @@ class At 1.3 {
     }
     method get_repo_head ($did) { $self->get( 'com.atproto.sync.getHead' => { did => $did } ) }
     sub _now                    { Time::Moment->now }
-    method _duration ($seconds) { $seconds || return '0 seconds'; $seconds = abs $seconds; return "$seconds seconds"; }
+    method _duration ($seconds) { $seconds || return '0 seconds'; $seconds = abs $seconds; return $seconds . ' seconds' }
 
     method ratelimit_ ( $headers, $type, $meta //= () ) {
         my %h = map { lc($_) => $headers->{$_} } keys %$headers;
@@ -592,7 +628,7 @@ At - The AT Protocol for Social Networking
     # Streaming the Firehose
     my $fh = $at->firehose(sub ( $header, $body, $err ) {
         return warn $err if $err;
-        say "New event: " . $header->{t};
+        say 'New event: ' . $header->{t};
     });
     $fh->start();
     # ... Start event loop (e.g. Mojo::IOLoop->start) ...
@@ -723,7 +759,7 @@ invite code.
 
 =head1 Working With Data: Records and Repositories
 
-Data in the AT Protocol is stored in "repositories" as "records". Each record belongs to a "collection" (defined by a
+Data in the AT Protocol is stored in 'repositories' as 'records'. Each record belongs to a 'collection' (defined by a
 Lexicon).
 
 =head2 Creating a Post
@@ -844,6 +880,11 @@ Initiates the OAuth 2.0 Authorization Code flow. Returns the authorization URL.
 
 Exchanges the authorization code for tokens and completes the OAuth flow.
 
+=head2 C<oauth_refresh()>
+
+Uses the session's refresh token to obtain a new set of access and refresh tokens. Automatically handles DPoP nonces
+and spec-compliant proof generation (omitting C<ath> during refresh).
+
 =head2 C<login( $handle, $app_password )>
 
 Performs legacy password-based authentication. B<Deprecated: Use OAuth instead.>
@@ -871,6 +912,39 @@ Returns a new L<At::Protocol::Firehose> client. C<$url> defaults to the Bluesky 
 =head2 C<resolve_handle( $handle )>
 
 Resolves a handle to a DID.
+
+=head2 C<resolve_did_to_handle( $did )>
+
+Reverse resolution: resolves a DID to its primary handle.
+
+=head2 C<atproto_proxy( [ $service_did ] )>
+
+Gets or sets the C<atproto-proxy> header value on the underlying user agent. When set, requests will be sent to the
+primary C<host> but include this header, signaling the PDS to proxy the request to the specified service.
+
+Example for Bluesky Chat:
+
+    $at->http->at_protocol_proxy("did:web:api.bsky.chat#bsky_chat");
+
+=head2 C<upload_blob( $data, $mime_type )>
+
+Uploads a raw binary blob to the PDS. Returns the blob's metadata (CID, etc).
+
+=head2 C<create_record( $collection, $record, [ $rkey ] )>
+
+Helper to create a new record in a specific collection. Automatically uses the authenticated user's DID.
+
+=head2 C<delete_record( $collection, $rkey )>
+
+Helper to delete a record from a specific collection.
+
+=head2 C<put_record( $collection, $rkey, $record, [ $swapRecord ] )>
+
+Helper to write a record (creating or updating it) at a specific rkey.
+
+=head2 C<apply_writes( $writes, [ $swapCommit ] )>
+
+Atomic multi-record update. C<$writes> should be an arrayref of create/update/delete operations.
 
 =head2 C<collection_scope( $collection, [ $action ] )>
 

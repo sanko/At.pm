@@ -72,8 +72,8 @@ class At::UserAgent 1.3 {
     method post             ( $url, $req = undef ) { die "Abstract" }
     method websocket        ( $url, $cb )          { die "Abstract" }
 }
-
-class At::UserAgent::Tiny : isa(At::UserAgent) {
+class    #
+    At::UserAgent::Tiny : isa(At::UserAgent) {
     use HTTP::Tiny;
     field $agent : param
         = HTTP::Tiny->new( agent => 'At.pm/Tiny', default_headers => { 'Content-Type' => 'application/json', Accept => 'application/json' } );
@@ -151,9 +151,8 @@ class At::UserAgent::Tiny : isa(At::UserAgent) {
         $self->auth($token);
         $agent->{default_headers}{Authorization} = $token;
     }
-}
-
-class At::UserAgent::Mojo : isa(At::UserAgent) {
+    } class    #
+    At::UserAgent::Mojo : isa(At::UserAgent) {
     field $agent : param = do { require Mojo::UserAgent; Mojo::UserAgent->new };
 
     method get( $url, $req = {} ) {
@@ -306,8 +305,7 @@ class At::UserAgent::Mojo : isa(At::UserAgent) {
         );
     }
     method _set_auth_header($token) { $self->auth($token); }
-}
-1;
+    } 1;
 __END__
 
 =pod
