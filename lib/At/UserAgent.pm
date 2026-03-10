@@ -11,7 +11,7 @@ use experimental 'try';
 use feature 'class';
 no warnings 'experimental::class';
 
-class At::UserAgent 1.3 {
+class At::UserAgent 1.6 {
     field $accessJwt  : reader : param = undef;
     field $refreshJwt : reader : param = undef;
     field $token_type : reader : param = 'Bearer';
@@ -284,12 +284,20 @@ class    #
     }
 
     method websocket( $url, $cb ) {
+        $agent->inactivity_timeout(0);    # Disable inactivity timeout for firehose
         $agent->websocket(
             $url => sub ( $ua, $tx ) {
                 if ( !$tx->is_websocket ) {
                     $cb->( undef, At::Error->new( message => "WebSocket handshake failed", fatal => 1 ) );
                     return;
                 }
+
+                # Keep-alive heartbeat every 30 seconds
+                my $id = Mojo::IOLoop->recurring(
+                    30 => sub {
+                        $tx->send( [ 1, 0, 0, 0, 9, '' ] );    # Ping frame
+                    }
+                );
                 $tx->on(
                     message => sub ( $tx, $msg ) {
                         $cb->( $msg, undef );
@@ -297,8 +305,8 @@ class    #
                 );
                 $tx->on(
                     finish => sub ( $tx, $code, $reason ) {
-
-                        # Optionally handle finish
+                        Mojo::IOLoop->remove($id);             # Stop heartbeat
+                        $cb->( undef, At::Error->new( message => "WebSocket finished: $code " . ( $reason // '' ), fatal => 0 ) );
                     }
                 );
             }
