@@ -33,7 +33,7 @@
          "prereqs" : {
             "runtime" : {
                "requires" : {
-                  "CBOR::Free" : "0",
+                  "Codec::CBOR" : "0",
                   "Mojo::UserAgent" : "0"
                }
             }
@@ -48,20 +48,7 @@
       },
       "configure" : {
          "requires" : {
-            "CPAN::Meta" : "2.150012",
-            "Exporter" : "5.57",
-            "ExtUtils::Helpers" : "0.028",
-            "ExtUtils::Install" : "0",
-            "ExtUtils::InstallPaths" : "0.002",
-            "File::Basename" : "0",
-            "File::Find" : "0",
-            "File::Path" : "0",
-            "File::Spec::Functions" : "0",
-            "Getopt::Long" : "2.36",
-            "JSON::PP" : "2",
-            "Path::Tiny" : "0",
-            "Test2::V1" : "0",
-            "perl" : "v5.42.0"
+            "Module::Build::Tiny" : "0"
          }
       },
       "develop" : {
@@ -92,7 +79,7 @@
       "runtime" : {
          "recommends" : {
             "Archive::CAR" : "0",
-            "CBOR::Free" : "0",
+            "Codec::CBOR" : "0",
             "Mojo::UserAgent" : "0"
          },
          "requires" : {
@@ -266,3 +253,4 @@
    "x_serialization_backend" : "JSON::PP version 4.16",
    "x_static_install" : 1
 }
+

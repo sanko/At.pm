@@ -288,25 +288,41 @@ class    #
         $agent->websocket(
             $url => sub ( $ua, $tx ) {
                 if ( !$tx->is_websocket ) {
-                    $cb->( undef, At::Error->new( message => "WebSocket handshake failed", fatal => 1 ) );
+                    $cb->( undef, At::Error->new( message => "WebSocket handshake failed", fatal => 0 ) );
                     return;
                 }
 
-                # Keep-alive heartbeat every 30 seconds
+                # Keep-alive heartbeat every 20 seconds
                 my $id = Mojo::IOLoop->recurring(
-                    30 => sub {
-                        $tx->send( [ 1, 0, 0, 0, 9, '' ] );    # Ping frame
+                    20 => sub {
+                        return unless $tx;
+                        $tx->send( [ 1, 0, 0, 0, 9, '' ] );    # Raw Ping frame
                     }
                 );
+
+                # Activity watchdog: if we don't get a message for 10 seconds, close and reconnect
+                my $watchdog;
+                my $reset_watchdog = sub {
+                    Mojo::IOLoop->remove($watchdog) if defined $watchdog;
+                    $watchdog = Mojo::IOLoop->timer(
+                        10 => sub {
+                            $tx->finish( 4000, "Watchdog timeout" );
+                        }
+                    );
+                };
+                $reset_watchdog->();
                 $tx->on(
                     message => sub ( $tx, $msg ) {
+                        $reset_watchdog->();
                         $cb->( $msg, undef );
                     }
                 );
                 $tx->on(
                     finish => sub ( $tx, $code, $reason ) {
-                        Mojo::IOLoop->remove($id);             # Stop heartbeat
+                        Mojo::IOLoop->remove($id)       if defined $id;
+                        Mojo::IOLoop->remove($watchdog) if defined $watchdog;
                         $cb->( undef, At::Error->new( message => "WebSocket finished: $code " . ( $reason // '' ), fatal => 0 ) );
+                        $tx = undef;
                     }
                 );
             }

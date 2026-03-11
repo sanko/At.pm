@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- Switch to `Codec::CBOR`
 - Implemented a 30s heartbeat in `At::UserAgent::Mojo` to keep firehose connections alive.
 - Disabled `inactivity_timeout` in `At::UserAgent::Mojo` for WebSocket connections to prevent premature disconnects during long running firehose runs.
 
