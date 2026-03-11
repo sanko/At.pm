@@ -60,10 +60,10 @@ provides:
     file: lib/At/UserAgent.pm
     version: '1.6'
 recommends:
-  Archive::CAR: '0'
-  Codec::CBOR: '0'
   Mojo::UserAgent: '0'
 requires:
+  Archive::CAR: '0'
+  Codec::CBOR: '0'
   Crypt::JWT: '0'
   Crypt::PK::ECC: '0'
   File::ShareDir::Tiny: '0'
@@ -175,4 +175,3 @@ x_ignore:
   - eg/debug_dpop.pl
 x_serialization_backend: 'CPAN::Meta::YAML version 0.020'
 x_static_install: 1
-

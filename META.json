@@ -78,11 +78,11 @@
       },
       "runtime" : {
          "recommends" : {
-            "Archive::CAR" : "0",
-            "Codec::CBOR" : "0",
             "Mojo::UserAgent" : "0"
          },
          "requires" : {
+            "Archive::CAR" : "0",
+            "Codec::CBOR" : "0",
             "Crypt::JWT" : "0",
             "Crypt::PK::ECC" : "0",
             "File::ShareDir::Tiny" : "0",
@@ -253,4 +253,3 @@
    "x_serialization_backend" : "JSON::PP version 4.16",
    "x_static_install" : 1
 }
-

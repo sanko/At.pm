@@ -1,3 +1,5 @@
+requires 'Archive::CAR';
+requires 'Codec::CBOR';
 requires 'Crypt::JWT';
 requires 'Crypt::PK::ECC';
 requires 'File::ShareDir::Tiny';
@@ -9,8 +11,6 @@ requires 'Path::Tiny';
 requires 'Time::Moment';
 requires 'URI';
 requires 'perl', 'v5.42.0';
-recommends 'Archive::CAR';
-recommends 'Codec::CBOR';
 recommends 'Mojo::UserAgent';
 on configure => sub {
     requires 'Module::Build::Tiny';
