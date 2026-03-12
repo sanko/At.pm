@@ -2,9 +2,8 @@ use v5.42;
 use Test2::V0;
 use At;
 use At::Protocol::Firehose;
-skip_all 'Codec::CBOR required for firehose' unless eval { require Codec::CBOR; 1 };
+skip_all 'Codec::CBOR required for firehose'     unless eval { require Codec::CBOR;     1 };
 skip_all 'Mojo::UserAgent required for firehose' unless eval { require Mojo::UserAgent; 1 };
-
 my $at = At->new( host => 'bsky.social' );
 subtest 'firehose instantiation' => sub {
     my $fh = $at->firehose( sub { } );

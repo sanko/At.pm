@@ -97,6 +97,9 @@
          }
       },
       "test" : {
+         "recommends" : {
+            "Mojo::UserAgent" : "0"
+         },
          "requires" : {
             "Test2::V0" : "0"
          }

@@ -20,6 +20,7 @@ on build => sub {
 };
 on test => sub {
     requires 'Test2::V0';
+    recommends 'Mojo::UserAgent';
 };
 on develop => sub {
     requires 'CPAN::Uploader';
