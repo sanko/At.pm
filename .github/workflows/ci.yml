@@ -1,146 +1,116 @@
 ---
+concurrency:
+  cancel-in-progress: true
+  group: '${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}'
 jobs:
-  etc:
-    name: 'FreeBSD/v${{matrix.perl}}'
-    needs:
-      - setup
-    strategy:
-      fail-fast: false
-      matrix:
-        os:
-          - architecture: x86-64
-            host: ubuntu-latest
-            name: freebsd
-            pkg: pkg install -y
-            version: 14.1
-          - architecture: arm64
-            host: ubuntu-latest
-            name: freebsd
-            pkg: pkg install -y
-            version: 14.1
-        perl:
-          - 5.42
-      max-parallel: 5
-    uses: ./.github/workflows/cross.yml
-    with:
-      arch: '${{ matrix.os.architecture }}'
-      host: '${{ matrix.os.host }}'
-      os: '${{ matrix.os.name }}'
-      perl: '${{ matrix.perl }}'
-      pkg: '${{ matrix.os.pkg }}'
-      setup: '${{ matrix.os.setup }}'
-      version: '${{ matrix.os.version }}'
   linux:
-    name: 'Linux/v${{matrix.perl}}'
-    needs:
-      - setup
-    strategy:
-      fail-fast: false
-      matrix:
-        flags: '${{ fromJSON(needs.setup.outputs.matrix).flags }}'
-        os:
-          - ubuntu-24.04
-        perl: '${{ fromJSON(needs.setup.outputs.matrix).perl }}'
-      max-parallel: 25
-    uses: ./.github/workflows/unix.yml
+    name: Linux
+    uses: sanko/workflow-testing/.github/workflows/run-direct.yml@main
     with:
-      flags: '${{ matrix.flags }}'
-      os: '${{ matrix.os }}'
-      perl: '${{ matrix.perl }}'
+      checkout_submodules: recursive
+      matrix: |-
+        [
+          {"prepare":"sudo apt-get update -y && sudo apt-get install -y valgrind build-essential libperl-dev libcrypt-dev","arch":"x86_64","perl_version":"5.42.0","variant":"default","platform_name":"linux","os":"ubuntu-24.04","toolchain":"gcc"},
+          {"prepare":"sudo apt-get update -y && sudo apt-get install -y valgrind build-essential libperl-dev libcrypt-dev","arch":"aarch64","perl_version":"5.42.0","variant":"default","platform_name":"linux","os":"ubuntu-24.04-arm","toolchain":"gcc"}
+        ]
+      task: |
+        export AUTOMATED_TESTING=1 AUTHOR_TESTING=0
+        #~ t/357 sizes the payload its cloned interpreter allocates. At the 4 MiB default the clone stayed inside
+        #~ the arena; 12 MiB used to fault with SIGSEGV (exit 139), and the documented 4 MiB case was passing while
+        #~ still printing heap warnings, so a payload that fits the allocator hides the very bug the test is for.
+        #~ The task is one shared script and `${{ matrix.* }}` in it is evaluated here, where no matrix context
+        #~ exists, so the leg identifies itself by the matrix `name` that run-direct.yml exports as RAW_NAME. Every
+        #~ other leg leaves the variable unset and t/357 falls back to its own 4 MiB default.
+        case "$RAW_NAME" in
+          *payload-12mb*) export PARATAXIS_SB_PAYLOAD_MB=12 ;;
+        esac
+        #~ Bootstrap cpanm via its canonical one-liner; on a writable perl (a
+        #~ source build) it lands in the perl's own bin dir, which the runner
+        #~ puts on PATH. Distro perl is read-only to the runner user, so
+        #~ cpanm relocates every install into $HOME/perl5 instead. Adopt that
+        #~ layout (PATH + local::lib env) so cpanm deps and the Build steps
+        #~ share one module pool. No-op when $HOME/perl5 was never created.
+        curl -L https://cpanmin.us | perl - --notest App::cpanminus
+        if [ -x "$HOME/perl5/bin/cpanm" ]; then
+          export PATH="$HOME/perl5/bin:$PATH"
+          "$HOME/perl5/bin/cpanm" --local-lib="$HOME/perl5" --notest local::lib
+          eval "$(perl -I "$HOME/perl5/lib/perl5" -Mlocal::lib)"
+        fi
+        command -v cpanm
+        #~ A source-built perl is writable, so this first attempt installs straight
+        #~ into it and nothing changes for those legs. The distro perl of the
+        #~ ubuntu-26.04 default legs is not writable, and Affix::Build writes to
+        #~ its site paths no matter what local::lib says, so when the plain
+        #~ install fails, retry as root through the absolute cpanm path (sudo
+        #~ resets PATH, so a bare name would not be found).
+        cpanm --installdeps --notest --with-suggests --with-recommends --with-configure -v . \
+          || sudo "$(command -v cpanm)" --installdeps --notest --with-suggests --with-recommends --with-configure -v .
+        #~ t/256 and t/257 skip without an event loop, leaving attach_loop untested.
+        #~ Not in META.json's test/recommends, so --with-recommends does not cover
+        #~ them; install both directly. Best effort, as above.
+        cpanm --notest -v IO::Async::Loop Mojo::IOLoop \
+          || echo '::warning::event-loop drivers unavailable, t/256 and t/257 will skip'
+        perl Build.PL
+        ./Build
+        ./Build test --v
   macos:
-    name: "[${{ matrix.os == 'macos-15-intel' && 'Intel' || 'M1' }}] macOS/v${{matrix.perl}}"
-    needs:
-      - setup
-    strategy:
-      fail-fast: false
-      matrix:
-        exclude:
-          - flags: -Dusequadmath
-          - flags: -Dusethreads
-        flags: '${{ fromJSON(needs.setup.outputs.matrix).flags }}'
-        os:
-          - macos-15-intel
-          - macos-15
-        perl: '${{ fromJSON(needs.setup.outputs.matrix).perl }}'
-      max-parallel: 25
-    uses: ./.github/workflows/unix.yml
+    name: macOS
+    uses: sanko/workflow-testing/.github/workflows/run-direct.yml@main
     with:
-      flags: '${{ matrix.flags }}'
-      os: '${{ matrix.os }}'
-      perl: '${{ matrix.perl }}'
+      checkout_submodules: recursive
+      matrix: |-
+        [
+          {"arch":"aarch64","perl_version":"5.42.0","variant":"default","platform_name":"macos","os":"macos-15","toolchain":"clang"},
+          {"arch":"aarch64","perl_version":"5.42.0","variant":"default","platform_name":"macos","os":"macos-15","toolchain":"clang"},
+          {"arch":"x86_64","perl_version":"5.42.0","variant":"default","platform_name":"macos","os":"macos-15-intel","toolchain":"clang"},
+        ]
+      task: |
+        export AUTOMATED_TESTING=1 AUTHOR_TESTING=0
+        #~ Bootstrap cpanm via its canonical one-liner; it installs into the
+        #~ active (source-built) perl's bin dir, which the runner puts on PATH.
+        curl -L https://cpanmin.us | perl - --notest App::cpanminus
+        command -v cpanm
+        cpanm --installdeps --notest --with-suggests --with-recommends --with-configure -v .
+        #~ t/256 and t/257 skip without an event loop, leaving attach_loop untested.
+        #~ Not in META.json's test/recommends, so --with-recommends does not cover
+        #~ them; install both directly. Best effort, as above.
+        cpanm --notest -v IO::Async::Loop Mojo::IOLoop \
+          || echo '::warning::event-loop drivers unavailable, t/256 and t/257 will skip'
+        perl Build.PL
+        ./Build
+        ./Build test --v
   results:
+    if: always()
     name: Results
     needs:
-      - macos
-      - win32
       - linux
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Download test results
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-      - name: Report test results
-        run: |
-          # Function to process a directory
-          process_dir() {
-            local dir="$1"
-            # Loop through each element in the directory
-            for file in "$dir"/*; do
-              # Check if it's a directory
-              if [ -d "$file" ]; then
-                # Recursively call process_dir for subdirectories (except .)
-                if [ "$file" != "." ]; then
-                  process_dir "$file"
-                fi
-              # If it's a regular file, print its content
-              elif [ -f "$file" ]; then
-                echo "================> $file <================"
-                cat "$file"
-                echo ""  # Add an empty line between files
-              fi
-            done
-          }
-          # Get the directory path from the first argument (or current directory)
-          dir=${1:-.}
-          # Process the specified directory
-          process_dir "artifacts"
-  setup:
-    name: Generate Testing Matrix
-    outputs:
-      matrix: '${{ steps.matrix.outputs.matrix }}'
-    runs-on: ubuntu-22.04
-    steps:
-      - env:
-          DATA: |
-            {
-              "perl":  ["5.42.0"],
-              "flags": ["", "-Dusethreads", "-Duselongdouble", "-Dusequadmath", "--debug", "-DDEBUGGING=both", "-DDEBUGGING=-g", "-Doptimize=-g", "-DDEBUGGING=none", "-UDEBUGGING"]
-            }
-        id: matrix
-        run: "jq -rn 'env.DATA | fromjson | @json \"matrix=\\(.)\"' > $GITHUB_OUTPUT\n"
-  win32:
-    name: 'Windows/v${{matrix.perl}}'
-    needs:
-      - setup
-    strategy:
-      fail-fast: false
-      matrix:
-        exclude:
-          - flags: -Duselongdouble
-          - flags: -Dusequadmath
-        flags:
-          - -Dusethreads
-          - ''
-        os:
-          - windows-2022
-        perl: '${{ fromJSON(needs.setup.outputs.matrix).perl }}'
-      max-parallel: 25
-    uses: ./.github/workflows/win32.yml
+      - macos
+      - windows
+    uses: sanko/workflow-testing/.github/workflows/results-summary.yml@main
     with:
-      flags: '${{ matrix.flags }}'
-      os: '${{ matrix.os }}'
-      perl: '${{ matrix.perl }}'
+      title: At.pm CI Matrix
+  windows:
+    name: Windows
+    uses: sanko/workflow-testing/.github/workflows/run-direct.yml@main
+    with:
+      checkout_submodules: recursive
+      matrix: |-
+        [
+          {"arch":"x86_64","platform_name":"windows","os":"windows-2022","toolchain":"gcc","variant":"5.42.3.1","prepare":"curl -sL -o /c/strawberry.zip https://github.com/StrawberryPerl/Perl-Dist-Strawberry/releases/download/SP_54231_64bit/strawberry-perl-5.42.3.1-64bit-portable.zip && rm -rf /c/Strawberry; powershell -NoProfile -Command Expand-Archive -Path C:/strawberry.zip -DestinationPath C:/Strawberry -Force -ErrorAction Stop; rm -f /c/strawberry.zip"}
+        ]
+      task: |
+        export AUTOMATED_TESTING=1 AUTHOR_TESTING=0
+        export PATH="/c/Strawberry/perl/site/bin:/c/Strawberry/perl/bin:/c/Strawberry/c/bin:$PATH"
+        perl -e 'print qq(perl=\$^X :: \$^O\n)'
+        curl -L https://cpanmin.us | perl - --notest App::cpanminus
+        command -v cpanm
+        cpanm --installdeps --notest --with-suggests --with-recommends --with-configure -v .
+        #~ t/256 and t/257 skip without an event loop, leaving attach_loop untested.
+        #~ Not in META.json's test/recommends, so --with-recommends does not cover
+        #~ them; install both directly. Best effort, as above.
+        cpanm --notest -v IO::Async::Loop Mojo::IOLoop \
+          || echo '::warning::event-loop drivers unavailable, t/256 and t/257 will skip'
+        cpanm --test-only -v .
 name: CI Matrix
 on:
   pull_request: ~
