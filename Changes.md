@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- Pull latest upstream lexicons
+
 ## [1.6] - 2026-03-12
 
 ### Changed
@@ -28,11 +33,150 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Direct PDS binary uploads: `upload_blob`
   - Identity resolution: `resolve_did_to_handle`
 
-## [1.3] - 2026-03-08
-... [rest of file] ...
+
+### Added
+- Added support for `atproto-proxy` header in `At::UserAgent` to allow PDS proxying of requests to external services like `chat.bsky.*`.
+- Added `skip_ath` option to DPoP proof generation, as required by the DPoP spec for refresh token exchanges.
+- Added automatic `DPoP-Nonce` management and retry logic to `At::UserAgent::Mojo`.
+- Added support in `At::Protocol::Session` to correctly serialize and resume all metadata fields including `scope`, `token_type`, and `dpop_key_jwk`.
+
+## [1.2] - 2026-03-08
+
+### Added
+
+- Groundwork for data sync support
+
+## [1.1] - 2026-01-24
+
+- Fix ::Builder prereqs
+
+## [1.0] - 2026-01-23
+
+### Added
+- Dedicated Firehose client (`At::Protocol::Firehose`) for real-time event streaming.
+- OAuth login support.
+- Lexicon cache system.
+
+## [0.18] - 2024-02-19
+
+### Changed
+- Update according to lexicon changes in `bluesky-social/atproto@8c94979`.
+- Add timeline index pref to `bsky::actor::savedFeedsPref`.
+- Update according to lexicon changes in `bluesky-social/atproto@15f3856`.
+- Manage communication templates for moderation purposes.
+
+## [0.17] - 2024-02-13
+
+### Changed
+- Refactor methods with more than one optional parameter to accept a hash (Work in progress).
+- Update according to lexicon changes in `bluesky-social/atproto@9579bec`.
+- `temp_fetchLabels(...)` has been deprecated; use `label_queryLabels(...)` or `label_subscribeLabels(...)` instead.
+- Update according to lexicon changes in `bluesky-social/atproto@b400fae`.
+
+### Fixed
+- Sanity check on DID in `server_reserveSigningKey(...)` endpoint.
+
+## [0.16] - 2024-02-11
+
+### Changed
+- Refactor methods with more than one optional parameter to accept a hash (Work in progress).
+- Bluesky no longer requires an invite to create an account.
+- Update according to lexicon changes in `bluesky-social/atproto@e4ec7af`.
+- Add date range and comment filter to `queryModerationEvents` endpoint.
+
+## [0.15] - 2024-01-27
+
+### Fixed
+- Minor bug sweep as I work on a functioning client.
+
+## [0.14] - 2024-01-27
+
+### Fixed
+- Minor bug sweep as I work on a functioning client.
+
+## [0.13] - 2024-01-26
+
+### Fixed
+- Less broken session management.
+
+## [0.12] - 2024-01-26
+
+### Changed
+- Update according to lexicon changes in `bluesky-social/atproto@4171c04`.
+- Add interest tags to preferences.
+- Update according to lexicon changes in `bluesky-social/atproto@8994d36`.
+- Signup queueing.
+
+## [0.11] - 2024-01-25
+
+### Added
+- Early version of sugary API.
+
+### Fixed
+- Minor bug sweep as I work on a functioning client.
+
+## [0.10] - 2024-01-25
+
+### Fixed
+- Minor bug sweep as I work on a functioning client.
+
+## [0.09] - 2024-01-24
+
+### Changed
+- Update according to lexicon changes in `bluesky-social/atproto@dac5c9e`.
+- Tagged suggestions.
+- Update according to lexicon changes in `bluesky-social/atproto@fb979b1`.
+- Social graph relationships endpoint.
+
+## [0.08] - 2024-01-23
+
+### Added
+- Resume expired sessions with `$at->server_refreshSession( ... )`.
+
+## [0.07] - 2024-01-20
+
+### Added
+- New system to resume an authenticated session.
+
+### Changed
+- Update according to lexicon changes in `bluesky-social/atproto@15f3856`.
+- Communication templates for moderation.
+
+### Fixed
+- Login failures are fatal errors.
+
+## [0.06] - 2024-01-19
+
+### Changed
+- Update according to lexicon changes in `bluesky-social/atproto@e43396a`.
+- Phone verification support on account creation.
+
+## [0.05] - 2024-01-09
+
+### Added
+- Update according to lexicon changes in `bluesky-social/atproto#1970`.
+- New method: `admin_getAccountsInfo`.
+- New field in class `At::Lexicon::com::atproto::admin::accountView`.
+
+## [0.04] - 2024-01-06
+
+### Fixed
+- ...don't write tests that fail when an otherwise unimportant page on the internet changes.
+
+## [0.03] - 2024-01-06
+
+### Added
+- Full support for core At protocol and Bluesky extensions.
+
+## [0.02] - 2023-11-22
+
+### Fixed
+- Fix synopsis.
+- Split `At::Bluesky` from `At.pm` because PAUSE ignores subclasses in perl's new class syntax.
+
+## [0.01] - 2023-11-22
+
+### Added
+- Original version.
 
 [Unreleased]: https://github.com/sanko/At.pm/compare/1.6...HEAD
-[1.6]: https://github.com/sanko/At.pm/compare/1.5...1.6
-[1.5]: https://github.com/sanko/At.pm/compare/1.4...1.5
-[1.4]: https://github.com/sanko/At.pm/compare/1.3...1.4
-[1.3]: https://github.com/sanko/At.pm/releases/tag/1.3
