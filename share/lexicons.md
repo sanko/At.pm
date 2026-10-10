@@ -22,4 +22,3 @@ The next line is optional. Without it, the upstream commits get squashed; with i
 # License
 
 Parts from the original atproto project are covered by the license found here: https://github.com/bluesky-social/atproto/blob/main/LICENSE.txt
-
