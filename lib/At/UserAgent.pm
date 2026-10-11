@@ -10,7 +10,7 @@ use Crypt::PRNG;
 use experimental 'try';
 use feature 'class';
 no warnings 'experimental::class';
-class At::UserAgent v1.7.0 {
+class At::UserAgent v1.8.0 {
     field $accessJwt  : reader : param = undef;
     field $refreshJwt : reader : param = undef;
     field $token_type : reader : param = 'Bearer';
