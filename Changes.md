@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Pull latest upstream lexicons
+- `At::UserAgent::set_tokens` now returns the user agent (`$self`), so `login`, `resume`, and `oauth_refresh` return the user agent instead of the raw token string.
+
+### Fixed
+- `At::Protocol::Session::_raw` now serializes `emailConfirmed`, `emailAuthFactor`, and `didDoc`, so saved sessions round-trip without dropping fields.
 
 ## [1.6] - 2026-03-12
 
@@ -179,4 +183,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Original version.
 
-[Unreleased]: https://github.com/sanko/At.pm/compare/1.6...HEAD
+[Unreleased]: https://github.com/sanko/At.pm/compare/1.7.0...HEAD
+[1.7.0]: https://github.com/sanko/At.pm/compare/1.6...1.7.0
