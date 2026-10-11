@@ -1,6 +1,7 @@
 use v5.42;
 use feature 'class';
 no warnings 'experimental::class';
+#
 class At::Protocol::Session v1.7.0 {
     field $accessJwt : param : reader //= ();
     field $did          : param : reader;
@@ -26,18 +27,20 @@ class At::Protocol::Session v1.7.0 {
 
     method _raw {
         +{  accessJwt  => $accessJwt,
-            did        => $did . "",
+            did        => $did . '',
             refreshJwt => $refreshJwt,
-            defined $handle ? ( handle => $handle . "" ) : (),
+            defined $handle ? ( handle => $handle . '' ) : (),
             token_type => $token_type,
             defined $dpop_key_jwk   ? ( dpop_key_jwk => $dpop_key_jwk ) : (), defined $client_id ? ( client_id => $client_id ) : (),
             defined $pds            ? ( pds => $pds . "" ) : (), defined $scope ? ( scope => $scope ) : (), defined $email ? ( email => $email ) : (),
             defined $emailConfirmed ? ( emailConfirmed => $emailConfirmed )    : (),
             defined $emailAuthFactor ? ( emailAuthFactor => $emailAuthFactor ) : (), defined $status ? ( status => $status ) : (),
-            defined $active          ? ( active          => $active )          : (), defined $didDoc ? ( didDoc => $didDoc ) : (),
+            defined $active          ? ( active          => $active )          : (), defined $didDoc ? ( didDoc => $didDoc ) : ()
         };
     }
-} 1;
+};
+#
+1;
 __END__
 
 =pod
