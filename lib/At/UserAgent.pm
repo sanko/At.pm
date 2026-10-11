@@ -85,8 +85,8 @@ class At::UserAgent v1.7.0 {
             { defined $req->{headers} ? ( headers => $req->{headers} ) : () } );
         if ( $res->{headers} ) {
             my $nonce;
-            foreach my $k (keys %{$res->{headers}}) {
-                if (lc($k) eq 'dpop-nonce') { $nonce = $res->{headers}{$k}; last; }
+            foreach my $k ( keys %{ $res->{headers} } ) {
+                if ( lc($k) eq 'dpop-nonce' ) { $nonce = $res->{headers}{$k}; last; }
             }
             $self->dpop_nonce($nonce) if defined $nonce && $nonce ne '';
         }
@@ -149,8 +149,8 @@ class At::UserAgent v1.7.0 {
             { defined $req->{headers} ? ( headers => $req->{headers} ) : (), defined $content ? ( content => $content ) : () } );
         if ( $res->{headers} ) {
             my $nonce;
-            foreach my $k (keys %{$res->{headers}}) {
-                if (lc($k) eq 'dpop-nonce') { $nonce = $res->{headers}{$k}; last; }
+            foreach my $k ( keys %{ $res->{headers} } ) {
+                if ( lc($k) eq 'dpop-nonce' ) { $nonce = $res->{headers}{$k}; last; }
             }
             $self->dpop_nonce($nonce) if defined $nonce && $nonce ne '';
         }

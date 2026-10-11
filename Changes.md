@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - HTTP::Tiny user agent now retries on DPoP nonce mismatches and captures nonce headers case-insensitively.
+- `resume` now refreshes an expired OAuth (DPoP) access token even when the refresh token is opaque and clears the session if refresh fails instead of leaving an expired session in place.
 
 ## [v1.7.0] - 2026-10-11
 
